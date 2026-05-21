@@ -28,6 +28,14 @@ main() {
       break;
     }
   }
+  if (nm == null && Platform.isLinux) {
+    try {
+      var result = Process.runSync("llvm-nm", ["--version"]);
+      if (result.exitCode == 0) nm = "llvm-nm";
+    } on ProcessException {
+      // Keep the original failure below if llvm-nm is not in PATH.
+    }
+  }
   if (nm == null) {
     throw "Could not find nm";
   }

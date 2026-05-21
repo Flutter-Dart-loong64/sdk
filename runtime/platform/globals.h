@@ -90,8 +90,100 @@
 #include <string.h>
 #include <sys/types.h>
 
+#include <atomic>
 #include <bit>
 #include <cassert>  // For assert() in constant expressions.
+
+#if __cplusplus >= 202002L && !defined(__cpp_lib_atomic_ref)
+namespace std {
+
+// Some embedders still build Dart against libc++ versions that provide C++20
+// <bit> helpers but not std::atomic_ref. Dart only needs a reference view over
+// storage that is already treated atomically, so bridge those older libc++
+// builds through std::atomic<T>.
+template <typename T>
+class atomic_ref {
+ public:
+  using value_type = T;
+
+  explicit atomic_ref(T& object) noexcept : object_(&object) {}
+  atomic_ref(const atomic_ref&) noexcept = default;
+  atomic_ref& operator=(const atomic_ref&) = delete;
+
+  bool is_lock_free() const noexcept { return atomic().is_lock_free(); }
+
+  void store(T desired,
+             memory_order order = memory_order_seq_cst) const noexcept {
+    atomic().store(desired, order);
+  }
+
+  T load(memory_order order = memory_order_seq_cst) const noexcept {
+    return atomic().load(order);
+  }
+
+  T exchange(T desired,
+             memory_order order = memory_order_seq_cst) const noexcept {
+    return atomic().exchange(desired, order);
+  }
+
+  bool compare_exchange_weak(
+      T& expected,
+      T desired,
+      memory_order order = memory_order_seq_cst) const noexcept {
+    return atomic().compare_exchange_weak(expected, desired, order, order);
+  }
+
+  bool compare_exchange_weak(T& expected,
+                             T desired,
+                             memory_order success,
+                             memory_order failure) const noexcept {
+    return atomic().compare_exchange_weak(expected, desired, success, failure);
+  }
+
+  bool compare_exchange_strong(
+      T& expected,
+      T desired,
+      memory_order order = memory_order_seq_cst) const noexcept {
+    return atomic().compare_exchange_strong(expected, desired, order, order);
+  }
+
+  bool compare_exchange_strong(T& expected,
+                               T desired,
+                               memory_order success,
+                               memory_order failure) const noexcept {
+    return atomic().compare_exchange_strong(expected, desired, success, failure);
+  }
+
+  T fetch_add(T arg, memory_order order = memory_order_seq_cst) const noexcept {
+    return atomic().fetch_add(arg, order);
+  }
+
+  T fetch_sub(T arg, memory_order order = memory_order_seq_cst) const noexcept {
+    return atomic().fetch_sub(arg, order);
+  }
+
+  T fetch_and(T arg, memory_order order = memory_order_seq_cst) const noexcept {
+    return atomic().fetch_and(arg, order);
+  }
+
+  T fetch_or(T arg, memory_order order = memory_order_seq_cst) const noexcept {
+    return atomic().fetch_or(arg, order);
+  }
+
+  T fetch_xor(T arg, memory_order order = memory_order_seq_cst) const noexcept {
+    return atomic().fetch_xor(arg, order);
+  }
+
+ private:
+  atomic<T>& atomic() const noexcept {
+    return *reinterpret_cast<std::atomic<T>*>(object_);
+  }
+
+  T* object_;
+};
+
+}  // namespace std
+#endif  // __cplusplus >= 202002L && !defined(__cpp_lib_atomic_ref)
 
 #if defined(_WIN32)
 #include "platform/floating_point_win.h"
@@ -225,6 +317,9 @@ struct simd128_value_t {
 #else
 #error Unknown XLEN
 #endif
+#elif defined(__loongarch64)
+#define HOST_ARCH_LOONG64 1
+#define ARCH_IS_64_BIT 1
 #else
 #error Architecture was not detected as supported by Dart.
 #endif
@@ -333,7 +428,8 @@ struct simd128_value_t {
 
 #if !defined(TARGET_ARCH_ARM) && !defined(TARGET_ARCH_X64) &&                  \
     !defined(TARGET_ARCH_IA32) && !defined(TARGET_ARCH_ARM64) &&               \
-    !defined(TARGET_ARCH_RISCV32) && !defined(TARGET_ARCH_RISCV64)
+    !defined(TARGET_ARCH_RISCV32) && !defined(TARGET_ARCH_RISCV64) &&          \
+    !defined(TARGET_ARCH_LOONG64)
 // No target architecture specified pick the one matching the host architecture.
 #if defined(HOST_ARCH_ARM)
 #define TARGET_ARCH_ARM 1
@@ -347,6 +443,8 @@ struct simd128_value_t {
 #define TARGET_ARCH_RISCV32 1
 #elif defined(HOST_ARCH_RISCV64)
 #define TARGET_ARCH_RISCV64 1
+#elif defined(HOST_ARCH_LOONG64)
+#define TARGET_ARCH_LOONG64 1
 #else
 #error Automatic target architecture detection failed.
 #endif
@@ -356,7 +454,7 @@ struct simd128_value_t {
     defined(TARGET_ARCH_RISCV32)
 #define TARGET_ARCH_IS_32_BIT 1
 #elif defined(TARGET_ARCH_X64) || defined(TARGET_ARCH_ARM64) ||                \
-    defined(TARGET_ARCH_RISCV64)
+    defined(TARGET_ARCH_RISCV64) || defined(TARGET_ARCH_LOONG64)
 #define TARGET_ARCH_IS_64_BIT 1
 #else
 #error Automatic target architecture detection failed.
@@ -369,7 +467,7 @@ struct simd128_value_t {
 // Verify that host and target architectures match, we cannot
 // have a 64 bit Dart VM generating 32 bit code or vice-versa.
 #if defined(TARGET_ARCH_X64) || defined(TARGET_ARCH_ARM64) ||                  \
-    defined(TARGET_ARCH_RISCV64)
+    defined(TARGET_ARCH_RISCV64) || defined(TARGET_ARCH_LOONG64)
 #if !defined(ARCH_IS_64_BIT) && !defined(FFI_UNIT_TESTS)
 #error Mismatched Host/Target architectures.
 #endif  // !defined(ARCH_IS_64_BIT) && !defined(FFI_UNIT_TESTS)
@@ -411,6 +509,10 @@ struct simd128_value_t {
 #elif defined(TARGET_ARCH_RISCV64)
 #if !defined(HOST_ARCH_RISCV64)
 #define DART_INCLUDE_SIMULATOR 1
+#endif
+#elif defined(TARGET_ARCH_LOONG64)
+#if !defined(HOST_ARCH_LOONG64)
+#error LoongArch64 simulator is not implemented.
 #endif
 #else
 #error Unknown architecture.
@@ -731,6 +833,8 @@ DART_FORCE_INLINE D bit_copy(const S& source) {
 #define kHostArchitectureName "riscv32"
 #elif defined(HOST_ARCH_RISCV64)
 #define kHostArchitectureName "riscv64"
+#elif defined(HOST_ARCH_LOONG64)
+#define kHostArchitectureName "loong64"
 #elif defined(HOST_ARCH_X64)
 #define kHostArchitectureName "x64"
 #else
@@ -747,6 +851,8 @@ DART_FORCE_INLINE D bit_copy(const S& source) {
 #define kTargetArchitectureName "riscv32"
 #elif defined(TARGET_ARCH_RISCV64)
 #define kTargetArchitectureName "riscv64"
+#elif defined(TARGET_ARCH_LOONG64)
+#define kTargetArchitectureName "loong64"
 #elif defined(TARGET_ARCH_X64)
 #define kTargetArchitectureName "x64"
 #else
