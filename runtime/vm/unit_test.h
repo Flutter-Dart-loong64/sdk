@@ -145,9 +145,11 @@
 #define EXECUTE_TEST_CODE_UWORD_UWORD_UINT32(name, entry, arg0, arg1)          \
   reinterpret_cast<name>(entry)(arg0, arg1)
 #elif defined(TARGET_ARCH_ARM) || defined(TARGET_ARCH_ARM64) ||                \
-    defined(TARGET_ARCH_RISCV32) || defined(TARGET_ARCH_RISCV64)
+    defined(TARGET_ARCH_RISCV32) || defined(TARGET_ARCH_RISCV64) ||            \
+    defined(TARGET_ARCH_LOONG64)
 #if defined(HOST_ARCH_ARM) || defined(HOST_ARCH_ARM64) ||                      \
-    defined(HOST_ARCH_RISCV32) || defined(HOST_ARCH_RISCV64)
+    defined(HOST_ARCH_RISCV32) || defined(HOST_ARCH_RISCV64) ||                \
+    defined(HOST_ARCH_LOONG64)
 // Running on actual ARM hardware, execute code natively.
 #define EXECUTE_TEST_CODE_INT32(name, entry) reinterpret_cast<name>(entry)()
 #define EXECUTE_TEST_CODE_INT64(name, entry) reinterpret_cast<name>(entry)()
@@ -218,8 +220,8 @@
       true))
 #define EXECUTE_TEST_CODE_UWORD_UWORD_UINT32(name, entry, arg0, arg1)          \
   static_cast<uint32_t>(Simulator::Current()->Call(entry, arg0, arg1, 0, 0))
-#endif  // defined(HOST_ARCH_ARM)
-#endif  // defined(TARGET_ARCH_{ARM, ARM64})
+#endif  // defined(HOST_ARCH_{ARM, ARM64, RISCV32, RISCV64, LOONG64})
+#endif  // defined(TARGET_ARCH_{ARM, ARM64, RISCV32, RISCV64, LOONG64})
 
 #define ZONE_STR(FMT, ...)                                                     \
   OS::SCreate(Thread::Current()->zone(), FMT, ##__VA_ARGS__)

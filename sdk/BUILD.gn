@@ -40,6 +40,9 @@ declare_args() {
   dart_include_wasm_opt = true
 }
 
+_dart_target_has_aot = dart_target_arch != "ia32" &&
+                       dart_target_arch != "x86"
+
 # The directory layout of the SDK is as follows:
 #
 # ..dart-sdk/
@@ -123,7 +126,7 @@ _platform_sdk_snapshots = [ [
       "../utils/analysis_server",
       "analysis_server",
     ] ]
-if (dart_target_arch != "ia32" && dart_target_arch != "x86") {
+if (_dart_target_has_aot) {
   _platform_sdk_snapshots += [
     [
       "analysis_server_aot_product",
@@ -197,7 +200,7 @@ if ((dart_target_arch == "x64" || dart_target_arch == "arm64") &&
       ] ]
 }
 
-if (dart_target_arch != "ia32" && dart_target_arch != "x86") {
+if (_dart_target_has_aot) {
   _full_sdk_snapshots =
       _platform_sdk_snapshots + [
         [
@@ -304,10 +307,27 @@ copy_tree("copy_dartdoc_resources") {
 # This rule copies the pre-built DevTools application to
 # bin/resources/devtools/
 copy_tree("copy_prebuilt_devtools") {
-  visibility = [ ":create_common_sdk" ]
+  visibility = [
+    ":create_common_sdk",
+    ":write_prebuilt_devtools_version_file",
+  ]
   source = "../third_party/devtools/web"
   dest = "$root_out_dir/$dart_sdk_output/bin/resources/devtools"
   exclude = "{}"
+}
+
+action("write_prebuilt_devtools_version_file") {
+  visibility = [ ":create_common_sdk" ]
+  deps = [ ":copy_prebuilt_devtools" ]
+  inputs = [ "../third_party/devtools/packages/devtools_app/pubspec.yaml" ]
+  outputs = [ "$root_out_dir/$dart_sdk_output/bin/resources/devtools/version.json" ]
+  script = "../tools/write_devtools_version_file.py"
+  args = [
+    "--pubspec",
+    rebase_path(inputs[0]),
+    "--output",
+    rebase_path(outputs[0]),
+  ]
 }
 
 # This action compiles the devtools app from sources.
@@ -381,7 +401,7 @@ if (target_os != current_os && target_os == "fuchsia") {
   }
 }
 
-if (dart_target_arch != "ia32" && dart_target_arch != "x86") {
+if (_dart_target_has_aot) {
   copy("copy_dart") {
     visibility = [ ":create_common_sdk" ]
     deps = [ "../runtime/bin:dart" ]
@@ -914,13 +934,16 @@ group("create_common_sdk") {
   if (defined(build_devtools_from_sources) && build_devtools_from_sources) {
     public_deps += [ ":build_devtools" ]
   } else {
-    public_deps += [ ":copy_prebuilt_devtools" ]
+    public_deps += [
+      ":copy_prebuilt_devtools",
+      ":write_prebuilt_devtools_version_file",
+    ]
   }
 
   # We do not support AOT on ia32 and should therefore not add the
   # dart native compilation files since there is no AOT compiler/runtime
   # available.
-  if (dart_target_arch != "ia32" && dart_target_arch != "x86") {
+  if (_dart_target_has_aot) {
     public_deps += [ ":group_dart2native" ]
   }
 }
@@ -950,7 +973,7 @@ group("create_full_sdk") {
     ":copy_full_sdk_snapshots",
   ]
 
-  if (dart_target_arch != "ia32" && dart_target_arch != "x86") {
+  if (_dart_target_has_aot) {
     public_deps += [
       ":copy_dart2wasm_platform",
       ":copy_dart2wasm_snapshot",
@@ -960,8 +983,7 @@ group("create_full_sdk") {
     }
   }
 
-  if (dart_target_arch != "ia32" && dart_target_arch != "x86" &&
-      dart_target_arch != "arm") {
+  if (_dart_target_has_aot && dart_target_arch != "arm") {
     # Do not include gen_snapshot binaries for cross-compilation into
     # SDK, but add them as a dependency, so that they are built.
     public_deps += [

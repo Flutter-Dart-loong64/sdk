@@ -4,6 +4,7 @@
 
 #include "vm/runtime_entry.h"
 
+#include <cstring>
 #include <memory>
 
 #include "platform/address_sanitizer.h"
