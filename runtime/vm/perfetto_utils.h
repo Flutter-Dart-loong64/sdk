@@ -7,7 +7,13 @@
 
 #if defined(SUPPORT_PERFETTO)
 
+#if defined(__has_include)
+#if __has_include(<concepts>)
+#include <concepts>
+#endif
+#endif
 #include <memory>
+#include <type_traits>
 #include <tuple>
 #include <utility>
 
@@ -165,11 +171,47 @@ struct Span {
   uword Hash() const { return HashBytes(data, length * sizeof(T)); }
 };
 
+#if defined(__cpp_concepts) && (__cpp_concepts >= 201907L)
 template <typename T, typename Allocator>
 concept DefinesCopyAndDispose = requires(const T& a, Allocator* allocator) {
   { a.Copy(allocator) } -> std::same_as<T>;
   { a.Dispose(allocator) } -> std::same_as<void>;
 };
+
+template <typename T>
+static constexpr bool DefinesHashAndEqualityValue = DefinesHashAndEquality<T>;
+
+template <typename T, typename Allocator>
+static constexpr bool DefinesCopyAndDisposeValue =
+    DefinesCopyAndDispose<T, Allocator>;
+#else
+template <typename T, typename Allocator, typename = void>
+struct DefinesCopyAndDispose : public std::false_type {};
+
+template <typename T, typename Allocator>
+struct DefinesCopyAndDispose<
+    T,
+    Allocator,
+    std::void_t<decltype(std::declval<const T&>().Copy(
+                    std::declval<Allocator*>())),
+                decltype(std::declval<const T&>().Dispose(
+                    std::declval<Allocator*>()))>>
+    : public std::bool_constant<
+          std::is_same_v<decltype(std::declval<const T&>().Copy(
+                             std::declval<Allocator*>())),
+                         T> &&
+          std::is_same_v<decltype(std::declval<const T&>().Dispose(
+                             std::declval<Allocator*>())),
+                         void>> {};
+
+template <typename T>
+static constexpr bool DefinesHashAndEqualityValue =
+    DefinesHashAndEquality<T>::value;
+
+template <typename T, typename Allocator>
+static constexpr bool DefinesCopyAndDisposeValue =
+    DefinesCopyAndDispose<T, Allocator>::value;
+#endif
 
 // Sequence of elements which can be interned by |BytesInterner|.
 //
@@ -183,7 +225,7 @@ struct Interned {
       : data(data), hash(hash), iid(iid) {}
 
   bool Equals(const Interned& other) const {
-    if constexpr (DefinesHashAndEquality<T>) {
+    if constexpr (DefinesHashAndEqualityValue<T>) {
       return data.Equals(other.data);
     } else {
       return memcmp(&data, &other.data, sizeof(T)) == 0;
@@ -191,7 +233,7 @@ struct Interned {
   }
 
   static uword ComputeHash(const T& data) {
-    if constexpr (DefinesHashAndEquality<T>) {
+    if constexpr (DefinesHashAndEqualityValue<T>) {
       return data.Hash();
     } else {
       return HashBytes(&data, sizeof(T));
@@ -291,7 +333,7 @@ class Interner
 
   Interned<T>* Copy(const Interned<T>& interned, uint64_t iid) const {
     auto copy = allocator()->template Alloc<Interned<T>>(1);
-    if constexpr (DefinesCopyAndDispose<T, Allocator>) {
+    if constexpr (DefinesCopyAndDisposeValue<T, Allocator>) {
       new (copy)
           Interned<T>(interned.data.Copy(allocator()), interned.hash, iid);
     } else {
@@ -302,7 +344,7 @@ class Interner
 
   void Dispose(Interned<T>* interned) {
     if constexpr (Allocator::kSupportsFreeingIndividualAllocations) {
-      if constexpr (DefinesCopyAndDispose<T, Allocator>) {
+      if constexpr (DefinesCopyAndDisposeValue<T, Allocator>) {
         interned->data.Dispose(allocator());
       }
       allocator()->Free(interned, 1);

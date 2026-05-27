@@ -296,6 +296,7 @@ class BitField<
         typename S::ContainedType>>>
     : public BitField<typename S::ContainedType, T, position, size, false> {};
 
+#if !defined(__GNUC__) || defined(__clang__) || (__GNUC__ >= 9)
 template <typename S, typename T, int position>
 class BitField<
     S,
@@ -310,7 +311,9 @@ class BitField<
                       position,
                       BITFIELD_NON_BOOL_MIN_SIZE_WITH_POSITION(S, T, position),
                       false> {};
+#endif
 
+#if !defined(__GNUC__) || defined(__clang__) || (__GNUC__ >= 9)
 template <typename S, typename T>
 class BitField<S,
                T,
@@ -324,6 +327,7 @@ class BitField<S,
                       0,
                       BITFIELD_NON_BOOL_MIN_SIZE_WITH_POSITION(S, T, 0),
                       false> {};
+#endif
 
 template <typename S, int position, int size>
 class BitField<

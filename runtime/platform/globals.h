@@ -94,7 +94,7 @@
 #include <bit>
 #include <cassert>  // For assert() in constant expressions.
 
-#if __cplusplus >= 202002L && !defined(__cpp_lib_atomic_ref)
+#if !defined(__cpp_lib_atomic_ref)
 namespace std {
 
 // Some embedders still build Dart against libc++ versions that provide C++20
@@ -110,72 +110,72 @@ class atomic_ref {
   atomic_ref(const atomic_ref&) noexcept = default;
   atomic_ref& operator=(const atomic_ref&) = delete;
 
-  bool is_lock_free() const noexcept { return atomic().is_lock_free(); }
+  bool is_lock_free() const noexcept { return ref().is_lock_free(); }
 
   void store(T desired,
              memory_order order = memory_order_seq_cst) const noexcept {
-    atomic().store(desired, order);
+    ref().store(desired, order);
   }
 
   T load(memory_order order = memory_order_seq_cst) const noexcept {
-    return atomic().load(order);
+    return ref().load(order);
   }
 
   T exchange(T desired,
              memory_order order = memory_order_seq_cst) const noexcept {
-    return atomic().exchange(desired, order);
+    return ref().exchange(desired, order);
   }
 
   bool compare_exchange_weak(
       T& expected,
       T desired,
       memory_order order = memory_order_seq_cst) const noexcept {
-    return atomic().compare_exchange_weak(expected, desired, order, order);
+    return ref().compare_exchange_weak(expected, desired, order, order);
   }
 
   bool compare_exchange_weak(T& expected,
                              T desired,
                              memory_order success,
                              memory_order failure) const noexcept {
-    return atomic().compare_exchange_weak(expected, desired, success, failure);
+    return ref().compare_exchange_weak(expected, desired, success, failure);
   }
 
   bool compare_exchange_strong(
       T& expected,
       T desired,
       memory_order order = memory_order_seq_cst) const noexcept {
-    return atomic().compare_exchange_strong(expected, desired, order, order);
+    return ref().compare_exchange_strong(expected, desired, order, order);
   }
 
   bool compare_exchange_strong(T& expected,
                                T desired,
                                memory_order success,
                                memory_order failure) const noexcept {
-    return atomic().compare_exchange_strong(expected, desired, success, failure);
+    return ref().compare_exchange_strong(expected, desired, success, failure);
   }
 
   T fetch_add(T arg, memory_order order = memory_order_seq_cst) const noexcept {
-    return atomic().fetch_add(arg, order);
+    return ref().fetch_add(arg, order);
   }
 
   T fetch_sub(T arg, memory_order order = memory_order_seq_cst) const noexcept {
-    return atomic().fetch_sub(arg, order);
+    return ref().fetch_sub(arg, order);
   }
 
   T fetch_and(T arg, memory_order order = memory_order_seq_cst) const noexcept {
-    return atomic().fetch_and(arg, order);
+    return ref().fetch_and(arg, order);
   }
 
   T fetch_or(T arg, memory_order order = memory_order_seq_cst) const noexcept {
-    return atomic().fetch_or(arg, order);
+    return ref().fetch_or(arg, order);
   }
 
   T fetch_xor(T arg, memory_order order = memory_order_seq_cst) const noexcept {
-    return atomic().fetch_xor(arg, order);
+    return ref().fetch_xor(arg, order);
   }
 
  private:
-  atomic<T>& atomic() const noexcept {
+  atomic<T>& ref() const noexcept {
     return *reinterpret_cast<std::atomic<T>*>(object_);
   }
 

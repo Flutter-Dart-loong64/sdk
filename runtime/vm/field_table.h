@@ -63,7 +63,7 @@ class FieldTable {
     ASSERT(IsValidIndex(index));
     if (concurrent_use) {
       ObjectPtr* table =
-          std::atomic_ref(table_).load(std::memory_order::acquire);
+          std::atomic_ref(table_).load(std::memory_order_acquire);
       return std::atomic_ref(table[index]).load(std::memory_order_acquire);
     } else {
       // There is no concurrent access expected for this field, so we avoid
