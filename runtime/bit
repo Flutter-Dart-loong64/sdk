@@ -1,0 +1,144 @@
+#ifndef DART_OLDWORLD_COMPAT_BIT_
+#define DART_OLDWORLD_COMPAT_BIT_
+
+#if (defined(__GNUC__) && !defined(__clang__) && (__GNUC__ >= 10)) || \
+    (defined(__clang__) && defined(__has_include_next) && __has_include_next(<bit>))
+
+#include_next <bit>
+
+#else
+
+#include <limits>
+#include <stdint.h>
+#include <string.h>
+#include <type_traits>
+
+namespace std {
+
+template <typename To, typename From>
+typename enable_if<sizeof(To) == sizeof(From) &&
+                       is_trivially_copyable<From>::value &&
+                       is_trivially_copyable<To>::value,
+                   To>::type
+bit_cast(const From& from) noexcept {
+  To to;
+  memcpy(&to, &from, sizeof(To));
+  return to;
+}
+
+template <typename T>
+using __dart_oldworld_unsigned_t = typename make_unsigned<T>::type;
+
+template <typename T>
+constexpr bool has_single_bit(T value) noexcept {
+  __dart_oldworld_unsigned_t<T> x = value;
+  return x != 0 && (x & (x - 1)) == 0;
+}
+
+template <typename T>
+constexpr int popcount(T value) noexcept {
+  __dart_oldworld_unsigned_t<T> x = value;
+  int count = 0;
+  while (x != 0) {
+    count += static_cast<int>(x & 1);
+    x >>= 1;
+  }
+  return count;
+}
+
+template <typename T>
+constexpr int countl_zero(T value) noexcept {
+  using U = __dart_oldworld_unsigned_t<T>;
+  U x = value;
+  constexpr int digits = numeric_limits<U>::digits;
+  if (x == 0) {
+    return digits;
+  }
+  int count = 0;
+  for (int bit = digits - 1; bit >= 0; --bit) {
+    if (((x >> bit) & 1) != 0) {
+      break;
+    }
+    ++count;
+  }
+  return count;
+}
+
+template <typename T>
+constexpr int countr_zero(T value) noexcept {
+  using U = __dart_oldworld_unsigned_t<T>;
+  U x = value;
+  constexpr int digits = numeric_limits<U>::digits;
+  if (x == 0) {
+    return digits;
+  }
+  int count = 0;
+  while ((x & 1) == 0) {
+    ++count;
+    x >>= 1;
+  }
+  return count;
+}
+
+template <typename T>
+constexpr int countl_one(T value) noexcept {
+  using U = __dart_oldworld_unsigned_t<T>;
+  return countl_zero(static_cast<U>(~static_cast<U>(value)));
+}
+
+template <typename T>
+constexpr int bit_width(T value) noexcept {
+  using U = __dart_oldworld_unsigned_t<T>;
+  U x = value;
+  return numeric_limits<U>::digits - countl_zero(x);
+}
+
+template <typename T>
+constexpr T bit_ceil(T value) noexcept {
+  using U = __dart_oldworld_unsigned_t<T>;
+  U x = value;
+  if (x <= 1) {
+    return static_cast<T>(1);
+  }
+  int width = bit_width(static_cast<U>(x - 1));
+  if (width >= numeric_limits<U>::digits) {
+    return static_cast<T>(0);
+  }
+  return static_cast<T>(static_cast<U>(1) << width);
+}
+
+template <typename T>
+constexpr T rotl(T value, int shift) noexcept {
+  using U = __dart_oldworld_unsigned_t<T>;
+  constexpr int digits = numeric_limits<U>::digits;
+  U x = static_cast<U>(value);
+  int r = shift % digits;
+  if (r < 0) {
+    r += digits;
+  }
+  if (r == 0) {
+    return static_cast<T>(x);
+  }
+  return static_cast<T>((x << r) | (x >> (digits - r)));
+}
+
+template <typename T>
+constexpr T rotr(T value, int shift) noexcept {
+  using U = __dart_oldworld_unsigned_t<T>;
+  constexpr int digits = numeric_limits<U>::digits;
+  U x = static_cast<U>(value);
+  int r = shift % digits;
+  if (r < 0) {
+    r += digits;
+  }
+  if (r == 0) {
+    return static_cast<T>(x);
+  }
+  return static_cast<T>((x >> r) | (x << (digits - r)));
+}
+
+}  // namespace std
+
+#endif
+
+#endif  // DART_OLDWORLD_COMPAT_BIT_

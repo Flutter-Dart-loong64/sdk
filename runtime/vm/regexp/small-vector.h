@@ -6,6 +6,11 @@
 #define V8_BASE_SMALL_VECTOR_H_
 
 #include <algorithm>
+#if defined(__has_include)
+#if __has_include(<concepts>)
+#include <concepts>
+#endif
+#endif
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -17,6 +22,12 @@
 #define V8_NO_UNIQUE_ADDRESS
 
 namespace base {
+
+#if defined(__cpp_concepts) && (__cpp_concepts >= 201907L)
+#define SMALL_VECTOR_HAS_CPP20_REQUIRES 1
+#else
+#define SMALL_VECTOR_HAS_CPP20_REQUIRES 0
+#endif
 
 // Minimal SmallVector implementation. Uses inline storage first, switches to
 // dynamic storage when it overflows.
@@ -44,12 +55,23 @@ class SmallVector {
   // default-initialized(!), differently to e.g. `std::vector`. If
   // value-initialization is desired, use the constructor overload with an
   // explicit `initial_value` instead.
+#if SMALL_VECTOR_HAS_CPP20_REQUIRES
   explicit V8_INLINE SmallVector(size_t size,
                                  const Allocator& allocator = Allocator())
     requires std::default_initializable<T>
       : allocator_(allocator) {
     resize(size);
   }
+#else
+  template <typename U = T,
+            typename = std::enable_if_t<
+                std::is_default_constructible<U>::value>>
+  explicit V8_INLINE SmallVector(size_t size,
+                                 const Allocator& allocator = Allocator())
+      : allocator_(allocator) {
+    resize(size);
+  }
+#endif
   explicit V8_INLINE SmallVector(size_t size,
                                  const T& initial_value,
                                  const Allocator& allocator = Allocator())
@@ -275,8 +297,14 @@ class SmallVector {
   // than the current size, the new elements will not be default-initialized,
   // (meaning the objects will only be allocated, not constructed.)
   // This is only valid if `T` is an implicit lifetime type.
+#if SMALL_VECTOR_HAS_CPP20_REQUIRES
   void resize_no_init(size_t new_size)
     requires kHasTrivialElement
+#else
+  template <bool enabled = kHasTrivialElement,
+            typename = std::enable_if_t<enabled>>
+  void resize_no_init(size_t new_size)
+#endif
   {
     if (new_size > capacity()) Grow(new_size);
     end_ = begin_ + new_size;
@@ -284,8 +312,15 @@ class SmallVector {
 
   // Resizes the SmallVector to the provided `new_size`. If `new_size` is larger
   // than the current size, the new elements will be default-initialized.
+#if SMALL_VECTOR_HAS_CPP20_REQUIRES
   void resize(size_t new_size)
     requires std::default_initializable<T>
+#else
+  template <typename U = T,
+            typename = std::enable_if_t<
+                std::is_default_constructible<U>::value>>
+  void resize(size_t new_size)
+#endif
   {
     if (new_size > capacity()) Grow(new_size);
     T* new_end = begin_ + new_size;
@@ -381,6 +416,8 @@ class SmallVector {
   T* end_of_storage_ = begin_ + kInlineSize;
   alignas(T) char inline_storage_[sizeof(T) * kInlineSize];
 };
+
+#undef SMALL_VECTOR_HAS_CPP20_REQUIRES
 
 }  // namespace base
 

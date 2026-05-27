@@ -5,6 +5,9 @@
 #ifndef RUNTIME_VM_HASH_MAP_H_
 #define RUNTIME_VM_HASH_MAP_H_
 
+#include <type_traits>
+#include <utility>
+
 #include "platform/utils.h"
 #include "vm/flags.h"
 #include "vm/growable_array.h"  // For Malloc, EmptyBase
@@ -368,14 +371,43 @@ class ZoneDirectChainedHashMap
 // Concept for checking if T provides Hash and Equals methods that are expected
 // by |PointerSetKeyValueTrait|.
 
+#if defined(__cpp_concepts) && (__cpp_concepts >= 201907L)
 template <typename T>
 concept DefinesHashAndEquality = requires(const T& a, const T& b) {
   { a.Equals(b) } -> std::same_as<bool>;
   { a.Hash() } -> std::same_as<uword>;
 };
+#else
+template <typename T, typename = void>
+struct DefinesHashAndEquality : public std::false_type {};
 
+template <typename T>
+struct DefinesHashAndEquality<
+    T,
+    std::void_t<decltype(std::declval<const T&>().Equals(
+                    std::declval<const T&>())),
+                decltype(std::declval<const T&>().Hash())>>
+    : public std::bool_constant<
+          std::is_same_v<decltype(std::declval<const T&>().Equals(
+                             std::declval<const T&>())),
+                         bool> &&
+          std::is_same_v<decltype(std::declval<const T&>().Hash()), uword>> {};
+#endif
+
+#if defined(__cpp_concepts) && (__cpp_concepts >= 201907L)
 template <DefinesHashAndEquality T>
+#else
+template <typename T>
+#endif
 class PointerSetKeyValueTrait {
+  static_assert(
+#if defined(__cpp_concepts) && (__cpp_concepts >= 201907L)
+      DefinesHashAndEquality<T>,
+#else
+      DefinesHashAndEquality<T>::value,
+#endif
+      "PointerSet entries must define bool Equals(const T&) and uword Hash().");
+
  public:
   typedef T* Value;
   typedef T* Key;
@@ -387,7 +419,11 @@ class PointerSetKeyValueTrait {
   static inline bool IsKeyEqual(Pair kv, Key key) { return kv->Equals(*key); }
 };
 
+#if defined(__cpp_concepts) && (__cpp_concepts >= 201907L)
 template <DefinesHashAndEquality T>
+#else
+template <typename T>
+#endif
 using PointerSet = DirectChainedHashMap<PointerSetKeyValueTrait<T>>;
 
 template <typename T>

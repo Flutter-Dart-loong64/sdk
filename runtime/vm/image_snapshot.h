@@ -488,7 +488,9 @@ class ImageWriter : public ValueObject {
         // Both vm and isolate share the build id section.
         return SharedObjectWriter::kBuildIdLabel;
     }
+#if !defined(__GNUC__) || defined(__clang__) || (__GNUC__ >= 9)
     UNREACHABLE();
+#endif
     return 0;
   }
 
