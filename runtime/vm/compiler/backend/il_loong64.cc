@@ -499,6 +499,20 @@ static void EmitFloat64x2GetLane(FlowGraphCompiler* compiler,
   ReleaseSimdScratch(compiler);
 }
 
+static void EmitInt32x4GetLane(FlowGraphCompiler* compiler,
+                               SimdOpInstr* instr) {
+  const intptr_t lane =
+      Float32x4LaneFromKind(instr->kind(), SimdOpInstr::kInt32x4GetX);
+  const Register out = instr->locs()->out(0).reg();
+  const FpuRegister value = instr->locs()->in(0).fpu_reg();
+
+  ReserveSimdScratch(compiler);
+  __ StoreQ(value, SimdSlot(kSimdSlot0Offset));
+  __ Load(out, SimdSlot(SimdLane32Offset(kSimdSlot0Offset, lane)),
+          compiler::kFourBytes);
+  ReleaseSimdScratch(compiler);
+}
+
 static void EmitFloat32x4WithLane(FlowGraphCompiler* compiler,
                                   SimdOpInstr* instr) {
   const intptr_t lane =
@@ -931,6 +945,12 @@ void SimdOpInstr::EmitNativeCode(FlowGraphCompiler* compiler) {
     case SimdOpInstr::kFloat64x2GetX:
     case SimdOpInstr::kFloat64x2GetY:
       EmitFloat64x2GetLane(compiler, this);
+      break;
+    case SimdOpInstr::kInt32x4GetX:
+    case SimdOpInstr::kInt32x4GetY:
+    case SimdOpInstr::kInt32x4GetZ:
+    case SimdOpInstr::kInt32x4GetW:
+      EmitInt32x4GetLane(compiler, this);
       break;
     case SimdOpInstr::kFloat32x4WithX:
     case SimdOpInstr::kFloat32x4WithY:
