@@ -70,7 +70,7 @@ class GetterFragment implements Fragment, FunctionFragment {
     name.length,
   );
 
-  GetterFragment({
+  new({
     required this.name,
     required this.fileUri,
     required this.startOffset,
@@ -128,7 +128,7 @@ class GetterFragment implements Fragment, FunctionFragment {
 class _GetterBodyBuildingContext implements FunctionBodyBuildingContext {
   GetterFragment _fragment;
 
-  _GetterBodyBuildingContext(this._fragment);
+  new(this._fragment);
 
   @override
   InferenceDataForTesting? get inferenceDataForTesting => _fragment
@@ -153,7 +153,7 @@ class _GetterBodyBuildingContext implements FunctionBodyBuildingContext {
       _fragment.declaration.thisTypeParameters;
 
   @override
-  Variable? get thisVariable => _fragment.declaration.thisVariable;
+  InternalVariable? get thisVariable => _fragment.declaration.thisVariable;
 
   @override
   ExtensionScope get extensionScope {

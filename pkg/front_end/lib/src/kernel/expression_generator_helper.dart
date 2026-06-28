@@ -39,7 +39,7 @@ typedef Expression_Generator_Initializer = dynamic;
 typedef Expression_Initializer = dynamic;
 
 abstract class ExpressionGeneratorHelper {
-  Variable? get thisVariable;
+  InternalVariable? get thisVariable;
 
   Uri get uri;
 
@@ -84,7 +84,7 @@ abstract class ExpressionGeneratorHelper {
 
   LibraryFeatures get libraryFeatures;
 
-  bool isDeclaredInEnclosingCase(Variable variable);
+  bool isDeclaredInEnclosingCase(InternalVariable variable);
 
   Generator processLookupResult({
     required LookupResult? lookupResult,
@@ -221,23 +221,23 @@ abstract class ExpressionGeneratorHelper {
   );
 
   /// Creates a synthetic variable declaration for the value of [expression].
-  VariableDeclarationImpl createVariableDeclarationForValue(
+  InternalSyntheticVariable createVariableDeclarationForValue(
     Expression expression,
   );
 
   /// Creates a [VariableGet] of the [variable] using [charOffset] as the file
   /// offset of the created node.
-  Expression createVariableGet(Variable variable, int charOffset);
+  Expression createVariableGet(InternalVariable variable, int charOffset);
 
   /// Registers that [variable] is read from.
   ///
   /// This is needed for type promotion.
-  void registerVariableRead(Variable variable);
+  void registerVariableRead(InternalVariable variable);
 
   /// Registers that [variable] is assigned to.
   ///
   /// This is needed for type promotion.
-  void registerVariableAssignment(Variable variable);
+  void registerVariableAssignment(InternalVariable variable);
 
   TypeEnvironment get typeEnvironment;
 
@@ -324,38 +324,25 @@ enum UnresolvedKind { Unknown, Member, Method, Getter, Setter, Constructor }
 /// [ConstructorResolutionResult] is the root of the sealed hierarchy of
 /// results, which then branches into the successful, the unresolved, and the
 /// erroneous cases.
-sealed class ConstructorResolutionResult {}
+sealed class ConstructorResolutionResult;
 
-class SuccessfulConstructorResolutionResult
-    extends ConstructorResolutionResult {
-  final Expression constructorInvocation;
-
-  SuccessfulConstructorResolutionResult(this.constructorInvocation);
-}
+class SuccessfulConstructorResolutionResult(
+  final Expression constructorInvocation,
+) extends ConstructorResolutionResult;
 
 /// Erroneous case of [ConstructorResolutionResult].
-class ErroneousConstructorResolutionResult extends ConstructorResolutionResult {
+class ErroneousConstructorResolutionResult({
   /// The expression signaling the error, typically an [InvalidExpression].
-  final Expression errorExpression;
-
-  ErroneousConstructorResolutionResult({required this.errorExpression});
-}
+  required final Expression errorExpression,
+}) extends ConstructorResolutionResult;
 
 /// Unresolved case of [UnresolvedConstructorResolutionResult].
-class UnresolvedConstructorResolutionResult
-    extends ConstructorResolutionResult {
-  final ExpressionGeneratorHelper _helper;
-  final String errorName;
-  final int charOffset;
-  final UnresolvedKind unresolvedKind;
-
-  UnresolvedConstructorResolutionResult({
-    required this.errorName,
-    required this.charOffset,
-    required ExpressionGeneratorHelper helper,
-    this.unresolvedKind = UnresolvedKind.Constructor,
-  }) : _helper = helper;
-
+class UnresolvedConstructorResolutionResult({
+  required final String errorName,
+  required final int charOffset,
+  required final ExpressionGeneratorHelper _helper,
+  final UnresolvedKind unresolvedKind = UnresolvedKind.Constructor,
+}) extends ConstructorResolutionResult {
   /// Constructs the expression signaling the unresolved error.
   ///
   /// The construction of the expression signaling the error is delayed from

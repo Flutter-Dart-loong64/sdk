@@ -36,12 +36,19 @@ class ParserDiagnosticsTest {
     );
     if (actual != expected) {
       NodeTextExpectationsCollector.add(actual);
-      printPrettyDiff(expected, actual);
+      if (NodeTextExpectationsCollector.shouldPrintFailureDetails) {
+        printPrettyDiff(expected, actual);
+      }
       fail('See the difference above.');
     }
   }
 
-  ParseStringResult parseStringWithErrors(
+  /// Parses [content] without checking diagnostics.
+  ///
+  /// Use this only for parser smoke tests where diagnostics are intentionally
+  /// irrelevant, for example when verifying that a broad set of inputs does not
+  /// crash or loop.
+  ParseStringResult parseTestCodeIgnoringDiagnostics(
     String content, {
     FeatureSet? featureSet,
   }) {
@@ -77,7 +84,9 @@ class ParserDiagnosticsTest {
     );
     if (actual != content) {
       NodeTextExpectationsCollector.add(actual);
-      printPrettyDiff(content, actual);
+      if (NodeTextExpectationsCollector.shouldPrintFailureDetails) {
+        printPrettyDiff(content, actual);
+      }
       fail('See the difference above.');
     }
 

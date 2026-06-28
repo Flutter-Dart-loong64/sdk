@@ -407,19 +407,17 @@ class _WasmTransformer extends Transformer {
       );
     }
 
-    final iterator = Variable(
-      "#forIterator",
+    final iterator = SyntheticVariable(
+      cosmeticName: "#forIterator",
       initializer: iteratorInitializer..fileOffset = iterable.fileOffset,
       type: iteratorType,
-      isSynthesized: true,
     )..fileOffset = iterable.fileOffset;
 
     // Only used when `isAsync` is true.
-    final jumpSentinel = Variable(
-      "#jumpSentinel",
+    final jumpSentinel = SyntheticVariable(
+      cosmeticName: "#jumpSentinel",
       initializer: ConstantExpression(BoolConstant(false)),
       type: InterfaceType(coreTypes.boolClass, Nullability.nonNullable),
-      isSynthesized: true,
     );
 
     final condition = InstanceInvocation(
@@ -440,8 +438,10 @@ class _WasmTransformer extends Transformer {
         resultType: elementType,
       )..fileOffset = stmt.bodyOffset);
 
-    Block body = Block([VariableStatement(variable), stmt.body])
-      ..fileOffset = stmt.fileOffset;
+    Block body = Block([
+      VariableStatement(VariableDeclaration(variable)),
+      stmt.body,
+    ])..fileOffset = stmt.fileOffset;
 
     Statement forStatement = ForStatement(
       const [],
@@ -480,8 +480,8 @@ class _WasmTransformer extends Transformer {
     }
 
     return Block([
-      VariableStatement(iterator),
-      if (isAsync) VariableStatement(jumpSentinel),
+      VariableStatement(VariableDeclaration(iterator)),
+      if (isAsync) VariableStatement(VariableDeclaration(jumpSentinel)),
       forStatement,
     ]).accept<TreeNode>(this);
   }
@@ -615,27 +615,24 @@ class _WasmTransformer extends Transformer {
       const VoidType(),
     ]);
 
-    final pausedVar = Variable(
-      '#paused',
+    final pausedVar = SyntheticVariable(
+      cosmeticName: '#paused',
       initializer: null,
       type: pausedVarType,
-      isSynthesized: true,
     );
 
-    final cancelCompleterVar = Variable(
-      '#cancelCompleter',
+    final cancelCompleterVar = SyntheticVariable(
+      cosmeticName: '#cancelCompleter',
       initializer: null,
       type: InterfaceType(_completerClass, Nullability.nullable, [
         const VoidType(),
       ]),
-      isSynthesized: true,
     );
 
-    final isDoneVar = Variable(
-      '#isDone',
+    final isDoneVar = SyntheticVariable(
+      cosmeticName: '#isDone',
       type: InterfaceType(coreTypes.boolClass, Nullability.nonNullable),
       initializer: ConstantExpression(BoolConstant(false)),
-      isSynthesized: true,
     );
 
     IfStatement makePauseCheck() => IfStatement(
@@ -704,18 +701,20 @@ class _WasmTransformer extends Transformer {
       ),
     );
 
-    final onCancelCallbackVar = Variable(
-      "#onCancelCallback",
+    final onCancelCallbackVar = SyntheticVariable(
+      cosmeticName: "#onCancelCallback",
       initializer: onCancelCallback,
+      isSynthesized: false,
     );
 
     final onResumeCallback = FunctionExpression(
       FunctionNode(makePauseCheck(), returnType: const VoidType()),
     );
 
-    final onResumeCallbackVar = Variable(
-      "#onResumeCallback",
+    final onResumeCallbackVar = SyntheticVariable(
+      cosmeticName: "#onResumeCallback",
       initializer: onResumeCallback,
+      isSynthesized: false,
     );
 
     // StreamController<T>(sync: true)
@@ -733,11 +732,10 @@ class _WasmTransformer extends Transformer {
     );
 
     // var #controller = ...
-    final controllerVar = Variable(
-      '#controller',
+    final controllerVar = SyntheticVariable(
+      cosmeticName: '#controller',
       initializer: controllerInitializer..fileOffset = fileOffset,
       type: controllerObjectType,
-      isSynthesized: true,
     )..fileOffset = fileOffset;
 
     _asyncStarFrames.add(
@@ -749,12 +747,12 @@ class _WasmTransformer extends Transformer {
 
     // The body will be wrapped with a `try-catch` to pass the error to the
     // controller, and `try-finally` to close the controller.
-    final exceptionVar = Variable(null, isSynthesized: true);
+    final exceptionVar = CatchVariable(name: '#exception', isSynthesized: true);
 
-    final stackTraceVar = Variable(
-      null,
-      isSynthesized: true,
+    final stackTraceVar = CatchVariable(
+      name: '#stackTrace',
       type: coreTypes.stackTraceRawType(Nullability.nonNullable),
+      isSynthesized: true,
     );
 
     final catch_ = Catch(
@@ -850,11 +848,10 @@ class _WasmTransformer extends Transformer {
       Nullability.nonNullable,
     );
 
-    final bodyVar = Variable(
-      '#body',
+    final bodyVar = SyntheticVariable(
+      cosmeticName: '#body',
       initializer: bodyInitializer..fileOffset = fileOffset,
       type: bodyFunctionType,
-      isSynthesized: true,
     )..fileOffset = fileOffset;
 
     // controller.onListen = () {
@@ -884,17 +881,17 @@ class _WasmTransformer extends Transformer {
 
     return FunctionNode(
       Block([
-        VariableStatement(pausedVar),
-        VariableStatement(cancelCompleterVar),
-        VariableStatement(isDoneVar),
-        VariableStatement(onCancelCallbackVar),
-        VariableStatement(onResumeCallbackVar),
+        VariableStatement(VariableDeclaration(pausedVar)),
+        VariableStatement(VariableDeclaration(cancelCompleterVar)),
+        VariableStatement(VariableDeclaration(isDoneVar)),
+        VariableStatement(VariableDeclaration(onCancelCallbackVar)),
+        VariableStatement(VariableDeclaration(onResumeCallbackVar)),
 
         // var controller = StreamController<T>(sync: true, onCancel: onCancelCallback, onResume: onResumeCallback);
-        VariableStatement(controllerVar),
+        VariableStatement(VariableDeclaration(controllerVar)),
 
         // var #body = ...;
-        VariableStatement(bodyVar),
+        VariableStatement(VariableDeclaration(bodyVar)),
 
         // controller.onListen = ...;
         ExpressionStatement(setControllerOnListen),
@@ -1304,8 +1301,8 @@ class PushPopWasmArrayTransformer {
     );
 
     // var newArray = WasmArray<T>(nextCapacity)
-    final newArrayVariable = Variable(
-      'newArray',
+    final newArrayVariable = SyntheticVariable(
+      cosmeticName: 'newArray',
       initializer: arrayAllocation,
       type: InterfaceType(_wasmArrayClass, Nullability.nonNullable, [
         elementType,
@@ -1347,7 +1344,7 @@ class PushPopWasmArrayTransformer {
     }
 
     final List<Statement> arrayGrowStatements = [
-      VariableStatement(newArrayVariable),
+      VariableStatement(VariableDeclaration(newArrayVariable)),
       ExpressionStatement(newArrayCopy),
       arrayFieldUpdate,
     ];
@@ -1471,12 +1468,14 @@ class PushPopWasmArrayTransformer {
     );
 
     // final temp = array[length]
-    final arrayGetVariable = Variable.forValue(
-      arrayGet,
+    final arrayGetVariable = SyntheticVariable(
+      initializer: arrayGet,
       isFinal: true,
       type: elementType,
     );
-    blockStatements.add(VariableStatement(arrayGetVariable));
+    blockStatements.add(
+      VariableStatement(VariableDeclaration(arrayGetVariable)),
+    );
 
     // array[length] = null
     if (elementIsNullable) {

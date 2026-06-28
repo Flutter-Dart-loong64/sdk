@@ -24,7 +24,7 @@ class ParserTestListener implements Listener {
   final StringBuffer sb = new StringBuffer();
   final bool trace;
 
-  ParserTestListener(this.trace);
+  new(this.trace);
 
   String createTrace() {
     List<String> traceLines = StackTrace.current.toString().split("\n");

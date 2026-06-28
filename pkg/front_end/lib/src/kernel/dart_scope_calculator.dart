@@ -20,7 +20,7 @@ class DartScope {
   final Map<String, Variable> variables;
   final List<TypeParameter> typeParameters;
 
-  DartScope(
+  new(
     this.library,
     this.fileUri,
     this.offset,
@@ -65,7 +65,7 @@ class DartScope2 {
   final Map<String, Variable> variables;
   final List<TypeParameter> typeParameters;
 
-  DartScope2(
+  new(
     this.node,
     this.library,
     this.cls,
@@ -106,7 +106,7 @@ class DartScopeBuilder2 extends VisitorDefault<void> with VisitorVoidMixin {
   bool checkClasses = true;
   Uri _currentUri;
 
-  DartScopeBuilder2._(this._library, this._scriptUri, this._offset)
+  new _(this._library, this._scriptUri, this._offset)
     : _currentUri = _library.fileUri;
 
   void clearScope() {
@@ -118,7 +118,7 @@ class DartScopeBuilder2 extends VisitorDefault<void> with VisitorVoidMixin {
     Map<String, Variable> definitions = {};
     for (List<Variable> scope in scopes) {
       for (Variable decl in scope) {
-        String? name = decl.name;
+        String? name = decl.cosmeticName;
         if (name != null &&
             !decl.isSynthesized &&
             !hoistedUnwritten.contains(decl) &&
@@ -268,9 +268,11 @@ class DartScopeBuilder2 extends VisitorDefault<void> with VisitorVoidMixin {
 
     _checkOffset(node);
 
+    node.function.accept(this);
+
     // The constructor is special in that the parameters from the contained
     // function node is in scope in the initializers.
-    node.function.accept(this);
+    // Here we add all parameters, i.e. we don't filter initializing formals.
     for (Variable param in node.function.positionalParameters) {
       scopes.last.add(param);
     }
@@ -378,9 +380,28 @@ class DartScopeBuilder2 extends VisitorDefault<void> with VisitorVoidMixin {
   @override
   void defaultVariable(Variable node) {
     if (node.isHoisted) hoistedUnwritten.add(node);
-    super.defaultVariable(node);
-    // Declare it after.
-    scopes.last.add(node);
+
+    // Special handling if on the last parameter in a function node: The VM at
+    // least "stops" on the last parameter in a function node when stepping into
+    // a method, so in that case pretend that all parameters are defined already
+    // (any initializer has to be constant anyway).
+    TreeNode? parent = node.parent;
+    if (parent is FunctionNode) {
+      scopes.add(parent.positionalParameters);
+      scopes.add(parent.namedParameters);
+      scopes.add([]);
+      super.defaultVariable(node);
+      scopes.removeLast();
+      scopes.removeLast();
+      scopes.removeLast();
+    } else {
+      super.defaultVariable(node);
+    }
+
+    // Declare it after, but filter initializing formals.
+    if (!node.isInitializingFormal && !node.isSuperInitializingFormal) {
+      scopes.last.add(node);
+    }
   }
 
   void _updateClosestFoundOffset(int offset) {
@@ -839,7 +860,7 @@ class DartScopeBuilder2 extends VisitorDefault<void> with VisitorVoidMixin {
       if (firstBlock.parent is ForStatement &&
           receiver is VariableGet &&
           receiver.variable.isSynthesized &&
-          receiver.variable.name == ":sync-for-iterator") {
+          receiver.variable.cosmeticName == ":sync-for-iterator") {
         // Matches the case. Return the last block.
         return filtered.last;
       }
@@ -968,10 +989,10 @@ class DartScopeBuilder2 extends VisitorDefault<void> with VisitorVoidMixin {
       Variable variable1 = filtered[0].node as Variable;
       Variable variable2 = filtered[1].node as Variable;
       if (variable1.isSynthesized &&
-          variable1.name?.startsWith("#") == true &&
+          variable1.cosmeticName?.startsWith("#") == true &&
           variable2.isSynthesized &&
           variable2.isLowered &&
-          variable2.name?.startsWith("#") == true) {
+          variable2.cosmeticName?.startsWith("#") == true) {
         // Assume so. We'll pick the last one where we have previous variables
         //that already matched in scope.
         return filtered.last;
@@ -1015,9 +1036,9 @@ class DartScopeBuilder2 extends VisitorDefault<void> with VisitorVoidMixin {
       // isLateLoweredLocalName/isLateLoweredLocalSetter/etc is in the CFE so we
       // can't call it from here.
       if (variable1.isLowered &&
-          variable1.name?.startsWith("#") == true &&
+          variable1.cosmeticName?.startsWith("#") == true &&
           variable2.isLowered &&
-          variable2.name?.startsWith("#") == true) {
+          variable2.cosmeticName?.startsWith("#") == true) {
         // Assume it's a late lowering thing with an exuberant amount of nodes
         // with the same offset. Just pick the first one.
         return filtered[0];

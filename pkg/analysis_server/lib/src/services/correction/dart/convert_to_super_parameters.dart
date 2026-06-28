@@ -18,7 +18,7 @@ import 'package:analyzer_plugin/utilities/fixes/fixes.dart';
 import 'package:analyzer_plugin/utilities/range_factory.dart';
 
 class ConvertToSuperParameters extends ResolvedCorrectionProducer {
-  ConvertToSuperParameters({required super.context});
+  new({required super.context});
 
   @override
   CorrectionApplicability get applicability =>
@@ -316,7 +316,7 @@ class ConvertToSuperParameters extends ResolvedCorrectionProducer {
   _ConstructorData? _findConstructor() {
     var node = this.node;
     if (node is ConstructorDeclaration) {
-      return _SecondaryConstructorData(node);
+      return _InBodyConstructorData(node);
     } else if (node is PrimaryConstructorDeclaration) {
       return _PrimaryConstructorData(node, node.body);
     } else if (node is PrimaryConstructorBody) {
@@ -332,13 +332,13 @@ class ConvertToSuperParameters extends ResolvedCorrectionProducer {
     } else if (node is SimpleIdentifier) {
       var parent = node.parent;
       if (parent is ConstructorDeclaration) {
-        return _SecondaryConstructorData(parent);
+        return _InBodyConstructorData(parent);
       } else if (parent is PrimaryConstructorDeclaration) {
         return _PrimaryConstructorData(parent, parent.body);
       } else if (parent is ConstructorName) {
         var grandparent = parent.parent;
         if (grandparent is ConstructorDeclaration) {
-          return _SecondaryConstructorData(grandparent);
+          return _InBodyConstructorData(grandparent);
         }
       }
     }
@@ -480,6 +480,23 @@ abstract class _ConstructorData {
   }
 }
 
+/// Information about an in-body constructor.
+class _InBodyConstructorData extends _ConstructorData {
+  final ConstructorDeclaration declaration;
+
+  new(this.declaration);
+
+  @override
+  FunctionBody? get body => declaration.body;
+
+  @override
+  NodeList<ConstructorInitializer>? get initializers =>
+      declaration.initializers;
+
+  @override
+  FormalParameterList get parameters => declaration.parameters;
+}
+
 /// Information about a single parameter.
 class _Parameter {
   final FormalParameter parameter;
@@ -488,7 +505,7 @@ class _Parameter {
 
   final int index;
 
-  _Parameter(this.parameter, this.element, this.index);
+  new(this.parameter, this.element, this.index);
 
   bool get isNamed => element.isNamed;
 
@@ -524,7 +541,7 @@ class _ParameterData {
   final int argumentIndex;
 
   /// Initialize a newly create data object.
-  _ParameterData({
+  new({
     required this.finalKeyword,
     required this.typeToDelete,
     required this.name,
@@ -541,7 +558,7 @@ class _PrimaryConstructorData extends _ConstructorData {
 
   final PrimaryConstructorBody? _body;
 
-  _PrimaryConstructorData(this.declaration, this._body);
+  new(this.declaration, this._body);
 
   @override
   FunctionBody? get body => _body?.body;
@@ -565,23 +582,6 @@ class _ReferencedParameterCollector extends RecursiveAstVisitor<void> {
   }
 }
 
-/// Information about a secondary constructor.
-class _SecondaryConstructorData extends _ConstructorData {
-  final ConstructorDeclaration declaration;
-
-  _SecondaryConstructorData(this.declaration);
-
-  @override
-  FunctionBody? get body => declaration.body;
-
-  @override
-  NodeList<ConstructorInitializer>? get initializers =>
-      declaration.initializers;
-
-  @override
-  FormalParameterList get parameters => declaration.parameters;
-}
-
 /// Information about the ranges of text that need to be removed in order to
 /// remove a type annotation.
 class _TypeData {
@@ -589,5 +589,5 @@ class _TypeData {
 
   SourceRange? parameterRange;
 
-  _TypeData({required this.primaryRange, this.parameterRange});
+  new({required this.primaryRange, this.parameterRange});
 }

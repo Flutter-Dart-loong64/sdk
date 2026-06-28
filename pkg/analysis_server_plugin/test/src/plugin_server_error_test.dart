@@ -56,9 +56,7 @@ plugins:
     newFile(filePath, 'bool b = false;');
     var contextRoot = protocol.ContextRoot(packagePath, []);
 
-    await channel.sendRequest(
-      protocol.AnalysisSetContextRootsParams([contextRoot]),
-    );
+    await _setRoots([contextRoot]);
 
     var pluginErrorParamsQueue = StreamQueue(
       channel.notifications
@@ -96,9 +94,7 @@ plugins:
           .map((n) => protocol.PluginErrorParams.fromNotification(n)),
     );
 
-    await channel.sendRequest(
-      protocol.AnalysisSetContextRootsParams([contextRoot]),
-    );
+    await _setRoots([contextRoot]);
 
     var analysisErrorsParams = await analysisErrorsParamsQueue.next;
     expect(analysisErrorsParams.errors, isEmpty);
@@ -126,9 +122,7 @@ plugins:
     newFile(filePath, 'bool b = false;');
     var contextRoot = protocol.ContextRoot(packagePath, []);
 
-    await channel.sendRequest(
-      protocol.AnalysisSetContextRootsParams([contextRoot]),
-    );
+    await _setRoots([contextRoot]);
 
     var pluginErrorParamsQueue = StreamQueue(
       channel.notifications
@@ -170,9 +164,7 @@ plugins:
           .map((n) => protocol.PluginErrorParams.fromNotification(n)),
     );
 
-    await channel.sendRequest(
-      protocol.AnalysisSetContextRootsParams([contextRoot]),
-    );
+    await _setRoots([contextRoot]);
 
     // Wait for initial analysis to complete and populate `_recentState`.
     var analysisErrorsParams = await analysisErrorsParamsQueue.next;
@@ -212,9 +204,7 @@ plugins:
           .where((p) => p.file == filePath),
     );
 
-    await channel.sendRequest(
-      protocol.AnalysisSetContextRootsParams([contextRoot]),
-    );
+    await _setRoots([contextRoot]);
 
     // Wait for initial analysis to complete and populate `_recentState`.
     await analysisErrorsParamsQueue.next;
@@ -228,6 +218,50 @@ plugins:
           .having((e) => e.message, 'message', 'Bad state: A message.')
           .having((e) => e.stackTrace, 'stackTrace', isNotNull),
     );
+  }
+
+  Future<void> test_multiplePlugins_oneThrows() async {
+    newAnalysisOptionsYamlFile(packagePath, '''
+plugins:
+  throwing_plugin:
+    path: some/path
+  printing_plugin:
+    path: some/other/path
+''');
+    pluginServer = PluginServer.new2(
+      resourceProvider: resourceProvider,
+      plugins: {
+        'throwing_plugin': _RuleThrowsSyncErrorPlugin(),
+        'printing_plugin': _PrintingPlugin(),
+      },
+    );
+    await startPlugin();
+
+    var filePath = join(packagePath, 'lib', 'test.dart');
+    newFile(filePath, 'bool b = false;');
+    var contextRoot = protocol.ContextRoot(packagePath, []);
+
+    var notifications = channel.notifications.asBroadcastStream();
+    var pluginPrintParamsQueue = StreamQueue(
+      notifications
+          .where((n) => n.event == protocol.PLUGIN_NOTIFICATION_PRINT)
+          .map((n) => protocol.PluginPrintParams.fromNotification(n)),
+    );
+    var pluginErrorParamsQueue = StreamQueue(
+      notifications
+          .where((n) => n.event == protocol.PLUGIN_NOTIFICATION_ERROR)
+          .map((n) => protocol.PluginErrorParams.fromNotification(n)),
+    );
+
+    await _setRoots([contextRoot]);
+
+    var pluginErrorParams = await pluginErrorParamsQueue.next;
+    expect(pluginErrorParams.isFatal, false);
+    expect(pluginErrorParams.message, 'Bad state: A message.');
+
+    var pluginPrintParams = await pluginPrintParamsQueue.next;
+    expect(pluginPrintParams.pluginPrint.pluginName, 'printing_plugin');
+    expect(pluginPrintParams.pluginPrint.message, 'A message.');
   }
 
   Future<void> test_registerAssistWithoutAssistKind() async {
@@ -247,6 +281,17 @@ plugins:
         plugins: [_PluginWithFixWithNoFixKind()],
       ),
       throwsArgumentError,
+    );
+  }
+
+  Future<void> _setRoots(List<protocol.ContextRoot> contextRoots) async {
+    await channel.sendRequest(
+      protocol.AnalysisSetContextRootsParams(contextRoots),
+    );
+    await channel.sendRequest(
+      protocol.AnalysisSetAnalysisRootsParams([
+        for (var contextRoot in contextRoots) contextRoot.root,
+      ], []),
     );
   }
 }

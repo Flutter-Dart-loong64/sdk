@@ -9,6 +9,7 @@ import 'package:kernel/core_types.dart' show CoreTypes;
 import 'package:kernel/library_index.dart' show LibraryIndex;
 import 'package:kernel/names.dart' show noSuchMethodName;
 import 'package:yaml/yaml.dart';
+
 import '../source/source_loader.dart' show SourceLoader;
 import '../api_prototype/lowering_predicates.dart'
     show extractQualifiedNameFromExtensionMethodName;
@@ -68,7 +69,7 @@ extension on YamlMap {
 class DynamicInterfaceYamlFile {
   final YamlNode _root;
 
-  DynamicInterfaceYamlFile(String contents) : _root = loadYamlNode(contents) {
+  new(String contents) : _root = loadYamlNode(contents) {
     if (!isEmpty) {
       sections.verifyKeys(const {
         'extendable',
@@ -116,7 +117,7 @@ class DynamicInterfaceSpecification {
   final Set<TreeNode> canBeUsedAsType = {};
   final Set<TreeNode> dynamicallyCallable = {};
 
-  factory DynamicInterfaceSpecification(
+  factory(
     String dynamicInterfaceSpecification,
     Uri baseUri,
     Component component,
@@ -126,7 +127,7 @@ class DynamicInterfaceSpecification {
     component,
   );
 
-  DynamicInterfaceSpecification.fromYamlFile(
+  new fromYamlFile(
     DynamicInterfaceYamlFile yamlFile,
     Uri baseUri,
     Component component,
@@ -390,7 +391,7 @@ class DynamicInterfaceLanguageImplPragmas {
       "dyn-module:language-impl:can-be-used-as-type";
 
   final CoreTypes coreTypes;
-  DynamicInterfaceLanguageImplPragmas(this.coreTypes);
+  new(this.coreTypes);
 
   bool isPlatformLibrary(Library library) => library.importUri.isScheme('dart');
 
@@ -443,10 +444,8 @@ class DynamicInterfaceLanguageImplPragmas {
   bool isAnnotatedWith(Annotatable node, String pragmaName) {
     for (Expression annotation in node.annotations) {
       if (annotation case ConstantExpression(:var constant)) {
-        if (constant case InstanceConstant(
-          :var classNode,
-          :var fieldValues,
-        ) when classNode == coreTypes.pragmaClass) {
+        if (constant case InstanceConstant(:var classNode, :var fieldValues)
+            when classNode == coreTypes.pragmaClass) {
           if (fieldValues[coreTypes.pragmaName.fieldReference]
               case StringConstant(:var value) when value == pragmaName) {
             return true;
@@ -470,7 +469,7 @@ class _DynamicModuleValidator extends RecursiveVisitor {
 
   TreeNode? _enclosingTreeNode;
 
-  _DynamicModuleValidator(
+  new(
     this.spec,
     this.languageImplPragmas,
     this.moduleLibraries,
@@ -1114,10 +1113,7 @@ class _DynamicCallValidator {
   final Set<Class> classesExposedDynamically = {};
   DynamicInterfaceSpecification get spec => validator.spec;
 
-  _DynamicCallValidator(
-    this.validator,
-    List<String> dynamicCallsSelectorAllowList,
-  ) {
+  new(this.validator, List<String> dynamicCallsSelectorAllowList) {
     for (final String descriptor in dynamicCallsSelectorAllowList) {
       List<String> split = descriptor.split(':');
       if (split.length == 1) {
@@ -1261,7 +1257,7 @@ class _Selector {
   final _SelectorKind kind;
   final Name name;
 
-  _Selector(this.kind, this.name);
+  new(this.kind, this.name);
 
   String get _prefix => switch (kind) {
     .Method => '',

@@ -1112,6 +1112,7 @@ class Isolate : public IntrusiveDListEntry<Isolate> {
 
   void set_message_notify_callback(Dart_MessageNotifyCallback value) {
     message_notify_callback_.store(value, std::memory_order_release);
+    is_acquirable_ = false;
   }
 
   void set_on_shutdown_callback(Dart_IsolateShutdownCallback value) {
@@ -1293,6 +1294,16 @@ class Isolate : public IntrusiveDListEntry<Isolate> {
   void IncrementSpawnCount();
   void DecrementSpawnCount();
   void WaitForOutstandingSpawns();
+
+  bool TryAcquireOwnership();
+  void ReleaseOwnership();
+  bool is_permanently_pinned() { return is_permanently_pinned_; }
+  void set_is_permanently_pinned() { is_permanently_pinned_ = true; }
+  void clear_is_permanently_pinned_for_testing_only() {
+    is_permanently_pinned_ = false;
+  }
+  bool is_acquirable() { return is_acquirable_; }
+  void set_is_not_acquirable() { is_acquirable_ = false; }
 
   static void SetCreateGroupCallback(Dart_IsolateGroupCreateCallback cb) {
     create_group_callback_ = cb;
@@ -1700,6 +1711,8 @@ class Isolate : public IntrusiveDListEntry<Isolate> {
   FfiCallbackMetadata::MetadataEntry* ffi_callback_list_head_ = nullptr;
   intptr_t ffi_callback_keep_alive_counter_ = 0;
   RelaxedAtomic<ThreadId> owner_thread_ = OSThread::kInvalidThreadId;
+  bool is_permanently_pinned_ = false;
+  bool is_acquirable_ = true;
 
   ErrorPtr sticky_error_;
 

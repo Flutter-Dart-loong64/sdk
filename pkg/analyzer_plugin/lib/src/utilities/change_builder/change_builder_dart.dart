@@ -178,13 +178,19 @@ class DartEditBuilderImpl extends EditBuilderImpl implements DartEditBuilder {
       write(Keyword.CONST.lexeme);
       write(' ');
     }
-    if (classNameGroupName == null) {
+    if (_featureSet.isEnabled(Feature.primary_constructors)) {
+      write('new');
+    } else if (classNameGroupName == null) {
       write(className);
     } else {
       addSimpleLinkedEdit(classNameGroupName, className);
     }
     if (constructorName != null) {
-      write('.');
+      if (_featureSet.isEnabled(Feature.primary_constructors)) {
+        write(' ');
+      } else {
+        write('.');
+      }
       if (constructorNameGroupName == null) {
         write(constructorName);
       } else {
@@ -1939,6 +1945,55 @@ class DartFileEditBuilderImpl extends FileEditBuilderImpl
   }
 
   @override
+  void deleteClassMember(ClassMember member) {
+    var body = member.parent;
+    if (body is BlockClassBody) {
+      var members = body.members;
+      if (members.length == 1) {
+        // Delete the only member by replacing the body with a semicolon.
+        addSimpleReplacement(
+          range.endEnd(body.leftBracket.previous!, body.rightBracket),
+          ';',
+        );
+      } else if (member == members[0]) {
+        // Delete the first member.
+        addDeletion(range.startStart(member, members[1]));
+      } else {
+        // Delete a member that is preceeded by at least one other member.
+        var index = members.indexOf(member);
+        addDeletion(range.endEnd(members[index - 1], member));
+      }
+    } else if (body is BlockEnumBody) {
+      var members = body.members;
+      if (members.length == 1) {
+        var semicolon = body.semicolon;
+        if (semicolon != null) {
+          // Delete the only member by deleting everything from the
+          // semicolon to the end of the block.
+          addDeletion(range.startEnd(semicolon, member));
+        } else {
+          // Delete the only member by replacing the body with a semicolon.
+          addSimpleReplacement(
+            range.endEnd(body.leftBracket.previous!, body.rightBracket),
+            ';',
+          );
+        }
+      } else if (member == members[0]) {
+        // Delete the first member.
+        addDeletion(range.startStart(member, members[1]));
+      } else {
+        // Delete a member that is preceeded by at least one other member.
+        var index = members.indexOf(member);
+        addDeletion(range.endEnd(members[index - 1], member));
+      }
+    } else {
+      throw StateError(
+        'Unsupported parent type for class member deletion: ${body.runtimeType}',
+      );
+    }
+  }
+
+  @override
   void finalize() {
     if (_createEditsForImports && _librariesToImport.isNotEmpty) {
       _addLibraryImports(_librariesToImport.values);
@@ -1949,6 +2004,7 @@ class DartFileEditBuilderImpl extends FileEditBuilderImpl
         builder.writeln(header);
       });
     }
+    super.finalize();
   }
 
   @override
@@ -2166,8 +2222,9 @@ class DartFileEditBuilderImpl extends FileEditBuilderImpl
   @override
   void insertConstructor(
     CompilationUnitMember container,
-    void Function(DartEditBuilder builder) buildEdit,
-  ) {
+    void Function(DartEditBuilder builder) buildEdit, {
+    bool isNamed = false,
+  }) {
     if (container is! ClassDeclaration &&
         container is! EnumDeclaration &&
         container is! ExtensionTypeDeclaration) {
@@ -2180,14 +2237,20 @@ class DartFileEditBuilderImpl extends FileEditBuilderImpl
             'declarations.',
       );
     }
-    final sortConstructorsFirst = resolvedUnit.session.analysisContext
+    final codeStyleOptions = resolvedUnit.session.analysisContext
         .getAnalysisOptionsForFile(resolvedUnit.file)
-        .codeStyleOptions
-        .sortConstructorsFirst;
-    var lastMemberFilter = sortConstructorsFirst
-        ? (member) => member is ConstructorDeclaration
-        : (member) =>
-              member is ConstructorDeclaration || member is FieldDeclaration;
+        .codeStyleOptions;
+    bool Function(ClassMember) lastMemberFilter;
+    if (codeStyleOptions.sortConstructorsFirst) {
+      lastMemberFilter = (member) => member is ConstructorDeclaration;
+    } else if (!isNamed && codeStyleOptions.sortUnnamedConstructorsFirst) {
+      lastMemberFilter = (member) =>
+          (member is ConstructorDeclaration && member.name == null) ||
+          member is FieldDeclaration;
+    } else {
+      lastMemberFilter = (member) =>
+          member is ConstructorDeclaration || member is FieldDeclaration;
+    }
     insertIntoUnitMember(
       container,
       buildEdit,

@@ -941,8 +941,18 @@ void FunctionNodeHelper::ReadUntilExcluding(Field field) {
           helper_->ReadByte());  // read dart async marker.
       if (++next_read_ == field) return;
       FALL_THROUGH;
+    case kScopeSize:
+      helper_->ReadUInt();  // read scope size.
+      if (++next_read_ == field) return;
+      FALL_THROUGH;
     case kTypeParameters:
       helper_->SkipTypeParametersList();  // read type parameters.
+      if (++next_read_ == field) return;
+      FALL_THROUGH;
+    case kThisVariable:
+      if (helper_->ReadTag() == kSomething) {
+        helper_->SkipVariable();  // read this_variable.
+      }
       if (++next_read_ == field) return;
       FALL_THROUGH;
     case kTotalParameterCount:
@@ -956,11 +966,11 @@ void FunctionNodeHelper::ReadUntilExcluding(Field field) {
       if (++next_read_ == field) return;
       FALL_THROUGH;
     case kPositionalParameters:
-      helper_->SkipListOfVariableDeclarations();  // read positionals.
+      helper_->SkipListOfVariables();  // read positionals.
       if (++next_read_ == field) return;
       FALL_THROUGH;
     case kNamedParameters:
-      helper_->SkipListOfVariableDeclarations();  // read named.
+      helper_->SkipListOfVariables();  // read named.
       if (++next_read_ == field) return;
       FALL_THROUGH;
     case kReturnType:
@@ -998,6 +1008,14 @@ void FunctionNodeHelper::ReadUntilExcluding(Field field) {
         helper_->SkipStatement();  // read body.
       if (++next_read_ == field) return;
       FALL_THROUGH;
+    case kScope:
+      helper_->SkipScope();
+      if (++next_read_ == field) return;
+      FALL_THROUGH;
+    case kCapturedContexts:
+      helper_->SkipCapturedContexts();
+      if (++next_read_ == field) return;
+      FALL_THROUGH;
     case kEnd:
       return;
   }
@@ -1030,11 +1048,15 @@ void TypeParameterHelper::ReadUntilExcluding(Field field) {
   }
 }
 
-void VariableDeclarationHelper::ReadUntilExcluding(Field field) {
+void VariableHelper::ReadUntilExcluding(Field field) {
   if (field <= next_read_) return;
 
   // Ordered with fall-through.
   switch (next_read_) {
+    case kTag:
+      helper_->ReadTag();  // read tag.
+      if (++next_read_ == field) return;
+      FALL_THROUGH;
     case kPosition:
       position_ = helper_->ReadPosition();  // read position.
       if (++next_read_ == field) return;
@@ -1124,6 +1146,10 @@ void FieldHelper::ReadUntilExcluding(Field field) {
       helper_->SkipName();  // read name.
       if (++next_read_ == field) return;
       FALL_THROUGH;
+    case kScopeSize:
+      helper_->ReadUInt();  // read scope_size.
+      if (++next_read_ == field) return;
+      FALL_THROUGH;
     case kAnnotations: {
       annotation_count_ = helper_->ReadListLength();  // read list length.
       for (intptr_t i = 0; i < annotation_count_; ++i) {
@@ -1136,10 +1162,20 @@ void FieldHelper::ReadUntilExcluding(Field field) {
       helper_->SkipDartType();  // read type.
       if (++next_read_ == field) return;
       FALL_THROUGH;
+    case kThisVariable:
+      if (helper_->ReadTag() == kSomething) {
+        helper_->SkipVariable();  // read this_variable.
+      }
+      if (++next_read_ == field) return;
+      FALL_THROUGH;
     case kInitializer:
       if (helper_->ReadTag() == kSomething) {
         helper_->SkipExpression();  // read initializer.
       }
+      if (++next_read_ == field) return;
+      FALL_THROUGH;
+    case kScope:
+      helper_->SkipScope();
       if (++next_read_ == field) return;
       FALL_THROUGH;
     case kEnd:
@@ -2325,7 +2361,7 @@ void KernelReaderHelper::ReadUntilFunctionNode() {
     case kFunctionDeclaration:
       ReadTag();
       ReadPosition();
-      SkipVariableDeclaration();
+      SkipVariable();
       ReadUInt();
       break;
     case kFunctionExpression:
@@ -2496,6 +2532,13 @@ void KernelReaderHelper::SkipListOfVariableDeclarations() {
   }
 }
 
+void KernelReaderHelper::SkipListOfVariables() {
+  intptr_t list_length = ReadListLength();  // read list length.
+  for (intptr_t i = 0; i < list_length; ++i) {
+    SkipVariable();  // read ith variable.
+  }
+}
+
 void KernelReaderHelper::SkipListOfCanonicalNameReferences() {
   intptr_t list_length = ReadListLength();  // read list length.
   for (intptr_t i = 0; i < list_length; ++i) {
@@ -2537,8 +2580,8 @@ void KernelReaderHelper::SkipInitializer() {
       SkipArguments();               // read arguments.
       return;
     case kLocalInitializer:
-      ReadPosition();             // read position.
-      SkipVariableDeclaration();  // read variable.
+      ReadPosition();  // read position.
+      SkipVariable();  // read variable.
       return;
     case kAssertInitializer:
       ReadPosition();  // read position.
@@ -2816,14 +2859,16 @@ void KernelReaderHelper::SkipExpression() {
       SkipFunctionNode();  // read function node.
       return;
     case kLet:
-      ReadPosition();             // read position.
-      SkipVariableDeclaration();  // read variable declaration.
-      SkipExpression();           // read expression.
+      ReadPosition();    // read position.
+      SkipVariable();    // read variable declaration.
+      SkipExpression();  // read expression.
       return;
     case kBlockExpression:
       ReadPosition();  // read position.
+      ReadUInt();      // read scope size.
       SkipStatementList();
       SkipExpression();  // read expression.
+      SkipScope();
       return;
     case kInstantiation:
       ReadPosition();         // read position.
@@ -2921,7 +2966,9 @@ void KernelReaderHelper::SkipStatement() {
     case kBlock:
       ReadPosition();  // read file offset.
       ReadPosition();  // read file end offset.
+      ReadUInt();      // read scope size.
       SkipStatementList();
+      SkipScope();
       return;
     case kEmptyStatement:
       return;
@@ -2946,8 +2993,10 @@ void KernelReaderHelper::SkipStatement() {
       return;
     case kWhileStatement:
       ReadPosition();    // read position.
+      ReadUInt();        // read scope size.
       SkipExpression();  // read condition.
       SkipStatement();   // read body.
+      SkipScope();
       return;
     case kDoStatement:
       ReadPosition();    // read position.
@@ -2956,6 +3005,7 @@ void KernelReaderHelper::SkipStatement() {
       return;
     case kForStatement: {
       ReadPosition();                    // read position.
+      ReadUInt();                        // read scope size.
       SkipListOfVariableDeclarations();  // read variables.
       Tag tag = ReadTag();               // Read first part of condition.
       if (tag == kSomething) {
@@ -2963,6 +3013,7 @@ void KernelReaderHelper::SkipStatement() {
       }
       SkipListOfExpressions();  // read updates.
       SkipStatement();          // read body.
+      SkipScope();
       return;
     }
     case kSwitchStatement: {
@@ -3008,16 +3059,18 @@ void KernelReaderHelper::SkipStatement() {
       intptr_t catch_count = ReadListLength();  // read number of catches.
       for (intptr_t i = 0; i < catch_count; ++i) {
         ReadPosition();   // read position.
+        ReadUInt();       // read scope size.
         SkipDartType();   // read guard.
         tag = ReadTag();  // read first part of exception.
         if (tag == kSomething) {
-          SkipVariableDeclaration();  // read exception.
+          SkipVariable();  // read exception.
         }
         tag = ReadTag();  // read first part of stack trace.
         if (tag == kSomething) {
-          SkipVariableDeclaration();  // read stack trace.
+          SkipVariable();  // read stack trace.
         }
         SkipStatement();  // read body.
+        SkipScope();
       }
       return;
     }
@@ -3032,14 +3085,15 @@ void KernelReaderHelper::SkipStatement() {
       SkipExpression();  // read expression.
       return;
     }
-    case kVariableDeclaration:
+    case kVariableStatement:
+      ReadPosition();             // read position.
       SkipVariableDeclaration();  // read variable declaration.
       return;
     case kFunctionDeclaration:
-      ReadPosition();             // read position.
-      SkipVariableDeclaration();  // read variable.
-      ReadUInt();                 // read id.
-      SkipFunctionNode();         // read function node.
+      ReadPosition();      // read position.
+      SkipVariable();      // read variable.
+      ReadUInt();          // read id.
+      SkipFunctionNode();  // read function node.
       return;
     case kForInStatement:
     case kAsyncForInStatement:
@@ -3075,8 +3129,15 @@ void KernelReaderHelper::SkipArguments() {
 }
 
 void KernelReaderHelper::SkipVariableDeclaration() {
-  VariableDeclarationHelper helper(this);
-  helper.ReadUntilExcluding(VariableDeclarationHelper::kEnd);
+  ReadTag();       // read tag.
+  ReadPosition();  // read position.
+  SkipCapturedContexts();
+  SkipVariable();  // read variable.
+}
+
+void KernelReaderHelper::SkipVariable() {
+  VariableHelper helper(this);
+  helper.ReadUntilExcluding(VariableHelper::kEnd);
 }
 
 void KernelReaderHelper::SkipLibraryCombinator() {
@@ -3096,6 +3157,32 @@ void KernelReaderHelper::SkipLibraryDependency() {
   intptr_t combinator_count = ReadListLength();
   for (intptr_t i = 0; i < combinator_count; ++i) {
     SkipLibraryCombinator();
+  }
+}
+
+void KernelReaderHelper::SkipScope() {
+  Tag tag = ReadTag();  // read tag.
+  if (tag == kSomething) {
+    intptr_t context_count = ReadListLength();  // read number of contexts.
+    for (intptr_t i = 0; i < context_count; ++i) {
+      ReadByte();                                  // read capture_kind.
+      intptr_t variable_count = ReadListLength();  // read number of variables.
+      for (intptr_t j = 0; j < variable_count; ++j) {
+        ReadUInt();  // read kernel position.
+        ReadUInt();  // read relative variable index.
+      }
+    }
+  }
+}
+
+void KernelReaderHelper::SkipCapturedContexts() {
+  Tag tag = ReadTag();      // read tag.
+  if (tag == kSomething) {  // read captured contexts.
+    intptr_t context_count =
+        ReadListLength();  // read number of context references.
+    for (intptr_t i = 0; i < context_count; ++i) {
+      ReadUInt();  // read context reference.
+    }
   }
 }
 
@@ -3969,8 +4056,8 @@ void TypeTranslator::SetupFunctionParameters(
   const Library& lib = Library::Handle(Z, active_class_->klass->library());
   for (intptr_t i = 0; i < positional_parameter_count; ++i, ++pos) {
     // Read ith variable declaration.
-    VariableDeclarationHelper helper(helper_);
-    helper.ReadUntilExcluding(VariableDeclarationHelper::kType);
+    VariableHelper helper(helper_);
+    helper.ReadUntilExcluding(VariableHelper::kType);
     // The required flag should only be set on named parameters.
     ASSERT(!helper.IsRequired());
     const AbstractType& type = BuildTypeWithoutFinalization();  // read type.
@@ -3988,8 +4075,8 @@ void TypeTranslator::SetupFunctionParameters(
   ASSERT(named_parameter_count_check == named_parameter_count);
   for (intptr_t i = 0; i < named_parameter_count; ++i, ++pos) {
     // Read ith variable declaration.
-    VariableDeclarationHelper helper(helper_);
-    helper.ReadUntilExcluding(VariableDeclarationHelper::kType);
+    VariableHelper helper(helper_);
+    helper.ReadUntilExcluding(VariableHelper::kType);
     const AbstractType& type = BuildTypeWithoutFinalization();  // read type.
     Tag tag = helper_->ReadTag();  // read (first part of) initializer.
     if (tag == kSomething) {

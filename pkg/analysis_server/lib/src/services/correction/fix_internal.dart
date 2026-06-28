@@ -59,7 +59,6 @@ import 'package:analysis_server/src/services/correction/dart/convert_into_is_not
 import 'package:analysis_server/src/services/correction/dart/convert_map_from_iterable_to_for_literal.dart';
 import 'package:analysis_server/src/services/correction/dart/convert_null_check_to_null_aware_element_or_entry.dart';
 import 'package:analysis_server/src/services/correction/dart/convert_quotes.dart';
-import 'package:analysis_server/src/services/correction/dart/convert_related_to_cascade.dart';
 import 'package:analysis_server/src/services/correction/dart/convert_to_boolean_expression.dart';
 import 'package:analysis_server/src/services/correction/dart/convert_to_cascade.dart';
 import 'package:analysis_server/src/services/correction/dart/convert_to_constant_pattern.dart';
@@ -178,6 +177,7 @@ import 'package:analysis_server/src/services/correction/dart/remove_on_clause.da
 import 'package:analysis_server/src/services/correction/dart/remove_operator.dart';
 import 'package:analysis_server/src/services/correction/dart/remove_parameters_in_getter_declaration.dart';
 import 'package:analysis_server/src/services/correction/dart/remove_parentheses_in_getter_invocation.dart';
+import 'package:analysis_server/src/services/correction/dart/remove_primary_constructor_body.dart';
 import 'package:analysis_server/src/services/correction/dart/remove_print.dart';
 import 'package:analysis_server/src/services/correction/dart/remove_question_mark.dart';
 import 'package:analysis_server/src/services/correction/dart/remove_required.dart';
@@ -287,6 +287,7 @@ final _builtInLintGenerators = <DiagnosticCode, List<ProducerGenerator>>{
   diag.alwaysUsePackageImports: [ConvertToPackageImport.new],
   diag.annotateOverrides: [AddOverride.new],
   diag.annotateRedeclares: [AddRedeclare.new],
+  diag.asyncReturnWithNoAwait: [AddAwait.return_],
   diag.avoidAnnotatingWithDynamic: [RemoveTypeAnnotation.other],
   diag.avoidBoolLiteralsInConditionalExpressions: [
     ConvertToBooleanExpression.new,
@@ -320,7 +321,7 @@ final _builtInLintGenerators = <DiagnosticCode, List<ProducerGenerator>>{
   diag.avoidUnnecessaryContainers: [FlutterRemoveWidget.new],
   diag.avoidVoidAsync: [ReplaceReturnTypeFuture.new],
   diag.awaitOnlyFutures: [RemoveKeyword.awaitKeyword],
-  diag.cascadeInvocations: [ConvertToCascade.new, ConvertRelatedToCascade.new],
+  diag.cascadeInvocations: [ConvertToCascade.new],
   diag.castNullableToNonNullable: [AddNullCheck.withoutAssignabilityCheck],
   diag.combinatorsOrdering: [SortCombinators.new],
   diag.constantIdentifierNames: [RenameToCamelCase.new],
@@ -472,6 +473,7 @@ final _builtInLintGenerators = <DiagnosticCode, List<ProducerGenerator>>{
   ],
   diag.unnecessaryOverrides: [RemoveMethodDeclaration.new],
   diag.unnecessaryParenthesis: [RemoveUnnecessaryParentheses.new],
+  diag.unnecessaryPrimaryConstructorBody: [RemovePrimaryConstructorBody.new],
   diag.unnecessaryRawStrings: [RemoveUnnecessaryRawString.new],
   diag.unnecessaryStringEscapes: [RemoveUnnecessaryStringEscape.new],
   diag.unnecessaryStringInterpolations: [
@@ -739,7 +741,10 @@ final _builtInNonLintGenerators = <DiagnosticCode, List<ProducerGenerator>>{
     ConvertIntoBlockBody.missingBody,
   ],
   diag.recordLiteralOnePositionalNoTrailingCommaByType: [AddTrailingComma.new],
-  diag.representationFieldModifier: [RemoveKeyword.varKeyword],
+  diag.representationFieldModifier: [
+    AddTypeAnnotation.forRepresentationField,
+    RemoveKeyword.varKeyword,
+  ],
   diag.returnOfInvalidTypeFromClosure: [AddAsync.wrongReturnType],
   diag.returnOfInvalidTypeFromFunction: [
     AddAsync.wrongReturnType,

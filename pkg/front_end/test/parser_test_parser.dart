@@ -33,7 +33,7 @@ class TestParser extends Parser {
   final bool trace;
   bool _inhibitPrinting = false;
 
-  TestParser(
+  new(
     Listener listener,
     this.trace, {
     required ExperimentalFeatures experimentalFeatures,

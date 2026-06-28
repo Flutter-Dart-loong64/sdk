@@ -21,6 +21,7 @@ import '../../kernel/body_builder_context.dart';
 import '../../kernel/external_ast_helper.dart' as extern;
 import '../../kernel/hierarchy/class_member.dart';
 import '../../kernel/hierarchy/members_builder.dart';
+import '../../kernel/internal_ast.dart';
 import '../../kernel/type_algorithms.dart';
 import '../../source/check_helper.dart';
 import '../../source/name_scheme.dart';
@@ -104,7 +105,7 @@ class RegularSetterDeclaration
   final SetterFragment _fragment;
   late final SetterEncoding _encoding;
 
-  RegularSetterDeclaration(this._fragment) {
+  new(this._fragment) {
     _fragment.declaration = this;
   }
 
@@ -153,7 +154,7 @@ class RegularSetterDeclaration
   List<TypeParameter>? get thisTypeParameters => _encoding.thisTypeParameters;
 
   @override
-  Variable? get thisVariable => _encoding.thisVariable;
+  InternalVariable? get thisVariable => _encoding.thisVariable;
 
   @override
   Procedure get writeTarget => _encoding.writeTarget;
@@ -288,11 +289,6 @@ class RegularSetterDeclaration
         fileUri: _fragment.fileUri,
         nameOffset: _fragment.nameOffset,
         nameLength: _fragment.name.length,
-        isClosureContextLoweringEnabled: libraryBuilder
-            .loader
-            .target
-            .backendTarget
-            .isConstructorTearOffLoweringEnabled,
       );
     }
     _encoding.ensureTypes(libraryBuilder, membersBuilder.hierarchyBuilder);
@@ -316,7 +312,7 @@ class RegularSetterDeclaration
     required Scope? scope,
     required AsyncModifier asyncModifier,
     required DartType? emittedValueType,
-    required Variable? thisVariable,
+    required ThisVariable? thisVariable,
   }) {
     List<FormalParameterBuilder>? declaredFormals = _fragment.declaredFormals;
     if (declaredFormals == null ||
@@ -331,7 +327,11 @@ class RegularSetterDeclaration
         // Add them as local variable to put them in scope of the body.
         List<Statement> statements = <Statement>[];
         for (FormalParameterBuilder parameter in declaredFormals) {
-          statements.add(extern.createVariableStatement(parameter.variable));
+          statements.add(
+            extern.createVariableStatement(
+              extern.createVariableDeclaration(parameter.variable.astVariable),
+            ),
+          );
         }
         statements.add(body);
         body = extern.createBlock(statements, fileOffset: fileOffset);
@@ -395,7 +395,7 @@ abstract class SetterFragmentDeclaration {
 
   List<TypeParameter>? get thisTypeParameters;
 
-  Variable? get thisVariable;
+  InternalVariable? get thisVariable;
 
   void becomeNative(SourceLoader loader);
 
@@ -412,7 +412,7 @@ abstract class SetterFragmentDeclaration {
     required Scope? scope,
     required AsyncModifier asyncModifier,
     required DartType? emittedValueType,
-    required Variable? thisVariable,
+    required ThisVariable? thisVariable,
   });
 
   DartType get returnTypeContext;

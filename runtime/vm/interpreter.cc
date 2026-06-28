@@ -2096,6 +2096,13 @@ SwitchDispatchNoSingleStep:
 
   // KernelBytecode handlers (see constants_kbc.h for bytecode descriptions).
   {
+    BYTECODE(Dup, 0);
+    SP[1] = SP[0];
+    SP++;
+    DISPATCH();
+  }
+
+  {
     BYTECODE(Entry, D);
     const intptr_t num_locals = rD;
 
@@ -2999,6 +3006,7 @@ SwitchDispatchNoSingleStep:
     // This is unused, since the negative case throws an exception.
     SP++;
     ObjectPtr* result_slot = SP;
+    *result_slot = 0;
 
     Exit(thread, FP, SP + 1, pc);
     INVOKE_RUNTIME(DRT_SubtypeCheck,
@@ -3569,21 +3577,23 @@ SwitchDispatchNoSingleStep:
                   : thread->isolate_group()->coverage();
 
     if (coverage_enabled) {
-      ArrayPtr coverage_array =
+      TypedDataPtr coverage_array =
           Function::GetBytecode(FrameFunction(FP))->untag()->coverage_array();
 
-      if (coverage_array == Array::null()) [[unlikely]] {
+      if (coverage_array == TypedData::null()) [[unlikely]] {
         SP[1] = Object::null();  // Allocate stack space for result.
         SP[2] = Function::GetBytecode(FrameFunction(FP));
         Exit(thread, FP, SP + 3, pc);
         INVOKE_RUNTIME(DRT_AllocateBytecodeCoverageArray,
                        NativeArguments(thread, 1, SP + 2, SP + 1));
         ASSERT(Bytecode::RawCast(SP[2])->untag()->coverage_array() ==
-               Array::RawCast(SP[1]));
+               TypedData::RawCast(SP[1]));
 
-        coverage_array = Array::RawCast(SP[1]);
+        coverage_array = TypedData::RawCast(SP[1]);
       }
-      ASSERT(coverage_array != Array::null());
+      ASSERT(coverage_array != TypedData::null());
+      auto* const entries =
+          reinterpret_cast<uint32_t*>(coverage_array->untag()->data());
 
       // The index in rE is a logical index into the (position, count) pairs.
       ASSERT(Smi::Value(coverage_array->untag()->length()) % 2 == 0);
@@ -3594,15 +3604,14 @@ SwitchDispatchNoSingleStep:
       // Double-check that the coverage type in the instruction is a branch
       // target iff the encoded position is a branch target.
       bool is_encoded_branch = false;
-      const intptr_t encoded = Smi::Value(
-          Smi::RawCast(coverage_array->untag()->element(position_index)));
+      const intptr_t encoded = entries[position_index];
       TokenPosition::DecodeCoveragePosition(encoded, &is_encoded_branch);
       ASSERT_EQUAL(is_branch, is_encoded_branch);
 #else
       USE(position_index);
 #endif
 
-      coverage_array->untag()->set_element(count_index, Smi::New(1));
+      entries[count_index] = 1;
     }
 #endif  // !defined(PRODUCT) && !defined(DART_PRECOMPILED_RUNTIME)
 
@@ -4735,10 +4744,18 @@ SwitchDispatchNoSingleStep:
 #if defined(DEBUG)
 #define SINGLE_STEP_HANDLER_BODY                                               \
   do {                                                                         \
-    if (IsTracingExecution()) {                                                \
-      THR_Print("%" Pu64 " calling single step handler\n", icount_);           \
+    /* Skip opcodes that purely manipulate the stack, that is, without     */  \
+    /* retrieving/storing into local variables. Source positions are       */  \
+    /* never emitted for these instructions, so they should not be         */  \
+    /* considered valid pause points. This avoids stepping out of a method */  \
+    /* with an unused result and then stopping at the Drop1 instruction,   */  \
+    /* which inherits the source position of the method call, for example. */  \
+    if (!KernelBytecode::IsStackManipulationOpcode(pc)) {                      \
+      if (IsTracingExecution()) {                                              \
+        THR_Print("%" Pu64 " calling single step handler\n", icount_);         \
+      }                                                                        \
+      SINGLE_STEP_HANDLER_BODY_NO_TRACE;                                       \
     }                                                                          \
-    SINGLE_STEP_HANDLER_BODY_NO_TRACE;                                         \
   } while (0)
 #else
 #define SINGLE_STEP_HANDLER_BODY SINGLE_STEP_HANDLER_BODY_NO_TRACE

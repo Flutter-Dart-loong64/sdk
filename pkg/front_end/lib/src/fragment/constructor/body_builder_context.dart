@@ -4,7 +4,6 @@
 
 import 'package:kernel/ast.dart';
 import 'package:kernel/core_types.dart';
-import 'package:kernel/transformations/flags.dart';
 
 import '../../base/constant_context.dart';
 import '../../base/local_scope.dart';
@@ -29,12 +28,8 @@ class ConstructorBodyBuilderContext extends BodyBuilderContext {
   @override
   final ConstructorContext constructorContext;
 
-  ConstructorBodyBuilderContext(
-    this._builder,
-    this._declaration,
-    this._member,
-    this.constructorContext,
-  ) : super(
+  new(this._builder, this._declaration, this._member, this.constructorContext)
+    : super(
         _builder.libraryBuilder,
         _builder.declarationBuilder,
         isDeclarationInstanceMember: false,
@@ -45,7 +40,7 @@ class ConstructorBodyBuilderContext extends BodyBuilderContext {
 
   @override
   void registerSuperCall() {
-    _member.transformerFlags |= TransformerFlag.superCalls;
+    _member.containsSuperCalls = true;
   }
 
   @override
@@ -106,31 +101,6 @@ class ConstructorBodyBuilderContext extends BodyBuilderContext {
   }
 
   @override
-  InferredConstructorInitializer inferInitializer({
-    required TypeInferrer typeInferrer,
-    required Uri fileUri,
-    required Initializer initializer,
-    required List<Variable> parameters,
-    required ThisVariable? internalThisVariable,
-    required ScopeProviderInfo? scopeProviderInfo,
-    required ContextAllocationStrategy contextAllocationStrategy,
-    required bool isFirstInitializer,
-    required bool isLastInitializerWithoutBody,
-  }) {
-    return typeInferrer.inferInitializer(
-      fileUri: fileUri,
-      constructorContext: constructorContext,
-      initializer: initializer,
-      parameters: parameters,
-      internalThisVariable: internalThisVariable,
-      scopeProviderInfo: scopeProviderInfo,
-      contextAllocationStrategy: contextAllocationStrategy,
-      isFirstInitializer: isFirstInitializer,
-      isLastInitializerWithoutBody: isLastInitializerWithoutBody,
-    );
-  }
-
-  @override
   DartType get returnTypeContext {
     return const DynamicType();
   }
@@ -169,13 +139,13 @@ class ConstructorBodyBuilderContext extends BodyBuilderContext {
     _declaration.registerFunctionBody(
       body,
       scopeProviderInfo?.scope,
-      scopeProviderInfo?.thisVariable,
+      thisVariable: scopeProviderInfo?.thisVariable,
     );
   }
 
   @override
-  void registerNoBodyConstructor() {
-    _declaration.registerNoBodyConstructor();
+  void registerNoBodyConstructor({required ThisVariable? thisVariable}) {
+    _declaration.registerNoBodyConstructor(thisVariable: thisVariable);
   }
 
   @override

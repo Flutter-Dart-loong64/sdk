@@ -34,6 +34,7 @@ import 'package:analysis_server/src/services/correction/dart/convert_to_expressi
 import 'package:analysis_server/src/services/correction/dart/convert_to_generic_function_syntax.dart';
 import 'package:analysis_server/src/services/correction/dart/convert_to_if_case_statement.dart';
 import 'package:analysis_server/src/services/correction/dart/convert_to_if_case_statement_chain.dart';
+import 'package:analysis_server/src/services/correction/dart/convert_to_in_body_constructor.dart';
 import 'package:analysis_server/src/services/correction/dart/convert_to_initializing_formal.dart';
 import 'package:analysis_server/src/services/correction/dart/convert_to_int_literal.dart';
 import 'package:analysis_server/src/services/correction/dart/convert_to_map_literal.dart';
@@ -42,7 +43,6 @@ import 'package:analysis_server/src/services/correction/dart/convert_to_null_awa
 import 'package:analysis_server/src/services/correction/dart/convert_to_package_import.dart';
 import 'package:analysis_server/src/services/correction/dart/convert_to_primary_constructor.dart';
 import 'package:analysis_server/src/services/correction/dart/convert_to_relative_import.dart';
-import 'package:analysis_server/src/services/correction/dart/convert_to_secondary_constructor.dart';
 import 'package:analysis_server/src/services/correction/dart/convert_to_set_literal.dart';
 import 'package:analysis_server/src/services/correction/dart/convert_to_super_parameters.dart';
 import 'package:analysis_server/src/services/correction/dart/convert_to_switch_expression.dart';
@@ -69,6 +69,7 @@ import 'package:analysis_server/src/services/correction/dart/join_else_with_if.d
 import 'package:analysis_server/src/services/correction/dart/join_if_with_inner.dart';
 import 'package:analysis_server/src/services/correction/dart/join_if_with_outer.dart';
 import 'package:analysis_server/src/services/correction/dart/join_variable_declaration.dart';
+import 'package:analysis_server/src/services/correction/dart/move_initialization_to_field_declaration.dart';
 import 'package:analysis_server/src/services/correction/dart/remove_async.dart';
 import 'package:analysis_server/src/services/correction/dart/remove_digit_separators.dart';
 import 'package:analysis_server/src/services/correction/dart/remove_type_annotation.dart';
@@ -130,7 +131,7 @@ const Set<ProducerGenerator> _builtInGenerators = {
   ConvertToPackageImport.new,
   ConvertToPrimaryConstructor.new,
   ConvertToRelativeImport.new,
-  ConvertToSecondaryConstructor.new,
+  ConvertToInBodyConstructor.new,
   ConvertToSetLiteral.new,
   ConvertToSingleQuotes.new,
   ConvertToSuperParameters.new,
@@ -156,6 +157,7 @@ const Set<ProducerGenerator> _builtInGenerators = {
   JoinIfWithInner.new,
   JoinIfWithOuter.new,
   JoinVariableDeclaration.new,
+  MoveInitializationToFieldDeclaration.new,
   RemoveAsync.new,
   RemoveUnnecessaryName.new,
   RemoveDigitSeparators.new,

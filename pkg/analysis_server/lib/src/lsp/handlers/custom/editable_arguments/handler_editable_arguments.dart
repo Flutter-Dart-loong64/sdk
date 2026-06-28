@@ -23,7 +23,7 @@ typedef _Values = ({DartObject? parameterValue, DartObject? argumentValue});
 class EditableArgumentsHandler
     extends SharedMessageHandler<TextDocumentPositionParams, EditableArguments?>
     with EditableArgumentsMixin {
-  EditableArgumentsHandler(super.server);
+  new(super.server);
 
   @override
   Method get handlesMessage => CustomMethods.dartTextDocumentEditableArguments;
@@ -253,9 +253,8 @@ class EditableArgumentsHandler
 extension on DartObject? {
   Object? toEnumStringValue(EnumElement element) {
     var valueObject = this;
-    if (valueObject?.type case InterfaceType(
-      element: EnumElement valueElement,
-    ) when element == valueElement) {
+    if (valueObject?.type case InterfaceType(element: EnumElement valueElement)
+        when element == valueElement) {
       var index = valueObject?.getField('index')?.toIntValue();
       if (index != null) {
         var enumConstant = element.constants.elementAtOrNull(index);

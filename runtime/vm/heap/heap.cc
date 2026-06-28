@@ -33,6 +33,7 @@
 #include "vm/thread_pool.h"
 #include "vm/timeline.h"
 #include "vm/virtual_memory.h"
+#include "vm/virtual_memory_compressed.h"
 
 namespace dart {
 
@@ -52,9 +53,11 @@ Heap::Heap(IsolateGroup* isolate_group,
            intptr_t max_new_gen_semi_words,
            intptr_t max_old_gen_words)
     : isolate_group_(isolate_group),
+#if defined(DART_COMPRESSED_POINTERS)
+      cage_(new Cage()),
+#endif
       new_space_(this, max_new_gen_semi_words),
       old_space_(this, max_old_gen_words),
-      read_only_(false),
       assume_scavenge_will_fail_(false),
       gc_on_nth_allocation_(kNoForcedGarbageCollection) {
   UpdateGlobalMaxUsed();
@@ -681,12 +684,6 @@ void Heap::UpdateGlobalMaxUsed() {
   isolate_group_->GetHeapGlobalUsedMaxMetric()->SetValue(
       (UsedInWords(Heap::kNew) * kWordSize) +
       (UsedInWords(Heap::kOld) * kWordSize));
-}
-
-void Heap::WriteProtect(bool read_only) {
-  read_only_ = read_only;
-  new_space_.WriteProtect(read_only);
-  old_space_.WriteProtect(read_only);
 }
 
 void Heap::Init(IsolateGroup* isolate_group,

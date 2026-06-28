@@ -2,10 +2,8 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-import 'package:analyzer/src/diagnostic/diagnostic.dart' as diag;
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 
-import '../../generated/test_support.dart';
 import '../dart/resolution/context_collection_resolution.dart';
 import '../dart/resolution/node_text_expectations.dart';
 
@@ -44,7 +42,7 @@ class A {
 }
 
 augment class A {
-  augment int foo = 42;
+  augment abstract int foo;
 }
 ''');
   }
@@ -154,13 +152,13 @@ class C {
 
   test_instance_getter_field_augment() async {
     await resolveTestCodeWithDiagnostics(r'''
-abstract class C {
+class C {
   int get foo;
 //        ^^^
 // [context 1] The corresponding getter is declared here.
 }
 
-augment abstract class C {
+augment class C {
   augment int foo = 0;
 //            ^^^
 // [diag.augmentationWithoutSetterDeclaration][context 1] This augmentation induces a setter, but no setter declaration named 'foo' exists to augment.
@@ -459,13 +457,13 @@ class A(var int _, var int _);
 
   test_instance_setter_field_augment() async {
     await resolveTestCodeWithDiagnostics(r'''
-abstract class C {
+class C {
   void set foo(int _);
 //         ^^^
 // [context 1] The corresponding setter is declared here.
 }
 
-augment abstract class C {
+augment class C {
   augment int foo = 0;
 //            ^^^
 // [diag.augmentationWithoutGetterDeclaration][context 1] This augmentation induces a getter, but no getter declaration named 'foo' exists to augment.
@@ -686,8 +684,8 @@ class A {
 }
 
 augment class A {
-  augment static int foo = 0;
-//                   ^^^
+  augment static abstract int foo;
+//                            ^^^
 // [diag.augmentationWithoutSetterDeclaration][context 1] This augmentation induces a setter, but no setter declaration named 'foo' exists to augment.
 }
 ''');
@@ -832,8 +830,8 @@ class A {
 }
 
 augment class A {
-  augment static int foo = 0;
-//                   ^^^
+  augment static abstract int foo;
+//                            ^^^
 // [diag.augmentationWithoutGetterDeclaration][context 1] This augmentation induces a getter, but no getter declaration named 'foo' exists to augment.
 }
 ''');
@@ -991,7 +989,7 @@ enum E {
 }
 
 augment enum E {;
-  augment final int foo = 0;
+  augment abstract final int foo;
 }
 ''');
   }
@@ -1428,8 +1426,8 @@ enum E {
 }
 
 augment enum E {;
-  augment static int foo = 0;
-//                   ^^^
+  augment static abstract int foo;
+//                            ^^^
 // [diag.augmentationWithoutSetterDeclaration][context 1] This augmentation induces a setter, but no setter declaration named 'foo' exists to augment.
 }
 ''');
@@ -1585,8 +1583,8 @@ enum E {
 }
 
 augment enum E {;
-  augment static int foo = 0;
-//                   ^^^
+  augment static abstract int foo;
+//                            ^^^
 // [diag.augmentationWithoutGetterDeclaration][context 1] This augmentation induces a getter, but no getter declaration named 'foo' exists to augment.
 }
 ''');
@@ -1704,8 +1702,8 @@ extension E on int {
 }
 
 augment extension E {
-  augment int foo = 0;
-//            ^^^
+  augment abstract int foo;
+//                     ^^^
 // [diag.augmentationWithoutSetterDeclaration][context 1] This augmentation induces a setter, but no setter declaration named 'foo' exists to augment.
 // [diag.extensionDeclaresInstanceField] Extensions can't declare instance fields.
 }
@@ -1857,8 +1855,8 @@ extension E on int {
 }
 
 augment extension E {
-  augment int foo = 0;
-//            ^^^
+  augment abstract int foo;
+//                     ^^^
 // [diag.augmentationWithoutGetterDeclaration][context 1] This augmentation induces a getter, but no getter declaration named 'foo' exists to augment.
 // [diag.extensionDeclaresInstanceField] Extensions can't declare instance fields.
 }
@@ -2006,8 +2004,8 @@ extension E on int {
 }
 
 augment extension E {
-  augment static int foo = 0;
-//                   ^^^
+  augment static abstract int foo;
+//                            ^^^
 // [diag.augmentationWithoutSetterDeclaration][context 1] This augmentation induces a setter, but no setter declaration named 'foo' exists to augment.
 }
 ''');
@@ -2158,8 +2156,8 @@ extension E on int {
 }
 
 augment extension E {
-  augment static int foo = 0;
-//                   ^^^
+  augment static abstract int foo;
+//                            ^^^
 // [diag.augmentationWithoutGetterDeclaration][context 1] This augmentation induces a getter, but no getter declaration named 'foo' exists to augment.
 }
 ''');
@@ -2254,8 +2252,8 @@ extension type E(int it) {
 }
 
 augment extension type E {
-  augment int foo = 0;
-//            ^^^
+  augment abstract int foo;
+//                     ^^^
 // [diag.augmentationWithoutSetterDeclaration][context 1] This augmentation induces a setter, but no setter declaration named 'foo' exists to augment.
 // [diag.extensionTypeDeclaresInstanceField] Extension types can't declare instance fields.
 }
@@ -2377,8 +2375,8 @@ extension type E(int it) {
 }
 
 augment extension type E {
-  augment int foo = 0;
-//            ^^^
+  augment abstract int foo;
+//                     ^^^
 // [diag.augmentationWithoutGetterDeclaration][context 1] This augmentation induces a getter, but no getter declaration named 'foo' exists to augment.
 // [diag.extensionTypeDeclaresInstanceField] Extension types can't declare instance fields.
 }
@@ -2490,8 +2488,8 @@ extension type E(int it) {
 }
 
 augment extension type E {
-  augment static int foo = 0;
-//                   ^^^
+  augment static abstract int foo;
+//                            ^^^
 // [diag.augmentationWithoutSetterDeclaration][context 1] This augmentation induces a setter, but no setter declaration named 'foo' exists to augment.
 }
 ''');
@@ -2580,8 +2578,8 @@ extension type E(int it) {
 }
 
 augment extension type E {
-  augment static int foo = 0;
-//                   ^^^
+  augment static abstract int foo;
+//                            ^^^
 // [diag.augmentationWithoutGetterDeclaration][context 1] This augmentation induces a getter, but no getter declaration named 'foo' exists to augment.
 }
 ''');
@@ -2706,8 +2704,8 @@ mixin M {
 }
 
 augment mixin M {
-  augment int foo = 0;
-//            ^^^
+  augment abstract int foo;
+//                     ^^^
 // [diag.augmentationWithoutSetterDeclaration][context 1] This augmentation induces a setter, but no setter declaration named 'foo' exists to augment.
 }
 ''');
@@ -2824,8 +2822,8 @@ mixin M {
 }
 
 augment mixin M {
-  augment int foo = 0;
-//            ^^^
+  augment abstract int foo;
+//                     ^^^
 // [diag.augmentationWithoutGetterDeclaration][context 1] This augmentation induces a getter, but no getter declaration named 'foo' exists to augment.
 }
 ''');
@@ -2936,8 +2934,8 @@ mixin M {
 }
 
 augment mixin M {
-  augment static int foo = 0;
-//                   ^^^
+  augment static abstract int foo;
+//                            ^^^
 // [diag.augmentationWithoutSetterDeclaration][context 1] This augmentation induces a setter, but no setter declaration named 'foo' exists to augment.
 }
 ''');
@@ -3026,8 +3024,8 @@ mixin M {
 }
 
 augment mixin M {
-  augment static int foo = 0;
-//                   ^^^
+  augment static abstract int foo;
+//                            ^^^
 // [diag.augmentationWithoutGetterDeclaration][context 1] This augmentation induces a getter, but no getter declaration named 'foo' exists to augment.
 }
 ''');
@@ -3232,6 +3230,8 @@ main() {
     await resolveTestCodeWithDiagnostics(r'''
 f() {
   try {} catch (_, _) {}
+//                 ^
+// [diag.unusedCatchStack] The stack trace variable '_' isn't used and can be removed.
 }''');
   }
 
@@ -3246,6 +3246,7 @@ f() {
 // [context 1] The first definition of this name.
 //                 ^
 // [diag.duplicateDefinition][context 1] The name '_' is already defined.
+// [diag.unusedCatchStack] The stack trace variable '_' isn't used and can be removed.
 }''');
   }
 
@@ -3900,24 +3901,22 @@ set f(int value) {}
   }
 
   test_topLevel_setter_setter_inPart() async {
-    var a = newFile('$testPackageLibPath/a.dart', r'''
-part of 'test.dart';
-set f(int value) {}
-''');
+    var a = getFile('$testPackageLibPath/a.dart');
 
-    await resolveTestCodeWithDiagnostics(r'''
+    await resolveFilesWithDiagnostics({
+      testFile: r'''
 part 'a.dart';
 set f(int value) {}
-''');
-
-    await assertErrorsInFile2(a, [
-      error(
-        diag.duplicateDefinition,
-        25,
-        1,
-        contextMessages: [message(testFile, 19, 1)],
-      ),
-    ]);
+//  ^
+// [context 1] The first definition of this name.
+''',
+      a: r'''
+part of 'test.dart';
+set f(int value) {}
+//  ^
+// [diag.duplicateDefinition][context 1] The name 'f=' is already defined.
+''',
+    });
   }
 
   test_typeParameters_class() async {
@@ -4152,69 +4151,52 @@ augment class A {}
   }
 
   test_class_library_part() async {
-    var lib = newFile('$testPackageLibPath/lib.dart', '''
+    var lib = getFile('$testPackageLibPath/lib.dart');
+    var a = getFile('$testPackageLibPath/a.dart');
+
+    await resolveFilesWithDiagnostics({
+      lib: r'''
 part 'a.dart';
 
 class A {}
-''');
-
-    var a = newFile('$testPackageLibPath/a.dart', '''
+//    ^
+// [context 1] The first definition of this name.
+''',
+      a: r'''
 part of 'lib.dart';
 
 class A {}
-''');
-
-    await resolveFile(lib);
-
-    var aResult = await resolveFile(a);
-    GatheringDiagnosticListener()
-      ..addAll(aResult.diagnostics)
-      ..assertErrors([
-        error(
-          diag.duplicateDefinition,
-          27,
-          1,
-          contextMessages: [message(lib, 22, 1)],
-        ),
-      ]);
+//    ^
+// [diag.duplicateDefinition][context 1] The name 'A' is already defined.
+''',
+    });
   }
 
   test_class_part_part() async {
-    var lib = newFile('$testPackageLibPath/lib.dart', '''
+    var lib = getFile('$testPackageLibPath/lib.dart');
+    var a = getFile('$testPackageLibPath/a.dart');
+    var b = getFile('$testPackageLibPath/b.dart');
+
+    await resolveFilesWithDiagnostics({
+      lib: r'''
 part 'a.dart';
 part 'b.dart';
-''');
-
-    var a = newFile('$testPackageLibPath/a.dart', '''
+''',
+      a: r'''
 part of 'lib.dart';
 
 class A {}
-''');
-
-    var b = newFile('$testPackageLibPath/b.dart', '''
+//    ^
+// [context 1] The first definition of this name.
+''',
+      b: r'''
 part of 'lib.dart';
 
 class A {}
-''');
-
-    await resolveFile(lib);
-
-    var aResult = await resolveFile(a);
-    GatheringDiagnosticListener()
-      ..addAll(aResult.diagnostics)
-      ..assertNoErrors();
-
-    var bResult = await resolveFile(b);
-    GatheringDiagnosticListener()
-      ..addAll(bResult.diagnostics)
-      ..assertErrors([
-        error(
-          diag.duplicateDefinition,
-          27,
-          1,
-          contextMessages: [message(a, 27, 1)],
-        ),
-      ]);
+//    ^
+// [diag.duplicateDefinition][context 1] The name 'A' is already defined.
+''',
+    });
   }
 
   test_extension() async {
@@ -4230,31 +4212,25 @@ extension A on int {}
   }
 
   test_extension_library_part() async {
-    var lib = newFile('$testPackageLibPath/lib.dart', '''
+    var lib = getFile('$testPackageLibPath/lib.dart');
+    var a = getFile('$testPackageLibPath/a.dart');
+
+    await resolveFilesWithDiagnostics({
+      lib: r'''
 part 'a.dart';
 
 extension A on int {}
-''');
-
-    var a = newFile('$testPackageLibPath/a.dart', '''
+//        ^
+// [context 1] The first definition of this name.
+''',
+      a: r'''
 part of 'lib.dart';
 
 extension A on int {}
-''');
-
-    await resolveFile(lib);
-
-    var aResult = await resolveFile(a);
-    GatheringDiagnosticListener()
-      ..addAll(aResult.diagnostics)
-      ..assertErrors([
-        error(
-          diag.duplicateDefinition,
-          31,
-          1,
-          contextMessages: [message(lib, 26, 1)],
-        ),
-      ]);
+//        ^
+// [diag.duplicateDefinition][context 1] The name 'A' is already defined.
+''',
+    });
   }
 
   test_extensionType() async {
@@ -4270,31 +4246,25 @@ extension type A(int it) {}
   }
 
   test_extensionType_library_part() async {
-    var lib = newFile('$testPackageLibPath/lib.dart', '''
+    var lib = getFile('$testPackageLibPath/lib.dart');
+    var a = getFile('$testPackageLibPath/a.dart');
+
+    await resolveFilesWithDiagnostics({
+      lib: r'''
 part 'a.dart';
 
 extension type A(int it) {}
-''');
-
-    var a = newFile('$testPackageLibPath/a.dart', '''
+//             ^
+// [context 1] The first definition of this name.
+''',
+      a: r'''
 part of 'lib.dart';
 
 extension type A(int it) {}
-''');
-
-    await resolveFile(lib);
-
-    var aResult = await resolveFile(a);
-    GatheringDiagnosticListener()
-      ..addAll(aResult.diagnostics)
-      ..assertErrors([
-        error(
-          diag.duplicateDefinition,
-          36,
-          1,
-          contextMessages: [message(lib, 31, 1)],
-        ),
-      ]);
+//             ^
+// [diag.duplicateDefinition][context 1] The name 'A' is already defined.
+''',
+    });
   }
 
   test_mixin() async {
@@ -4317,31 +4287,25 @@ augment mixin A {}
   }
 
   test_mixin_library_part() async {
-    var lib = newFile('$testPackageLibPath/lib.dart', '''
+    var lib = getFile('$testPackageLibPath/lib.dart');
+    var a = getFile('$testPackageLibPath/a.dart');
+
+    await resolveFilesWithDiagnostics({
+      lib: r'''
 part 'a.dart';
 
 mixin A {}
-''');
-
-    var a = newFile('$testPackageLibPath/a.dart', '''
+//    ^
+// [context 1] The first definition of this name.
+''',
+      a: r'''
 part of 'lib.dart';
 
 mixin A {}
-''');
-
-    await resolveFile(lib);
-
-    var aResult = await resolveFile(a);
-    GatheringDiagnosticListener()
-      ..addAll(aResult.diagnostics)
-      ..assertErrors([
-        error(
-          diag.duplicateDefinition,
-          27,
-          1,
-          contextMessages: [message(lib, 22, 1)],
-        ),
-      ]);
+//    ^
+// [diag.duplicateDefinition][context 1] The name 'A' is already defined.
+''',
+    });
   }
 
   test_topLevelVariable() async {
@@ -4358,7 +4322,7 @@ int foo = 42;
   test_topLevelVariable_topLevelVariable_augment() async {
     await resolveTestCodeWithDiagnostics(r'''
 int foo = 0;
-augment int foo = 42;
+augment abstract int foo;
 ''');
   }
 

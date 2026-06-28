@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import 'package:_fe_analyzer_shared/src/parser/formal_parameter_kind.dart';
-import 'package:front_end/src/base/uri_offset.dart';
-import 'package:front_end/src/source/stack_listener_impl.dart';
 import 'package:kernel/ast.dart';
 import 'package:kernel/class_hierarchy.dart';
 import 'package:kernel/type_environment.dart';
@@ -13,6 +11,7 @@ import '../../api_prototype/experimental_flags.dart';
 import '../../base/local_scope.dart';
 import '../../base/messages.dart';
 import '../../base/scope.dart';
+import '../../base/uri_offset.dart';
 import '../../builder/declaration_builders.dart';
 import '../../builder/formal_parameter_builder.dart';
 import '../../builder/omitted_type_builder.dart';
@@ -20,6 +19,7 @@ import '../../builder/type_builder.dart';
 import '../../builder/variable_builder.dart';
 import '../../kernel/body_builder_context.dart';
 import '../../kernel/external_ast_helper.dart' as extern;
+import '../../kernel/internal_ast.dart';
 import '../../kernel/kernel_helper.dart';
 import '../../kernel/type_algorithms.dart';
 import '../../source/check_helper.dart';
@@ -31,6 +31,7 @@ import '../../source/source_loader.dart';
 import '../../source/source_member_builder.dart';
 import '../../source/source_property_builder.dart';
 import '../../source/source_type_parameter_builder.dart';
+import '../../source/stack_listener_impl.dart';
 import '../../source/type_parameter_factory.dart';
 import '../fragment.dart';
 
@@ -45,11 +46,7 @@ class ExtensionInstanceGetterEncoding extends GetterEncoding
   @override
   final FormalParameterBuilder _thisFormal;
 
-  ExtensionInstanceGetterEncoding(
-    this._fragment,
-    this._clonedDeclarationTypeParameters,
-    this._thisFormal,
-  );
+  new(this._fragment, this._clonedDeclarationTypeParameters, this._thisFormal);
 
   @override
   BuiltMemberKind get _builtMemberKind => BuiltMemberKind.ExtensionGetter;
@@ -66,7 +63,7 @@ class ExtensionStaticGetterEncoding extends GetterEncoding
   @override
   final GetterFragment _fragment;
 
-  ExtensionStaticGetterEncoding(this._fragment);
+  new(this._fragment);
 
   @override
   BuiltMemberKind get _builtMemberKind => BuiltMemberKind.ExtensionGetter;
@@ -89,11 +86,7 @@ class ExtensionTypeInstanceGetterEncoding extends GetterEncoding
   @override
   final FormalParameterBuilder _thisFormal;
 
-  ExtensionTypeInstanceGetterEncoding(
-    this._fragment,
-    this._clonedDeclarationTypeParameters,
-    this._thisFormal,
-  );
+  new(this._fragment, this._clonedDeclarationTypeParameters, this._thisFormal);
 
   @override
   BuiltMemberKind get _builtMemberKind => BuiltMemberKind.ExtensionTypeGetter;
@@ -110,7 +103,7 @@ class ExtensionTypeStaticGetterEncoding extends GetterEncoding
   @override
   final GetterFragment _fragment;
 
-  ExtensionTypeStaticGetterEncoding(this._fragment);
+  new(this._fragment);
 
   @override
   BuiltMemberKind get _builtMemberKind => BuiltMemberKind.ExtensionTypeGetter;
@@ -133,7 +126,7 @@ sealed class GetterEncoding implements InferredTypeListener {
 
   List<TypeParameter>? get thisTypeParameters;
 
-  Variable? get thisVariable;
+  InternalVariable? get thisVariable;
 
   void becomeNative(SourceLoader loader);
 
@@ -184,7 +177,7 @@ sealed class GetterEncoding implements InferredTypeListener {
     required Scope? scope,
     required AsyncModifier asyncModifier,
     required DartType? emittedValueType,
-    required Variable? thisVariable,
+    required ThisVariable? thisVariable,
   });
 }
 
@@ -193,7 +186,7 @@ class RegularGetterEncoding extends GetterEncoding
   @override
   final GetterFragment _fragment;
 
-  RegularGetterEncoding(this._fragment);
+  new(this._fragment);
 
   @override
   BuiltMemberKind get _builtMemberKind => BuiltMemberKind.Method;
@@ -231,7 +224,7 @@ mixin _DirectGetterEncodingMixin implements GetterEncoding {
   List<TypeParameter>? get thisTypeParameters => null;
 
   @override
-  Variable? get thisVariable => null;
+  InternalVariable? get thisVariable => null;
 
   BuiltMemberKind get _builtMemberKind;
 
@@ -467,7 +460,7 @@ mixin _DirectGetterEncodingMixin implements GetterEncoding {
     required Scope? scope,
     required AsyncModifier asyncModifier,
     required DartType? emittedValueType,
-    required Variable? thisVariable,
+    required ThisVariable? thisVariable,
   }) {
     if (body != null) {
       function.registerFunctionBody(
@@ -477,7 +470,9 @@ mixin _DirectGetterEncodingMixin implements GetterEncoding {
       );
     }
     function.scope = scope;
-    function.thisVariable = thisVariable;
+    function.thisVariable =
+        // Coverage-ignore(suite): Not run.
+        thisVariable?..parent = function;
   }
 }
 
@@ -517,7 +512,7 @@ mixin _ExtensionInstanceGetterEncodingMixin implements GetterEncoding {
       _clonedDeclarationTypeParameters != null ? function.typeParameters : null;
 
   @override
-  Variable? get thisVariable => _thisFormal.variable;
+  InternalVariable? get thisVariable => _thisFormal.variable;
 
   BuiltMemberKind get _builtMemberKind;
 
@@ -617,7 +612,9 @@ mixin _ExtensionInstanceGetterEncodingMixin implements GetterEncoding {
     FunctionNode function = extern.createFunctionNode(
       isAbstractOrExternal ? null : extern.createEmptyStatement(),
       typeParameters: typeParameters,
-      positionalParameters: [_thisFormal.build(libraryBuilder)],
+      positionalParameters: [
+        _thisFormal.build(libraryBuilder).astVariable as PositionalParameter,
+      ],
       asyncMarker: _fragment.asyncModifier.kind,
       fileOffset: _fragment.formalsOffset,
       fileEndOffset: _fragment.endOffset,
@@ -815,7 +812,7 @@ mixin _ExtensionInstanceGetterEncodingMixin implements GetterEncoding {
     required Scope? scope,
     required AsyncModifier asyncModifier,
     required DartType? emittedValueType,
-    required Variable? thisVariable,
+    required ThisVariable? thisVariable,
   }) {
     if (body != null) {
       function.registerFunctionBody(
@@ -825,6 +822,8 @@ mixin _ExtensionInstanceGetterEncodingMixin implements GetterEncoding {
       );
     }
     function.scope = scope;
-    function.thisVariable = thisVariable;
+    function.thisVariable =
+        // Coverage-ignore(suite): Not run.
+        thisVariable?..parent = function;
   }
 }

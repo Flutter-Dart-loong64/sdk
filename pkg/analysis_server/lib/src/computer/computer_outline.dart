@@ -16,7 +16,7 @@ class DartUnitOutlineComputer {
   final ResolvedUnitResult resolvedUnit;
   final bool withBasicFlutter;
 
-  DartUnitOutlineComputer(this.resolvedUnit, {this.withBasicFlutter = false});
+  new(this.resolvedUnit, {this.withBasicFlutter = false});
 
   /// Returns the computed outline, not `null`.
   Outline compute() {
@@ -448,7 +448,7 @@ class DartUnitOutlineComputer {
       Element.makeFlags(
         isPrivate: Identifier.isPrivateName(name),
         isDeprecated: _hasDeprecated(method.metadata),
-        isAbstract: method.isAbstract,
+        isAbstract: !method.isComplete,
         isStatic: method.isStatic,
       ),
       location: _getLocationToken(nameToken),
@@ -672,7 +672,7 @@ class _FunctionBodyOutlinesVisitor extends RecursiveAstVisitor<void> {
   final DartUnitOutlineComputer outlineComputer;
   final List<Outline> contents;
 
-  _FunctionBodyOutlinesVisitor(this.outlineComputer, this.contents);
+  new(this.outlineComputer, this.contents);
 
   /// Return `true` if the given [element] is the method 'group' defined in the
   /// test package.

@@ -92,7 +92,7 @@ class _AwaitTransformer extends Transformer {
 
       final List<Statement> newStatements = [
         for (final variable in transformer.expressionTransformer.variables)
-          VariableStatement(variable),
+          VariableStatement(VariableDeclaration(variable)),
         ...transformer.statements,
       ];
 
@@ -249,7 +249,7 @@ class _AwaitTransformer extends Transformer {
     List<List<Statement>> initEffects = List<List<Statement>>.generate(length, (
       int i,
     ) {
-      VariableStatement decl = stmt.variables[i];
+      VariableDeclaration decl = stmt.variables[i];
       List<Statement> statements = <Statement>[];
       if (decl.variable.initializer != null) {
         decl.variable.initializer = expressionTransformer.rewrite(
@@ -337,7 +337,7 @@ class _AwaitTransformer extends Transformer {
     //
     // temps.first is the flag 'first'.
     List<Variable> temps = <Variable>[
-      Variable.forValue(BoolLiteral(true), isFinal: false),
+      SyntheticVariable(initializer: BoolLiteral(true), isSynthesized: false),
     ];
     List<Statement> loopBody = <Statement>[];
     List<Statement> initializers = <Statement>[
@@ -346,9 +346,9 @@ class _AwaitTransformer extends Transformer {
     List<Statement> updates = <Statement>[];
     List<Statement> newBody = <Statement>[body];
     for (int i = 0; i < stmt.variables.length; ++i) {
-      VariableStatement decl = stmt.variables[i];
-      temps.add(Variable(null, type: decl.variable.type, isSynthesized: true));
-      loopBody.add(decl);
+      VariableDeclaration decl = stmt.variables[i];
+      temps.add(SyntheticVariable(type: decl.variable.type));
+      loopBody.add(VariableStatement(decl));
       if (decl.variable.initializer != null) {
         initializers.addAll(initEffects[i]);
         initializers.add(
@@ -393,7 +393,7 @@ class _AwaitTransformer extends Transformer {
     labeled.body = WhileStatement(BoolLiteral(true), Block(loopBody))
       ..parent = labeled;
     return Block(<Statement>[
-      for (Variable temp in temps) VariableStatement(temp),
+      for (Variable temp in temps) VariableStatement(VariableDeclaration(temp)),
       labeled,
     ]);
   }
@@ -454,13 +454,13 @@ class _AwaitTransformer extends Transformer {
       // the current exception after the `await`.
       //
       // TODO (omersa): We could mark [TreeNode]s with `await`s and only do this
-      catch_.exception ??= Variable(
-        null,
+      catch_.exception ??= CatchVariable(
+        name: '#exception',
         type: InterfaceType(coreTypes.objectClass, Nullability.nonNullable),
         isSynthesized: true,
       )..parent = catch_;
-      catch_.stackTrace ??= Variable(
-        null,
+      catch_.stackTrace ??= CatchVariable(
+        name: '#stackTrace',
         type: InterfaceType(coreTypes.stackTraceClass, Nullability.nonNullable),
         isSynthesized: true,
       )..parent = catch_;
@@ -497,27 +497,21 @@ class _AwaitTransformer extends Transformer {
     // code generation.
 
     // Variable for the finalizer block continuation.
-    final continuationVar = Variable(
-      null,
+    final continuationVar = SyntheticVariable(
       initializer: IntLiteral(stateMachineCodeGen.continuationFallthrough),
       type: InterfaceType(coreTypes.intClass, Nullability.nonNullable),
-      isSynthesized: true,
     );
 
     // When the finalizer continuation is "rethrow", this stores the exception
     // to rethrow.
-    final exceptionVar = Variable(
-      null,
+    final exceptionVar = SyntheticVariable(
       type: InterfaceType(coreTypes.objectClass, Nullability.nonNullable),
-      isSynthesized: true,
     );
 
     // When the finalizer continuation is "rethrow", this stores the stack
     // trace of the exception in [exceptionVar].
-    final stackTraceVar = Variable(
-      null,
+    final stackTraceVar = SyntheticVariable(
       type: InterfaceType(coreTypes.stackTraceClass, Nullability.nonNullable),
-      isSynthesized: true,
     );
 
     final body = visitDelimited(stmt.body);
@@ -545,23 +539,29 @@ class _AwaitTransformer extends Transformer {
     }
 
     return Block([
-      VariableStatement(continuationVar),
-      VariableStatement(exceptionVar),
-      VariableStatement(stackTraceVar),
+      VariableStatement(VariableDeclaration(continuationVar)),
+      VariableStatement(VariableDeclaration(exceptionVar)),
+      VariableStatement(VariableDeclaration(stackTraceVar)),
       TryFinally(body, finalizer),
     ]);
   }
 
   @override
-  TreeNode visitLegacyVariableStatement(LegacyVariableStatement stmt) {
-    final initializer = stmt.variable.initializer;
+  TreeNode visitVariableDeclaration(VariableDeclaration node) {
+    final initializer = node.variable.initializer;
     if (initializer != null) {
-      stmt.variable.initializer = expressionTransformer.rewrite(
+      node.variable.initializer = expressionTransformer.rewrite(
         initializer,
         statements,
-      )..parent = stmt.variable;
+      )..parent = node.variable;
     }
-    return stmt;
+    return node;
+  }
+
+  @override
+  TreeNode visitVariableStatement(VariableStatement node) {
+    visitVariableDeclaration(node.declaration);
+    return node;
   }
 
   @override
@@ -715,7 +715,13 @@ class _ExpressionTransformer extends Transformer {
       return variables[index];
     }
     for (var i = variables.length; i <= index; i++) {
-      variables.add(Variable(":async_temporary_$i", type: type));
+      variables.add(
+        SyntheticVariable(
+          cosmeticName: ":async_temporary_$i",
+          type: type,
+          isSynthesized: false,
+        ),
+      );
     }
     return variables[index];
   }
@@ -1263,7 +1269,7 @@ class _ExpressionTransformer extends Transformer {
       // <body's statements>
       //
       // and return the body's value.
-      statements.add(VariableStatement(variable));
+      statements.add(VariableStatement(VariableDeclaration(variable)));
       var index = nameIndex;
       seenAwait = false;
       variable.initializer = transform(variable.initializer!)

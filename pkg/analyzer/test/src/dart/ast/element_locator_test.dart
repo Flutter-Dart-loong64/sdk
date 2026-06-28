@@ -8,6 +8,7 @@ import 'package:analyzer_utilities/testing/tree_string_sink.dart';
 import 'package:test/test.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 
+import '../../../util/diff.dart';
 import '../../../util/element_printer.dart';
 import '../resolution/context_collection_resolution.dart';
 import '../resolution/node_text_expectations.dart';
@@ -22,9 +23,11 @@ main() {
 @reflectiveTest
 class ElementLocatorTest2 extends PubPackageResolutionTest {
   test_locate_AssignedVariablePattern() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 void f() {
   int foo;
+//    ^^^
+// [diag.unusedLocalVariable] The value of the local variable 'foo' isn't used.
   (foo, _) = (0, 1);
 }
 ''');
@@ -36,7 +39,7 @@ foo@17
   }
 
   test_locate_AssignmentExpression() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 int x = 0;
 void main() {
   x += 1;
@@ -50,7 +53,9 @@ dart:core::@class::num::@method::+
   }
 
   test_locate_BinaryExpression() async {
-    var result = await resolveTestCode('var x = 3 + 4');
+    var result = await resolveTestCodeWithDiagnostics(r'''
+var x = 3 + 4;
+''');
     var node = result.findNode.binary('+');
     var element = ElementLocator.locate(node);
     _assertElement(element, r'''
@@ -59,9 +64,11 @@ dart:core::@class::num::@method::+
   }
 
   test_locate_CatchClauseParameter() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 void f() {
   try {} catch (e, s) {}
+//                 ^
+// [diag.unusedCatchStack] The stack trace variable 's' isn't used and can be removed.
 }
 ''');
     var node = result.findNode.catchClauseParameter('e');
@@ -77,7 +84,9 @@ s@30
   }
 
   test_locate_ClassDeclaration() async {
-    var result = await resolveTestCode('class A {}');
+    var result = await resolveTestCodeWithDiagnostics(r'''
+class A {}
+''');
     var node = result.findNode.classDeclaration('class');
     var element = ElementLocator.locate(node);
     _assertElement(element, r'''
@@ -86,7 +95,7 @@ s@30
   }
 
   test_locate_ConstructorDeclaration_named() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 class A {
   A.foo();
 }
@@ -99,7 +108,7 @@ class A {
   }
 
   test_locate_ConstructorDeclaration_unnamed() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 class A {
   A();
 }
@@ -112,7 +121,7 @@ class A {
   }
 
   test_locate_ConstructorSelector_EnumConstantArguments_EnumConstantDeclaration() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 enum E {
   v.named(); // 0
   const E.named();
@@ -126,9 +135,11 @@ enum E {
   }
 
   test_locate_DeclaredVariablePattern() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 void f(Object? x) {
   if (x case int foo) {}
+//               ^^^
+// [diag.unusedLocalVariable] The value of the local variable 'foo' isn't used.
 }
 ''');
     var node = result.findNode.declaredVariablePattern('foo');
@@ -139,11 +150,13 @@ foo@37
   }
 
   test_locate_DotShorthandConstructorInvocation() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 class A {}
 
 void main() {
  A a = .new();
+// ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
 }
 ''');
     var node = result.findNode.singleDotShorthandConstructorInvocation;
@@ -154,13 +167,15 @@ void main() {
   }
 
   test_locate_DotShorthandInvocation() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 class A {
   static A foo() => A();
 }
 
 void main() {
  A a = .foo();
+// ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
 }
 ''');
     var node = result.findNode.singleDotShorthandInvocation;
@@ -171,13 +186,15 @@ void main() {
   }
 
   test_locate_DotShorthandPropertyAccess() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 class A {
   static A foo = A();
 }
 
 void main() {
  A a = .foo;
+// ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
 }
 ''');
     var node = result.findNode.singleDotShorthandPropertyAccess;
@@ -188,7 +205,9 @@ void main() {
   }
 
   test_locate_DottedName_libraryDirective() async {
-    var result = await resolveTestCode('library foo.bar;');
+    var result = await resolveTestCodeWithDiagnostics(r'''
+library foo.bar;
+''');
     var node = result.findNode.singleDottedName;
     var element = ElementLocator.locate(node);
     _assertElement(element, r'''
@@ -197,7 +216,7 @@ void main() {
   }
 
   test_locate_EnumConstantDeclaration() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 enum E {
   one
 }
@@ -210,7 +229,9 @@ enum E {
   }
 
   test_locate_ExportDirective() async {
-    var result = await resolveTestCode("export 'dart:core';");
+    var result = await resolveTestCodeWithDiagnostics(r'''
+export 'dart:core';
+''');
     var node = result.findNode.export('export');
     var element = ElementLocator.locate(node);
     _assertElement(element, r'''
@@ -219,7 +240,9 @@ dart:core
   }
 
   test_locate_ExtensionDeclaration() async {
-    var result = await resolveTestCode('extension A on int {}');
+    var result = await resolveTestCodeWithDiagnostics(r'''
+extension A on int {}
+''');
     var node = result.findNode.singleExtensionDeclaration;
     var element = ElementLocator.locate(node);
     _assertElement(element, r'''
@@ -228,7 +251,9 @@ dart:core
   }
 
   test_locate_ExtensionTypeDeclaration() async {
-    var result = await resolveTestCode('extension type A(int it) {}');
+    var result = await resolveTestCodeWithDiagnostics(r'''
+extension type A(int it) {}
+''');
     var node = result.findNode.singleExtensionTypeDeclaration;
     var element = ElementLocator.locate(node);
     _assertElement(element, r'''
@@ -237,9 +262,11 @@ dart:core
   }
 
   test_locate_FunctionDeclaration_local() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 void f() {
   int g() => 3;
+//    ^
+// [diag.unusedElement] The declaration 'g' isn't referenced.
 }
 ''');
     var node = result.findNode.functionDeclaration('g');
@@ -250,7 +277,9 @@ g@17
   }
 
   test_locate_FunctionDeclaration_topLevel() async {
-    var result = await resolveTestCode('int f() => 3;');
+    var result = await resolveTestCodeWithDiagnostics(r'''
+int f() => 3;
+''');
     var node = result.findNode.functionDeclaration('f');
     var element = ElementLocator.locate(node);
     _assertElement(element, r'''
@@ -259,7 +288,7 @@ g@17
   }
 
   test_locate_Identifier_annotationClass_namedConstructor() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 class Class {
   const Class.name();
 }
@@ -273,7 +302,7 @@ void main(@Class.name() parameter) {}
   }
 
   test_locate_Identifier_annotationClass_unnamedConstructor() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 class Class {
   const Class();
 }
@@ -287,7 +316,9 @@ void main(@Class() parameter) {}
   }
 
   test_locate_Identifier_className() async {
-    var result = await resolveTestCode('class A {}');
+    var result = await resolveTestCodeWithDiagnostics(r'''
+class A {}
+''');
     var node = result.findNode.classDeclaration('A');
     var element = ElementLocator.locate(node);
     _assertElement(element, r'''
@@ -296,7 +327,7 @@ void main(@Class() parameter) {}
   }
 
   test_locate_Identifier_constructor_named() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 class A {
   A.bar();
 }
@@ -309,7 +340,7 @@ class A {
   }
 
   test_locate_Identifier_constructor_unnamed() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 class A {
   A();
 }
@@ -322,7 +353,7 @@ class A {
   }
 
   test_locate_Identifier_fieldName() async {
-    var result = await resolveTestCode('''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 class A {
   var x;
 }
@@ -335,7 +366,7 @@ class A {
   }
 
   test_locate_Identifier_functionCallMethod_invocation() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 void f(int a) {
   f.call(a);
 }
@@ -348,7 +379,7 @@ void f(int a) {
   }
 
   test_locate_Identifier_functionCallMethod_tearOff() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 void f(int a) {
   f.call;
 }
@@ -361,9 +392,11 @@ void f(int a) {
   }
 
   test_locate_Identifier_propertyAccess() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 void main() {
  int x = 'foo'.length;
+//   ^
+// [diag.unusedLocalVariable] The value of the local variable 'x' isn't used.
 }
 ''');
     var node = result.findNode.simple('length');
@@ -374,7 +407,9 @@ dart:core::@class::String::@getter::length
   }
 
   test_locate_ImportDirective() async {
-    var result = await resolveTestCode("import 'dart:core';");
+    var result = await resolveTestCodeWithDiagnostics(r'''
+import 'dart:core';
+''');
     var node = result.findNode.import('import');
     var element = ElementLocator.locate(node);
     _assertElement(element, r'''
@@ -383,23 +418,25 @@ dart:core
   }
 
   test_locate_IndexExpression() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 void main() {
   var x = [1, 2];
   var y = x[0];
+//    ^
+// [diag.unusedLocalVariable] The value of the local variable 'y' isn't used.
 }
 ''');
     var node = result.findNode.index('[0]');
     var element = ElementLocator.locate(node);
     _assertElement(element, r'''
-MethodMember
+SubstitutedMethodElementImpl
   baseElement: dart:core::@class::List::@method::[]
   substitution: {E: int}
 ''');
   }
 
   test_locate_InstanceCreationExpression() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 class A {}
 
 void main() {
@@ -417,7 +454,7 @@ void main() {
     newFile('$testPackageLibPath/a.dart', r'''
 class A {}
 ''');
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 import 'a.dart' as pref;
 
 void main() {
@@ -434,7 +471,7 @@ package:test/a.dart::@class::A::@constructor::new
   test_locate_InstanceCreationExpression_type_simpleIdentifier() async {
     newFile('$testPackageLibPath/a.dart', r'''
 ''');
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 class A {}
 
 void main() {
@@ -449,7 +486,9 @@ void main() {
   }
 
   test_locate_LibraryDirective() async {
-    var result = await resolveTestCode('library foo;');
+    var result = await resolveTestCodeWithDiagnostics(r'''
+library foo;
+''');
     var node = result.findNode.library('library');
     var element = ElementLocator.locate(node);
     _assertElement(element, r'''
@@ -458,7 +497,9 @@ void main() {
   }
 
   test_locate_LibraryElement() async {
-    var result = await resolveTestCode('// only comment');
+    var result = await resolveTestCodeWithDiagnostics(r'''
+// only comment
+''');
 
     var element = ElementLocator.locate(result.unit);
     _assertElement(element, r'''
@@ -467,7 +508,7 @@ void main() {
   }
 
   test_locate_MethodDeclaration() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 class A {
   void foo() {}
 }
@@ -480,7 +521,7 @@ class A {
   }
 
   test_locate_MethodInvocation_class_callMethod_argument() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 class A {
   void call(int i) {}
 }
@@ -496,7 +537,7 @@ void f(A a) {
   }
 
   test_locate_MethodInvocation_class_callMethod_constructor() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 class A {
   void call(int i) {}
 }
@@ -512,7 +553,7 @@ void f() {
   }
 
   test_locate_MethodInvocation_function_callMethod_invocation() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 void f(int i) {
   f.call(1);
 }
@@ -525,7 +566,7 @@ void f(int i) {
   }
 
   test_locate_MethodInvocation_function_callMethod_tearOff() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 void f(int i) {
   f.call;
 }
@@ -538,7 +579,7 @@ void f(int i) {
   }
 
   test_locate_MethodInvocation_method() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 class A {
   void foo() {}
 }
@@ -555,7 +596,7 @@ void main() {
   }
 
   test_locate_MethodInvocation_topLevel() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 foo(x) {}
 
 void main() {
@@ -570,7 +611,9 @@ void main() {
   }
 
   test_locate_MixinDeclaration() async {
-    var result = await resolveTestCode('mixin A {}');
+    var result = await resolveTestCodeWithDiagnostics(r'''
+mixin A {}
+''');
     var node = result.findNode.singleMixinDeclaration;
     var element = ElementLocator.locate(node);
     _assertElement(element, r'''
@@ -579,7 +622,7 @@ void main() {
   }
 
   test_locate_PatternField() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 void f(Object? x) {
   if (x case int(isEven: true)) {}
 }
@@ -592,7 +635,9 @@ dart:core::@class::int::@getter::isEven
   }
 
   test_locate_PostfixExpression() async {
-    var result = await resolveTestCode('int addOne(int x) => x++;');
+    var result = await resolveTestCodeWithDiagnostics(r'''
+int addOne(int x) => x++;
+''');
     var node = result.findNode.postfix('x++');
     var element = ElementLocator.locate(node);
     _assertElement(element, r'''
@@ -601,7 +646,7 @@ dart:core::@class::num::@method::+
   }
 
   test_locate_Prefix() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 import 'dart:math' as math;
 
 math.Random? r;
@@ -614,7 +659,7 @@ math.Random? r;
   }
 
   test_locate_PrefixedIdentifier() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 void f(int a) {
   a.isEven;
 }
@@ -627,7 +672,7 @@ dart:core::@class::int::@getter::isEven
   }
 
   test_locate_PrefixedIdentifier_functionCallMethod() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 void f(int a) {
   f.call;
 }
@@ -640,7 +685,9 @@ void f(int a) {
   }
 
   test_locate_PrefixExpression() async {
-    var result = await resolveTestCode('int addOne(int x) => ++x;');
+    var result = await resolveTestCodeWithDiagnostics(r'''
+int addOne(int x) => ++x;
+''');
     var node = result.findNode.prefix('++x');
     var element = ElementLocator.locate(node);
     _assertElement(element, r'''
@@ -649,7 +696,9 @@ dart:core::@class::num::@method::+
   }
 
   test_locate_PrimaryConstructorBody() async {
-    var result = await resolveTestCode('class A() { this { } }');
+    var result = await resolveTestCodeWithDiagnostics(r'''
+class A() { this { } }
+''');
     var node = result.findNode.singlePrimaryConstructorBody;
     var element = ElementLocator.locate(node);
     _assertElement(element, r'''
@@ -658,7 +707,9 @@ dart:core::@class::num::@method::+
   }
 
   test_locate_PrimaryConstructorDeclaration() async {
-    var result = await resolveTestCode('extension type A(int it) {}');
+    var result = await resolveTestCodeWithDiagnostics(r'''
+extension type A(int it) {}
+''');
     var node = result.findNode.singlePrimaryConstructorDeclaration;
     var element = ElementLocator.locate(node);
     _assertElement(element, r'''
@@ -667,7 +718,9 @@ dart:core::@class::num::@method::+
   }
 
   test_locate_PrimaryConstructorDeclaration_named() async {
-    var result = await resolveTestCode('extension type A.named(int it) {}');
+    var result = await resolveTestCodeWithDiagnostics(r'''
+extension type A.named(int it) {}
+''');
     var node = result.findNode.singlePrimaryConstructorDeclaration;
     var element = ElementLocator.locate(node);
     _assertElement(element, r'''
@@ -676,7 +729,9 @@ dart:core::@class::num::@method::+
   }
 
   test_locate_PrimaryConstructorDeclaration_named_atConstructorName() async {
-    var result = await resolveTestCode('extension type A.named(int it) {}');
+    var result = await resolveTestCodeWithDiagnostics(r'''
+extension type A.named(int it) {}
+''');
     var node =
         result.findNode.singlePrimaryConstructorDeclaration.constructorName;
     var element = ElementLocator.locate(node);
@@ -686,7 +741,9 @@ dart:core::@class::num::@method::+
   }
 
   test_locate_PrimaryConstructorDeclaration_namedConstructor_constructorName() async {
-    var result = await resolveTestCode('class A.named() {}');
+    var result = await resolveTestCodeWithDiagnostics(r'''
+class A.named() {}
+''');
     var node =
         result.findNode.singlePrimaryConstructorDeclaration.constructorName;
     var element = ElementLocator.locate(node);
@@ -697,7 +754,9 @@ dart:core::@class::num::@method::+
 
   test_locate_StringLiteral_exportUri() async {
     newFile("$testPackageLibPath/foo.dart", '');
-    var result = await resolveTestCode("export 'foo.dart';");
+    var result = await resolveTestCodeWithDiagnostics(r'''
+export 'foo.dart';
+''');
     var node = result.findNode.stringLiteral('foo.dart');
     var element = ElementLocator.locate(node);
     _assertElement(element, r'''
@@ -706,7 +765,9 @@ package:test/foo.dart
   }
 
   test_locate_StringLiteral_expression() async {
-    var result = await resolveTestCode("var x = 'abc';");
+    var result = await resolveTestCodeWithDiagnostics(r'''
+var x = 'abc';
+''');
     var node = result.findNode.stringLiteral('abc');
     var element = ElementLocator.locate(node);
     _assertElement(element, r'''
@@ -716,7 +777,11 @@ package:test/foo.dart
 
   test_locate_StringLiteral_importUri() async {
     newFile("$testPackageLibPath/foo.dart", '');
-    var result = await resolveTestCode("import 'foo.dart';");
+    var result = await resolveTestCodeWithDiagnostics(r'''
+import 'foo.dart';
+//     ^^^^^^^^^^
+// [diag.unusedImport] Unused import: 'foo.dart'.
+''');
     var node = result.findNode.stringLiteral('foo.dart');
     var element = ElementLocator.locate(node);
     _assertElement(element, r'''
@@ -725,9 +790,11 @@ package:test/foo.dart
   }
 
   test_locate_VariableDeclaration_Local() async {
-    var result = await resolveTestCode(r'''
+    var result = await resolveTestCodeWithDiagnostics(r'''
 f() {
   var x = 42;
+//    ^
+// [diag.unusedLocalVariable] The value of the local variable 'x' isn't used.
 }
 ''');
     var node = result.findNode.variableDeclaration('x =');
@@ -738,7 +805,9 @@ x@12
   }
 
   test_locate_VariableDeclaration_TopLevel() async {
-    var result = await resolveTestCode('var x = 42;');
+    var result = await resolveTestCodeWithDiagnostics(r'''
+var x = 42;
+''');
     var node = result.findNode.variableDeclaration('x =');
     var element = ElementLocator.locate(node);
     _assertElement(element, r'''
@@ -761,10 +830,11 @@ x@12
 
     var actual = buffer.toString();
     if (actual != expected) {
-      print('-------- Actual --------');
-      print('$actual------------------------');
       NodeTextExpectationsCollector.add(actual);
+      if (NodeTextExpectationsCollector.shouldPrintFailureDetails) {
+        printPrettyDiff(expected, actual);
+      }
+      fail('See the difference above.');
     }
-    expect(actual, expected);
   }
 }

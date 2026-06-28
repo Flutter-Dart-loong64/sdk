@@ -245,7 +245,7 @@ enum ExperimentalFlag {
   privateNamedParameters(
     name: 'private-named-parameters',
     isEnabledByDefault: true,
-    isExpired: false,
+    isExpired: true,
     experimentEnabledVersion: const Version(3, 12),
     experimentReleasedVersion: const Version(3, 12),
   ),
@@ -316,6 +316,14 @@ enum ExperimentalFlag {
 
   testExperiment(
     name: 'test-experiment',
+    isEnabledByDefault: false,
+    isExpired: false,
+    experimentEnabledVersion: defaultLanguageVersion,
+    experimentReleasedVersion: defaultLanguageVersion,
+  ),
+
+  thisPromotion(
+    name: 'this-promotion',
     isEnabledByDefault: false,
     isExpired: false,
     experimentEnabledVersion: defaultLanguageVersion,

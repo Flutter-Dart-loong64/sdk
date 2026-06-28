@@ -78,7 +78,7 @@ class DartFixPromptManager {
 
   CancelableToken? _inProgressCheckCancellationToken;
 
-  DartFixPromptManager(this.server, this.preferences);
+  new(this.server, this.preferences);
 
   /// Gets a map of context root paths to a list of associated sdk version
   /// constraints.
@@ -121,6 +121,7 @@ class DartFixPromptManager {
     var processor = BulkFixProcessor(
       server.instrumentationService,
       workspace,
+      byteStore: server.byteStore,
       cancellationToken: token,
     );
 

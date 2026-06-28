@@ -2,6 +2,9 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+/// @docImport 'package:analyzer/src/dart/analysis/driver.dart';
+library;
+
 import 'dart:async';
 
 import 'package:analysis_server_plugin/edit/assist/assist.dart';
@@ -26,9 +29,9 @@ import 'package:analyzer/error/listener.dart';
 import 'package:analyzer/file_system/file_system.dart';
 import 'package:analyzer/file_system/overlay_file_system.dart';
 import 'package:analyzer/instrumentation/instrumentation.dart';
+import 'package:analyzer/src/analysis_options/analysis_options.dart';
 import 'package:analyzer/src/analysis_rule/rule_context.dart';
 import 'package:analyzer/src/dart/analysis/analysis_context_collection.dart';
-import 'package:analyzer/src/dart/analysis/analysis_options.dart';
 import 'package:analyzer/src/dart/analysis/byte_store.dart';
 import 'package:analyzer/src/dart/analysis/driver_based_analysis_context.dart';
 import 'package:analyzer/src/dart/analysis/file_content_cache.dart';
@@ -98,11 +101,24 @@ class PluginServer {
   /// The map of registered features for each plugin, for namespacing purposes.
   static final registries = <String, PluginRegistryImpl>{};
 
+  /// The current subscription of [_contextCollection]'s
+  /// [AnalysisDriverScheduler.events] Stream. This must be cancelled when
+  /// [_contextCollection] is disposed.
+  StreamSubscription<Object>? _eventsSubscription;
+
+  /// Whether to fall back to the global [Registry.ruleRegistry] if a plugin
+  /// registry is not found by name.
+  ///
+  /// Only older Dart SDKs call `PluginServer.new`, which sets this to `true`.
+  /// Otherwise it is `false`.
+  final bool _useGlobalRegistry;
+
   PluginServer({
     required ResourceProvider resourceProvider,
     required List<Plugin> plugins,
   }) : _resourceProvider = OverlayResourceProvider(resourceProvider),
-       _plugins = plugins {
+       _plugins = plugins,
+       _useGlobalRegistry = true {
     int i = 0;
     for (var plugin in plugins) {
       var registry = PluginRegistryImpl(plugin.name);
@@ -130,7 +146,8 @@ class PluginServer {
     required ResourceProvider resourceProvider,
     required Map<String, Plugin> plugins,
   }) : _resourceProvider = OverlayResourceProvider(resourceProvider),
-       _plugins = plugins.values.toList() {
+       _plugins = plugins.values.toList(),
+       _useGlobalRegistry = false {
     for (var MapEntry(key: name, value: plugin) in plugins.entries) {
       var registry = PluginRegistryImpl(plugin.name);
       registries[name.toLowerCase()] = registry;
@@ -238,6 +255,8 @@ class PluginServer {
     var lineInfo = unitResult.lineInfo;
     var requestLine = lineInfo.getLocation(offset).lineNumber;
 
+    var diagnostics = errors.map((e) => e.diagnostic);
+
     var lintAtOffset = errors.where((error) {
       var errorLine = lineInfo.getLocation(error.diagnostic.offset).lineNumber;
       return errorLine == requestLine;
@@ -262,7 +281,7 @@ class PluginServer {
       try {
         // TODO(srawlins): Somehow wrap each ProducerGenerator invocation in a
         // zone, to support `print` capturing per-plugin.
-        fixes = await computeFixes(context);
+        fixes = await computeFixes(context, diagnostics: diagnostics);
       } on InconsistentAnalysisException {
         // TODO(srawlins): Is it important to at least log this? Or does it
         // happen on the regular?
@@ -388,9 +407,6 @@ class PluginServer {
     // a safe default.
     definingContextUnit ??= allUnits.first;
 
-    // TODO(srawlins): Enable timing similar to what the linter package's
-    // `benchmark.dart` script does.
-    var ruleVisitorRegistry = RuleVisitorRegistryImpl(enableTiming: false);
     var package = analysisContext.contextRoot.workspace.findPackageFor(
       libraryPath,
     );
@@ -410,6 +426,9 @@ class PluginServer {
     var severityMapping = <DiagnosticCode, protocol.AnalysisErrorSeverity?>{};
 
     for (var configuration in analysisOptions.pluginConfigurations) {
+      // TODO(srawlins): Enable timing similar to what the linter package's
+      // `benchmark.dart` script does.
+      var ruleVisitorRegistry = RuleVisitorRegistryImpl(enableTiming: false);
       runZonedGuarded(
         () => _computeDiagnosticsFromPlugin(
           configuration,
@@ -515,7 +534,15 @@ class PluginServer {
     severityMapping,
   }) {
     if (!configuration.isEnabled) return;
-    var registry = registries[configuration.name] ?? Registry.ruleRegistry;
+    RegistryBase? registry = registries[configuration.name.toLowerCase()];
+    if (registry == null) {
+      if (!_useGlobalRegistry) {
+        return;
+      }
+      // Only use the global registry if the `.new` constructor was used (by
+      // older Dart SDKs). We'll remove this when we break from that API.
+      registry = Registry.ruleRegistry;
+    }
     var rules = registry.enabled({
       for (var entry in configuration.diagnosticConfigs.entries)
         entry.key.toLowerCase(): entry.value,
@@ -618,10 +645,15 @@ class PluginServer {
         result = await _handleAnalysisWatchEvents(params);
 
       case protocol.ANALYSIS_REQUEST_SET_CONTEXT_ROOTS:
-        var params = protocol.AnalysisSetContextRootsParams.fromRequest(
+        // This request is for legacy plugins. New plugins use
+        // `protocol.ANALYSIS_REQUEST_SET_ANALYSIS_ROOTS`.
+        result = null;
+
+      case protocol.ANALYSIS_REQUEST_SET_ANALYSIS_ROOTS:
+        var params = protocol.AnalysisSetAnalysisRootsParams.fromRequest(
           request,
         );
-        result = await _handleAnalysisSetContextRoots(params);
+        result = await _handleAnalysisSetAnalysisRoots(params);
 
       case protocol.ANALYSIS_REQUEST_SET_PRIORITY_FILES:
         var params = protocol.AnalysisSetPriorityFilesParams.fromRequest(
@@ -693,28 +725,31 @@ class PluginServer {
     return result.toResponse(request.id, requestTime);
   }
 
-  /// Handles an 'analysis.setContextRoots' request.
-  Future<protocol.AnalysisSetContextRootsResult> _handleAnalysisSetContextRoots(
-    protocol.AnalysisSetContextRootsParams parameters,
+  /// Handles an 'analysis.setAnalysisRoots' request.
+  Future<protocol.AnalysisSetAnalysisRootsResult>
+  _handleAnalysisSetAnalysisRoots(
+    protocol.AnalysisSetAnalysisRootsParams parameters,
   ) async {
-    var currentContextCollection = _contextCollection;
-    if (currentContextCollection != null) {
+    if (_contextCollection case var contextCollection?) {
       _contextCollection = null;
-      await currentContextCollection.dispose();
+      await contextCollection.dispose();
+    }
+    if (_eventsSubscription case var eventsSubscription?) {
+      _eventsSubscription = null;
+      await eventsSubscription.cancel();
     }
 
-    var includedPaths = parameters.roots.map((e) => e.root).toList();
     var contextCollection = AnalysisContextCollectionImpl(
       resourceProvider: _resourceProvider,
-      includedPaths: includedPaths,
+      includedPaths: parameters.included,
       byteStore: _byteStore,
       sdkPath: _sdkPath,
       fileContentCache: FileContentCache(_resourceProvider),
-      updateAnalysisOptions4:
+      configureAnalysisOptionsBuilder:
           // Disable extra warning computation and lint computation, because
           // these are reported in the main analysis server isolate, not in the
           // plugins isolate.
-          ({required AnalysisOptionsImpl analysisOptions}) => analysisOptions
+          ({required analysisOptionsBuilder}) => analysisOptionsBuilder
             ..warning = false
             ..lint = false,
       withFineDependencies: true,
@@ -722,7 +757,7 @@ class PluginServer {
     );
     _contextCollection = contextCollection;
     _updatePriorityFiles();
-    contextCollection.scheduler.events.listen((event) {
+    _eventsSubscription = contextCollection.scheduler.events.listen((event) {
       if (event is ResolvedUnitResult) {
         _handleResolvedUnit(event);
       } else if (event is AnalysisStatus) {
@@ -734,7 +769,8 @@ class PluginServer {
     await _analyzeAllFilesInContextCollection(
       contextCollection: contextCollection,
     );
-    return protocol.AnalysisSetContextRootsResult();
+
+    return protocol.AnalysisSetAnalysisRootsResult();
   }
 
   void _handleAnalysisStatus(AnalysisStatus status) {
@@ -843,11 +879,6 @@ class PluginServer {
     if (_contextCollection case var contextCollection?) {
       _filesBeingAnalyzed.clear();
       _filesBeingResolved.clear();
-      _channel.sendNotification(
-        protocol.PluginStatusParams(
-          analysis: protocol.AnalysisStatus(true),
-        ).toNotification(),
-      );
       await _forAnalysisContexts(contextCollection, (analysisContext) async {
         final driver = analysisContext.driver;
         for (var path in modifiedPaths) {
@@ -865,11 +896,6 @@ class PluginServer {
           protocol.AnalysisErrorsParams(path, []).toNotification(),
         );
       }
-      _channel.sendNotification(
-        protocol.PluginStatusParams(
-          analysis: protocol.AnalysisStatus(false),
-        ).toNotification(),
-      );
     }
   }
 

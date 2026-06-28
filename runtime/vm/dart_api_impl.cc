@@ -2166,9 +2166,23 @@ DART_EXPORT void Dart_SetCurrentThreadOwnsIsolate() {
   CHECK_ISOLATE(isolate);
   if (!isolate->SetOwnerThread(OSThread::kInvalidThreadId,
                                OSThread::GetCurrentThreadId())) {
-    FATAL("Tried to claim ownership of isolate %s, but it is already owned\n",
+    // We might be running this method while running dart code
+    // on this target isolate.
+    // So first confirm that the isolate is not pinned yet.
+    if (isolate->is_permanently_pinned()) {
+      FATAL("Tried to claim ownership of isolate %s, but it is already owned\n",
+            isolate->name());
+    }
+    // Allow pinning only if current owner is the current thread.
+    if (isolate->GetOwnerThread(/*locker=*/nullptr) !=
+        OSThread::GetCurrentThreadId()) {
+      FATAL(
+          "Tried to claim ownership of isolate %s, but it is running on"
+          "some other thread\n",
           isolate->name());
+    }
   }
+  isolate->set_is_permanently_pinned();
 }
 
 DART_EXPORT void Dart_ClearCurrentThreadOwnsIsolate_ForTesting() {
@@ -2179,10 +2193,11 @@ DART_EXPORT void Dart_ClearCurrentThreadOwnsIsolate_ForTesting() {
     FATAL("Tried to clear ownership of isolate %s, but we don't own it\n",
           isolate->name());
   }
+  isolate->clear_is_permanently_pinned_for_testing_only();
 }
 
 DART_EXPORT bool Dart_GetCurrentThreadOwnsIsolate(Dart_Port port) {
-  return PortMap::IsOwnedByCurrentThread(port);
+  return PortMap::IsOwnedByCurrentThread(port, /*require_permanent_pin=*/true);
 }
 
 // --- Scopes ----
@@ -3096,10 +3111,6 @@ DART_EXPORT Dart_Handle Dart_NewList(intptr_t length) {
   return Api::NewHandle(T, arr.ptr());
 }
 
-static bool CanTypeContainNull(const Type& type) {
-  return (type.nullability() == Nullability::kNullable);
-}
-
 DART_EXPORT Dart_Handle Dart_NewListOfType(Dart_Handle element_type,
                                            intptr_t length) {
   DARTSCOPE(Thread::Current());
@@ -3114,7 +3125,7 @@ DART_EXPORT Dart_Handle Dart_NewListOfType(Dart_Handle element_type,
         "%s expects argument 'type' to be a fully resolved type.",
         CURRENT_FUNC);
   }
-  if ((length > 0) && !CanTypeContainNull(type)) {
+  if ((length > 0) && !Instance::NullIsAssignableTo(type)) {
     return Api::NewError("%s expects argument 'type' to be a nullable type.",
                          CURRENT_FUNC);
   }
@@ -3216,7 +3227,8 @@ DART_EXPORT Dart_Handle Dart_NewListOfTypeFilled(Dart_Handle element_type,
         "'element_type'.",
         CURRENT_FUNC);
   }
-  if ((length > 0) && instance.IsNull() && !CanTypeContainNull(type)) {
+  if ((length > 0) && instance.IsNull() &&
+      !Instance::NullIsAssignableTo(type)) {
     return Api::NewError(
         "%s expects argument 'fill_object' to be non-null for a non-nullable "
         "'element_type'.",
@@ -6646,8 +6658,6 @@ static void CreateAppAOTSnapshotHelper(
   NOT_IN_PRODUCT(TimelineBeginEndScope tbes2(T, Timeline::GetIsolateStream(),
                                              "WriteAppAOTSnapshot"));
 
-  ZoneWriteStream vm_snapshot_data(T->zone(), FullSnapshotWriter::kInitialSize);
-  ZoneWriteStream vm_snapshot_instructions(T->zone(), kInitialSize);
   ZoneWriteStream isolate_snapshot_data(T->zone(),
                                         FullSnapshotWriter::kInitialSize);
   ZoneWriteStream isolate_snapshot_instructions(T->zone(), kInitialSize);
@@ -6707,7 +6717,7 @@ static void CreateAppAOTSnapshotHelper(
 
   Dwarf* const dwarf =
       (format == Dart_AotBinaryFormat_Assembly || strip) ? nullptr
-      : generate_debug                                   ? debug_dwarf
+      : generate_debug ? debug_dwarf
                        : new (Z) Dwarf(Z, deobfuscation_trie, identifier);
   SharedObjectWriter* so = nullptr;
   if (format == Dart_AotBinaryFormat_Elf) {
@@ -6732,8 +6742,7 @@ static void CreateAppAOTSnapshotHelper(
     use_output_writer(&assembly_writer);
   } else {
     BlobImageWriter blob_writer(
-        T, &vm_snapshot_instructions, &isolate_snapshot_instructions,
-        deobfuscation_trie, debug_so, so,
+        T, &isolate_snapshot_instructions, deobfuscation_trie, debug_so, so,
         /*needs_unique_names=*/object_callback_data != nullptr);
     use_output_writer(&blob_writer);
   }
@@ -6865,36 +6874,6 @@ DART_EXPORT Dart_Handle Dart_CreateAppAOTSnapshotAsAssemblies(
   Split(next_callback, next_callback_data, strip, Dart_AotBinaryFormat_Assembly,
         write_callback, close_callback);
 
-  return Api::Success();
-#endif
-}
-
-DART_EXPORT Dart_Handle
-Dart_CreateVMAOTSnapshotAsAssembly(Dart_StreamingWriteCallback callback,
-                                   void* callback_data) {
-#if defined(TARGET_ARCH_IA32)
-  return Api::NewError("AOT compilation is not supported on IA32.");
-#elif !defined(DART_PRECOMPILER)
-  return Api::NewError(
-      "This VM was built without support for AOT compilation.");
-#else
-  const char assembly[] =
-      ".text\n"
-      ".globl _kDartVmSnapshotInstructions\n"
-      ".balign 64, 0\n"
-      "_kDartVmSnapshotInstructions:\n"
-      ".quad 0\n"
-      ".size _kDartVmSnapshotInstructions, .-_kDartVmSnapshotInstructions\n"
-      ".type _kDartVmSnapshotInstructions, %object\n"
-      ".section .rodata\n"
-      ".globl _kDartVmSnapshotData\n"
-      ".balign 64, 0\n"
-      "_kDartVmSnapshotData:\n"
-      ".quad 0\n"
-      ".size _kDartVmSnapshotData, .-_kDartVmSnapshotData\n"
-      ".type _kDartVmSnapshotData, %object\n";
-  callback(callback_data, reinterpret_cast<const uint8_t*>(assembly),
-           sizeof(assembly));
   return Api::Success();
 #endif
 }
@@ -7120,8 +7099,7 @@ Dart_CreateAppJITSnapshotAsBlobs(uint8_t** isolate_snapshot_data_buffer,
                                         FullSnapshotWriter::kInitialSize);
   ZoneWriteStream isolate_snapshot_instructions(
       Api::TopScope(T)->zone(), FullSnapshotWriter::kInitialSize);
-  BlobImageWriter image_writer(T, /*vm_instructions=*/nullptr,
-                               &isolate_snapshot_instructions);
+  BlobImageWriter image_writer(T, &isolate_snapshot_instructions);
   FullSnapshotWriter writer(Snapshot::kFullJIT, &isolate_snapshot_data,
                             &image_writer);
   writer.WriteFullSnapshot();

@@ -10,7 +10,7 @@ import 'package:analyzer_plugin/utilities/assist/assist.dart';
 import 'package:analyzer_plugin/utilities/change_builder/change_builder_core.dart';
 
 class FlutterSwapWithParent extends FlutterParentAndChild {
-  FlutterSwapWithParent({required super.context});
+  new({required super.context});
 
   @override
   AssistKind get assistKind => DartAssistKind.flutterSwapWithParent;
@@ -25,9 +25,8 @@ class FlutterSwapWithParent extends FlutterParentAndChild {
 
     NamedArgument? namedExpression;
     if (child.parent case ListLiteral listLiteral) {
-      if (listLiteral.elements case NodeList(
-        length: var length,
-      ) when length != 1) {
+      if (listLiteral.elements case NodeList(length: var length)
+          when length != 1) {
         return;
       }
       if (listLiteral.parent case NamedArgument parent) {

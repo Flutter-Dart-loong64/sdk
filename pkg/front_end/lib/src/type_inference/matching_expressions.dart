@@ -17,7 +17,7 @@ class MatchingExpressionVisitor
   final MatchingCache matchingCache;
   final CoreTypes coreTypes;
 
-  MatchingExpressionVisitor(this.matchingCache, this.coreTypes);
+  new(this.matchingCache, this.coreTypes);
 
   DelayedExpression visitPattern(
     Pattern node,
@@ -57,7 +57,7 @@ class MatchingExpressionVisitor
     }
     return new DelayedAssignment(
       matchingCache,
-      node.variable,
+      node.setter ?? node.variable,
       node.variable.type,
       valueExpression,
       fileOffset: node.fileOffset,
@@ -937,5 +937,15 @@ class MatchingExpressionVisitor
     } else {
       return new BooleanExpression(true, fileOffset: node.fileOffset);
     }
+  }
+
+  @override
+  DelayedExpression visitAuxiliaryPattern(
+    AuxiliaryPattern node,
+    CacheableExpression matchedExpression,
+  ) {
+    throw new UnsupportedError(
+      "Unexpected pattern $node (${node.runtimeType}).",
+    );
   }
 }

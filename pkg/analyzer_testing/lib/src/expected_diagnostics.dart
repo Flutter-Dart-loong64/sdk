@@ -2,26 +2,28 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+import 'dart:convert';
+
 import 'package:analyzer/diagnostic/diagnostic.dart';
+import 'package:analyzer/file_system/file_system.dart';
 import 'package:analyzer/source/line_info.dart';
 import 'package:analyzer_testing/utilities/extensions/diagnostic_code.dart';
 
 /// Returns [content] with generated diagnostic expectation marker lines removed.
 String removeDiagnosticExpectations(String content) {
-  var lines = _Line.parse(content);
+  var allLines = _Line.parse(content);
+  var codeLines = allLines
+      .where((line) => !_LineMarker.isMarker(line))
+      .toList();
   var buffer = StringBuffer();
-  var isFirstLine = true;
-  for (var line in lines) {
-    if (_LineMarker.isMarker(line)) {
-      continue;
-    }
-
-    if (isFirstLine) {
-      isFirstLine = false;
-    } else {
-      buffer.writeln();
-    }
+  for (var i = 0; i < codeLines.length; i++) {
+    var line = codeLines[i];
     buffer.write(line.text);
+    // Write terminators as separators between retained lines; a terminator
+    // before a removed marker line should not become a trailing terminator.
+    if (i < codeLines.length - 1) {
+      buffer.write(line.lineTerminator);
+    }
   }
   return buffer.toString();
 }
@@ -51,6 +53,88 @@ String updateExpectedDiagnostics({
   return _ExpectedDiagnosticsUpdater(content).update(actualDiagnostics);
 }
 
+/// Returns each file's content with canonical diagnostic expectation markers.
+///
+/// This is the multi-file form of [updateExpectedDiagnostics]. It supports
+/// diagnostics whose context messages are located in another file in
+/// [contentByFile].
+Map<File, String> updateExpectedDiagnosticsForFiles({
+  required Map<File, String> contentByFile,
+  required Map<File, List<Diagnostic>> actualDiagnosticsByFile,
+}) {
+  return _ExpectedDiagnosticsForFilesUpdater(
+    contentByFile,
+  ).update(actualDiagnosticsByFile);
+}
+
+final class _ExpectedDiagnosticsForFilesUpdater {
+  final Map<File, _ExpectedDiagnosticsUpdater> updatersByFile = {};
+  final Map<String, _ExpectedDiagnosticsUpdater> updatersByPath = {};
+
+  int nextMarkerIndex = 0;
+  int nextContextId = 1;
+
+  _ExpectedDiagnosticsForFilesUpdater(Map<File, String> contentByFile) {
+    for (var entry in contentByFile.entries) {
+      var updater = _ExpectedDiagnosticsUpdater(entry.value);
+      updatersByFile[entry.key] = updater;
+      updatersByPath[entry.key.path] = updater;
+    }
+  }
+
+  Map<File, String> update(
+    Map<File, List<Diagnostic>> actualDiagnosticsByFile,
+  ) {
+    for (var entry in actualDiagnosticsByFile.entries) {
+      var updater = _updaterForPath(entry.key.path);
+      var sortedDiagnostics = entry.value.toList()
+        ..sort((first, second) => first.offset.compareTo(second.offset));
+      for (var diagnostic in sortedDiagnostics) {
+        _generateDiagnosticMarkers(updater, diagnostic);
+      }
+    }
+
+    return {
+      for (var entry in updatersByFile.entries)
+        entry.key: entry.value._writeContent(),
+    };
+  }
+
+  void _generateDiagnosticMarkers(
+    _ExpectedDiagnosticsUpdater diagnosticUpdater,
+    Diagnostic diagnostic,
+  ) {
+    var contextRefs = <int>[];
+    for (var contextMessage in diagnostic.contextMessages) {
+      var contextUpdater = _updaterForPath(contextMessage.filePath);
+      var id = nextContextId++;
+      contextRefs.add(id);
+      contextUpdater._addContextMessageMarker(
+        contextMessage,
+        id: id,
+        index: nextMarkerIndex++,
+      );
+    }
+
+    diagnosticUpdater._addDiagnosticMarker(
+      diagnostic,
+      index: nextMarkerIndex++,
+      contextRefs: contextRefs,
+    );
+  }
+
+  _ExpectedDiagnosticsUpdater _updaterForPath(String path) {
+    var updater = updatersByPath[path];
+    if (updater == null) {
+      throw StateError(
+        'Cannot generate diagnostic expectations for $path: '
+        'no content was provided.',
+      );
+    }
+    return updater;
+  }
+}
+
 final class _ExpectedDiagnosticsUpdater {
   final List<_Line> lines;
   final LineInfo lineInfo;
@@ -77,6 +161,61 @@ final class _ExpectedDiagnosticsUpdater {
     return _writeContent();
   }
 
+  void _addContextMessageMarker(
+    DiagnosticMessage contextMessage, {
+    required int id,
+    required int index,
+  }) {
+    var location = _markerLocation(offset: contextMessage.offset);
+    var line = lines[location.lineNumber - 1];
+    var presentation = _markerPresentation(
+      line,
+      column: location.column,
+      length: contextMessage.length,
+    );
+    _addMarker(
+      location.lineNumber,
+      _GeneratedMarker.context(
+        offset: contextMessage.offset,
+        index: index,
+        id: id,
+        column: location.column,
+        length: contextMessage.length,
+        caretLength: presentation.caretLength,
+        includeExplicitLocation: presentation.includeExplicitLocation,
+        message: _messageText(contextMessage),
+      ),
+    );
+  }
+
+  void _addDiagnosticMarker(
+    Diagnostic diagnostic, {
+    required int index,
+    required List<int> contextRefs,
+  }) {
+    var location = _markerLocation(offset: diagnostic.offset);
+    var line = lines[location.lineNumber - 1];
+    var presentation = _markerPresentation(
+      line,
+      column: location.column,
+      length: diagnostic.length,
+    );
+    _addMarker(
+      location.lineNumber,
+      _GeneratedMarker.diagnostic(
+        offset: diagnostic.offset,
+        index: index,
+        constantName: diagnostic.diagnosticCode.constantName,
+        column: location.column,
+        length: diagnostic.length,
+        caretLength: presentation.caretLength,
+        includeExplicitLocation: presentation.includeExplicitLocation,
+        contextRefs: contextRefs,
+        message: _messageText(diagnostic.problemMessage),
+      ),
+    );
+  }
+
   void _addMarker(int lineNumber, _GeneratedMarker marker) {
     markersByLine.putIfAbsent(lineNumber, () => []).add(marker);
   }
@@ -90,58 +229,25 @@ final class _ExpectedDiagnosticsUpdater {
     var contextRefs = <int>[];
     for (var contextMessage in diagnostic.contextMessages) {
       if (contextMessage.filePath != diagnostic.problemMessage.filePath) {
-        // TODO(scheglov): Support generating expectations for context
-        // messages in other files.
         throw StateError(
           'Cannot generate a diagnostic expectation with a context message '
-          'in another file.',
+          'in another file. Use updateExpectedDiagnosticsForFiles instead.',
         );
       }
 
       var id = nextContextId++;
       contextRefs.add(id);
-      var location = _markerLocation(offset: contextMessage.offset);
-      var line = lines[location.lineNumber - 1];
-      var presentation = _markerPresentation(
-        line,
-        column: location.column,
-        length: contextMessage.length,
-      );
-      _addMarker(
-        location.lineNumber,
-        _GeneratedMarker.context(
-          offset: contextMessage.offset,
-          index: nextMarkerIndex++,
-          id: id,
-          column: location.column,
-          length: contextMessage.length,
-          caretLength: presentation.caretLength,
-          includeExplicitLocation: presentation.includeExplicitLocation,
-          message: _messageText(contextMessage),
-        ),
+      _addContextMessageMarker(
+        contextMessage,
+        id: id,
+        index: nextMarkerIndex++,
       );
     }
 
-    var location = _markerLocation(offset: diagnostic.offset);
-    var line = lines[location.lineNumber - 1];
-    var presentation = _markerPresentation(
-      line,
-      column: location.column,
-      length: diagnostic.length,
-    );
-    _addMarker(
-      location.lineNumber,
-      _GeneratedMarker.diagnostic(
-        offset: diagnostic.offset,
-        index: nextMarkerIndex++,
-        constantName: diagnostic.diagnosticCode.constantName,
-        column: location.column,
-        length: diagnostic.length,
-        caretLength: presentation.caretLength,
-        includeExplicitLocation: presentation.includeExplicitLocation,
-        contextRefs: contextRefs,
-        message: _messageText(diagnostic.problemMessage),
-      ),
+    _addDiagnosticMarker(
+      diagnostic,
+      index: nextMarkerIndex++,
+      contextRefs: contextRefs,
     );
   }
 
@@ -186,43 +292,48 @@ final class _ExpectedDiagnosticsUpdater {
 
   String _writeContent() {
     var buffer = StringBuffer();
-    var isFirstLine = true;
     for (var line in lines) {
-      if (isFirstLine) {
-        isFirstLine = false;
-      } else {
-        buffer.writeln();
-      }
       buffer.write(line.text);
 
       var markers = markersByLine[line.number];
       if (markers != null) {
+        var markerLineTerminator = line.lineTerminator;
+
+        // Use a separator when adding markers after an unterminated final line.
+        if (markerLineTerminator.isEmpty) {
+          markerLineTerminator = '\n';
+        }
+
         markers.sort(_GeneratedMarker.compare);
         ({int column, int length})? currentCaret;
         for (var marker in markers) {
           if (marker.caretLength case var caretLength?) {
             var markerCaret = (column: marker.column, length: caretLength);
             if (markerCaret != currentCaret) {
-              buffer.writeln();
+              buffer.write(markerLineTerminator);
               buffer.write(_caretLine(marker.column, caretLength));
               currentCaret = markerCaret;
             }
           }
-          buffer.writeln();
+          buffer.write(markerLineTerminator);
           buffer.write(marker.expectationText);
         }
       }
+
+      buffer.write(line.lineTerminator);
     }
     return buffer.toString();
   }
 
   static String _messageText(DiagnosticMessage message) {
     var text = message.messageText(includeUrl: false);
-    return _toPosixPaths(text).trim();
+    text = _toPosixPaths(text).trim();
+    text = LineSplitter.split(text).join(r'\n');
+    return text;
   }
 
   static String _toPosixPaths(String message) {
-    return message.replaceAllMapped(RegExp(r'C:\\([a-zA-Z0-9_.\\]+)'), (match) {
+    return message.replaceAllMapped(RegExp(r'C:\\([a-zA-Z0-9_.\\]*)'), (match) {
       var path = match.group(1)!;
       var posixPath = path.replaceAll(r'\', '/');
       return '/$posixPath';
@@ -347,7 +458,14 @@ final class _Line {
   /// The line text without the trailing newline characters.
   final String text;
 
-  _Line({required this.number, required this.text});
+  /// The line terminator, if present.
+  final String lineTerminator;
+
+  _Line({
+    required this.number,
+    required this.text,
+    required this.lineTerminator,
+  });
 
   /// Splits [content] into lines while preserving each line's offset.
   ///
@@ -361,24 +479,34 @@ final class _Line {
     for (var index = 0; index < content.length; index++) {
       var codeUnit = content.codeUnitAt(index);
       if (codeUnit == 0x0D || codeUnit == 0x0A) {
-        result.add(
-          _Line(
-            number: lineNumber++,
-            text: content.substring(lineStart, index),
-          ),
-        );
+        var lineText = content.substring(lineStart, index);
 
-        // Consume the `\n` in a `\r\n` line break.
+        var lineTerminator = content.substring(index, index + 1);
         if (codeUnit == 0x0D &&
             index + 1 < content.length &&
             content.codeUnitAt(index + 1) == 0x0A) {
+          lineTerminator = content.substring(index, index + 2);
           index++;
         }
+
+        result.add(
+          _Line(
+            number: lineNumber++,
+            text: lineText,
+            lineTerminator: lineTerminator,
+          ),
+        );
         lineStart = index + 1;
       }
     }
 
-    result.add(_Line(number: lineNumber, text: content.substring(lineStart)));
+    result.add(
+      _Line(
+        number: lineNumber,
+        text: content.substring(lineStart),
+        lineTerminator: '',
+      ),
+    );
     return result;
   }
 }

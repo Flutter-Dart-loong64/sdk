@@ -117,7 +117,7 @@ class FactoryDeclarationImpl
   late final TypeBuilder _returnType;
   late final FactoryEncoding _encoding;
 
-  FactoryDeclarationImpl(this._fragment) {
+  new(this._fragment) {
     _fragment.declaration = this;
   }
 
@@ -374,7 +374,7 @@ class FactoryDeclarationImpl
     required Scope? scope,
     required AsyncModifier asyncModifier,
     required DartType? emittedValueType,
-    required Variable? thisVariable,
+    required ThisVariable? thisVariable,
   }) {
     _encoding.registerFunctionBody(
       body: body,
@@ -424,7 +424,7 @@ abstract class FactoryFragmentDeclaration {
     required Scope? scope,
     required AsyncModifier asyncModifier,
     required DartType? emittedValueType,
-    required Variable? thisVariable,
+    required ThisVariable? thisVariable,
   });
 
   DartType get returnTypeContext;

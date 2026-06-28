@@ -47,7 +47,7 @@ ConditionalExpression
   }
 
   test_downward_condition() async {
-    var result = await resolveTestCode('''
+    var result = await resolveTestCodeWithDiagnostics('''
 void f(int b, int c) {
   a() ? b : c;
 }
@@ -312,7 +312,7 @@ ConditionalExpression
   }
 
   test_upward() async {
-    var result = await resolveTestCode('''
+    var result = await resolveTestCodeWithDiagnostics('''
 void f(bool a, int b, int c) {
   var d = a ? b : c;
   print(d);
@@ -353,7 +353,7 @@ f(bool b, C1<int> c1, C2<double> c2) {
     token: c2
     element: <testLibrary>::@function::f::@formalParameter::c2
     staticType: C2<double>
-  correspondingParameter: ParameterMember
+  correspondingParameter: SubstitutedFormalParameterElementImpl
     baseElement: <testLibrary>::@function::contextB1::@formalParameter::b1
     substitution: {T: Object?}
   staticType: B1<Object?>

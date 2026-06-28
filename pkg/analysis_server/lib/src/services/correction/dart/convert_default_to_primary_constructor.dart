@@ -11,7 +11,7 @@ import 'package:analyzer_plugin/utilities/change_builder/change_builder_core.dar
 import 'package:analyzer_plugin/utilities/fixes/fixes.dart';
 
 class ConvertDefaultToPrimaryConstructor extends ResolvedCorrectionProducer {
-  ConvertDefaultToPrimaryConstructor({required super.context});
+  new({required super.context});
 
   @override
   CorrectionApplicability get applicability =>
@@ -38,7 +38,10 @@ class ConvertDefaultToPrimaryConstructor extends ResolvedCorrectionProducer {
       if (namePart is! PrimaryConstructorDeclaration &&
           (!members.any((e) => e is ConstructorDeclaration))) {
         await builder.addDartFileEdit(file, (builder) {
-          builder.addSimpleInsertion(namePart.typeName.end, '()');
+          builder.addSimpleInsertion(
+            namePart.typeParameters?.end ?? namePart.typeName.end,
+            '()',
+          );
         });
       }
     }

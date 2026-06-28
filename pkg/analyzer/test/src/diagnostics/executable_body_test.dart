@@ -180,6 +180,104 @@ class A {
 ''');
   }
 
+  test_class_instanceGetter_hasBody_augmentation_instanceField() async {
+    await resolveTestCodeWithDiagnostics(r'''
+class A {
+  int get foo => 0;
+//        ^^^
+// [context 1] The corresponding getter is declared here.
+// [context 2] The complete declaration is here.
+  augment int foo = 1;
+//            ^^^
+// [diag.augmentationWithoutSetterDeclaration][context 1] This augmentation induces a setter, but no setter declaration named 'foo' exists to augment.
+// [diag.augmentationInducedGetterAlreadyComplete][context 2] The getter induced by this augmentation is complete, but the getter being augmented is already complete.
+}
+''');
+  }
+
+  test_class_instanceGetter_hasBody_augmentation_instanceField_abstractFinal() async {
+    await resolveTestCodeWithDiagnostics(r'''
+class A {
+  int get foo => 0;
+  augment abstract final int foo;
+}
+''');
+  }
+
+  test_class_instanceGetter_hasBody_augmentation_instanceField_final() async {
+    await resolveTestCodeWithDiagnostics(r'''
+class A {
+  int get foo => 0;
+//        ^^^
+// [context 1] The complete declaration is here.
+  augment final int foo = 1;
+//                  ^^^
+// [diag.augmentationInducedGetterAlreadyComplete][context 1] The getter induced by this augmentation is complete, but the getter being augmented is already complete.
+}
+''');
+  }
+
+  test_class_instanceGetter_hasBody_instanceSetter_hasBody_augmentation_instanceField() async {
+    await resolveTestCodeWithDiagnostics(r'''
+class A {
+  int get foo => 0;
+//        ^^^
+// [context 1] The complete declaration is here.
+  set foo(int _) {}
+//    ^^^
+// [context 2] The complete declaration is here.
+  augment int foo = 1;
+//            ^^^
+// [diag.augmentationInducedGetterAlreadyComplete][context 1] The getter induced by this augmentation is complete, but the getter being augmented is already complete.
+// [diag.augmentationInducedSetterAlreadyComplete][context 2] The setter induced by this augmentation is complete, but the setter being augmented is already complete.
+}
+''');
+  }
+
+  test_class_instanceGetter_hasBody_instanceSetter_hasBody_augmentation_instanceField_abstract() async {
+    await resolveTestCodeWithDiagnostics(r'''
+class A {
+  int get foo => 0;
+  set foo(int _) {}
+  augment abstract int foo;
+}
+''');
+  }
+
+  test_class_instanceGetter_noBody_augmentation_instanceField_final() async {
+    await resolveTestCodeWithDiagnostics(r'''
+class A {
+  int get foo;
+  augment final int foo = 1;
+}
+''');
+  }
+
+  test_class_instanceGetter_noBody_instanceSetter_noBody_augmentation_instanceField() async {
+    await resolveTestCodeWithDiagnostics(r'''
+class A {
+  int get foo;
+  set foo(int _);
+  augment int foo = 1;
+}
+''');
+  }
+
+  test_class_instanceSetter_hasBody_augmentation_instanceField() async {
+    await resolveTestCodeWithDiagnostics(r'''
+class A {
+  set foo(int _) {}
+//    ^^^
+// [context 1] The corresponding setter is declared here.
+// [context 2] The complete declaration is here.
+  augment int foo = 1;
+//            ^^^
+// [diag.augmentationWithoutGetterDeclaration][context 1] This augmentation induces a getter, but no getter declaration named 'foo' exists to augment.
+// [diag.augmentationInducedSetterAlreadyComplete][context 2] The setter induced by this augmentation is complete, but the setter being augmented is already complete.
+}
+''');
+  }
+
   test_class_method_instance_external_hasBody_blockBody() async {
     await resolveTestCodeWithDiagnostics(r'''
 class C {
@@ -539,6 +637,188 @@ class A {
   static set foo(int _);
 //                     ^
 // [diag.missingFunctionBody] A function body must be provided.
+}
+''');
+  }
+
+  test_class_staticField_abstract() async {
+    await resolveTestCodeWithDiagnostics(r'''
+class A {
+  static abstract int foo;
+//                    ^^^
+// [diag.inducedGetterWithoutBody] The getter induced by 'foo' must have a body.
+// [diag.inducedSetterWithoutBody] The setter induced by 'foo' must have a body.
+}
+''');
+  }
+
+  test_class_staticField_abstract_completeAfterAugmentations() async {
+    await resolveTestCodeWithDiagnostics(r'''
+class A {
+  static abstract int foo;
+  augment static int get foo => 0;
+  augment static set foo(int _) {}
+}
+''');
+  }
+
+  test_class_staticField_abstract_incompleteGetterAfterAugmentations() async {
+    await resolveTestCodeWithDiagnostics(r'''
+class A {
+  static abstract int foo;
+//                    ^^^
+// [diag.inducedGetterNotCompleteAfterAugmentations] The getter induced by 'foo' must have a body after all augmentations are applied.
+  augment static set foo(int _) {}
+}
+''');
+  }
+
+  test_class_staticField_abstract_incompleteSetterAfterAugmentations() async {
+    await resolveTestCodeWithDiagnostics(r'''
+class A {
+  static abstract int foo;
+//                    ^^^
+// [diag.inducedSetterNotCompleteAfterAugmentations] The setter induced by 'foo' must have a body after all augmentations are applied.
+  augment static int get foo => 0;
+}
+''');
+  }
+
+  test_class_staticField_abstract_language305() async {
+    await resolveTestCodeWithDiagnostics(r'''
+// @dart = 3.5
+class A {
+  static abstract int foo;
+//       ^^^^^^^^
+// [diag.abstractStaticField] Static fields can't be declared 'abstract'.
+}
+''');
+  }
+
+  test_class_staticField_abstractFinal() async {
+    await resolveTestCodeWithDiagnostics(r'''
+class A {
+  static abstract final int foo;
+//                          ^^^
+// [diag.inducedGetterWithoutBody] The getter induced by 'foo' must have a body.
+}
+''');
+  }
+
+  test_class_staticField_abstractFinal_completeAfterAugmentations() async {
+    await resolveTestCodeWithDiagnostics(r'''
+class A {
+  static abstract final int foo;
+  augment static int get foo => 0;
+}
+''');
+  }
+
+  test_class_staticField_abstractFinal_incompleteGetterAfterAugmentations() async {
+    await resolveTestCodeWithDiagnostics(r'''
+class A {
+  static abstract final int foo;
+//                          ^^^
+// [diag.inducedGetterNotCompleteAfterAugmentations] The getter induced by 'foo' must have a body after all augmentations are applied.
+  augment static abstract final int foo;
+}
+''');
+  }
+
+  test_class_staticGetter_hasBody_augmentation_staticField() async {
+    await resolveTestCodeWithDiagnostics(r'''
+class A {
+  static int get foo => 0;
+//               ^^^
+// [context 1] The corresponding getter is declared here.
+// [context 2] The complete declaration is here.
+  augment static int foo = 1;
+//                   ^^^
+// [diag.augmentationWithoutSetterDeclaration][context 1] This augmentation induces a setter, but no setter declaration named 'foo' exists to augment.
+// [diag.augmentationInducedGetterAlreadyComplete][context 2] The getter induced by this augmentation is complete, but the getter being augmented is already complete.
+}
+''');
+  }
+
+  test_class_staticGetter_hasBody_augmentation_staticField_abstractFinal() async {
+    await resolveTestCodeWithDiagnostics(r'''
+class A {
+  static int get foo => 0;
+  augment static abstract final int foo;
+}
+''');
+  }
+
+  test_class_staticGetter_hasBody_augmentation_staticField_final() async {
+    await resolveTestCodeWithDiagnostics(r'''
+class A {
+  static int get foo => 0;
+//               ^^^
+// [context 1] The complete declaration is here.
+  augment static final int foo = 1;
+//                         ^^^
+// [diag.augmentationInducedGetterAlreadyComplete][context 1] The getter induced by this augmentation is complete, but the getter being augmented is already complete.
+}
+''');
+  }
+
+  test_class_staticGetter_hasBody_staticSetter_hasBody_augmentation_staticField() async {
+    await resolveTestCodeWithDiagnostics(r'''
+class A {
+  static int get foo => 0;
+//               ^^^
+// [context 1] The complete declaration is here.
+  static set foo(int _) {}
+//           ^^^
+// [context 2] The complete declaration is here.
+  augment static int foo = 1;
+//                   ^^^
+// [diag.augmentationInducedGetterAlreadyComplete][context 1] The getter induced by this augmentation is complete, but the getter being augmented is already complete.
+// [diag.augmentationInducedSetterAlreadyComplete][context 2] The setter induced by this augmentation is complete, but the setter being augmented is already complete.
+}
+''');
+  }
+
+  test_class_staticGetter_hasBody_staticSetter_hasBody_augmentation_staticField_abstract() async {
+    await resolveTestCodeWithDiagnostics(r'''
+class A {
+  static int get foo => 0;
+  static set foo(int _) {}
+  augment static abstract int foo;
+}
+''');
+  }
+
+  test_class_staticGetter_noBody_augmentation_staticField_final() async {
+    await resolveTestCodeWithDiagnostics(r'''
+class A {
+  static int get foo;
+  augment static final int foo = 1;
+}
+''');
+  }
+
+  test_class_staticGetter_noBody_staticSetter_noBody_augmentation_staticField() async {
+    await resolveTestCodeWithDiagnostics(r'''
+class A {
+  static int get foo;
+  static set foo(int _);
+  augment static int foo = 1;
+}
+''');
+  }
+
+  test_class_staticSetter_hasBody_augmentation_staticField() async {
+    await resolveTestCodeWithDiagnostics(r'''
+class A {
+  static set foo(int _) {}
+//           ^^^
+// [context 1] The corresponding setter is declared here.
+// [context 2] The complete declaration is here.
+  augment static int foo = 1;
+//                   ^^^
+// [diag.augmentationWithoutGetterDeclaration][context 1] This augmentation induces a getter, but no getter declaration named 'foo' exists to augment.
+// [diag.augmentationInducedSetterAlreadyComplete][context 2] The setter induced by this augmentation is complete, but the setter being augmented is already complete.
 }
 ''');
   }
@@ -2106,10 +2386,64 @@ augment int get foo => 1;
 ''');
   }
 
+  test_topLevel_getter_hasBody_augmentation_variable() async {
+    await resolveTestCodeWithDiagnostics(r'''
+int get foo => 0;
+//      ^^^
+// [context 1] The corresponding getter is declared here.
+// [context 2] The complete declaration is here.
+augment int foo = 1;
+//          ^^^
+// [diag.augmentationWithoutSetterDeclaration][context 1] This augmentation induces a setter, but no setter declaration named 'foo' exists to augment.
+// [diag.augmentationInducedGetterAlreadyComplete][context 2] The getter induced by this augmentation is complete, but the getter being augmented is already complete.
+''');
+  }
+
+  test_topLevel_getter_hasBody_augmentation_variable_abstractFinal() async {
+    await resolveTestCodeWithDiagnostics(r'''
+int get foo => 0;
+augment abstract final int foo;
+''');
+  }
+
+  test_topLevel_getter_hasBody_augmentation_variable_final() async {
+    await resolveTestCodeWithDiagnostics(r'''
+int get foo => 0;
+//      ^^^
+// [context 1] The complete declaration is here.
+augment final int foo = 1;
+//                ^^^
+// [diag.augmentationInducedGetterAlreadyComplete][context 1] The getter induced by this augmentation is complete, but the getter being augmented is already complete.
+''');
+  }
+
   test_topLevel_getter_hasBody_language305() async {
     await resolveTestCodeWithDiagnostics(r'''
 // @dart = 3.5
 int get foo => 0;
+''');
+  }
+
+  test_topLevel_getter_hasBody_setter_hasBody_augmentation_variable() async {
+    await resolveTestCodeWithDiagnostics(r'''
+int get foo => 0;
+//      ^^^
+// [context 1] The complete declaration is here.
+set foo(int _) {}
+//  ^^^
+// [context 2] The complete declaration is here.
+augment int foo = 1;
+//          ^^^
+// [diag.augmentationInducedGetterAlreadyComplete][context 1] The getter induced by this augmentation is complete, but the getter being augmented is already complete.
+// [diag.augmentationInducedSetterAlreadyComplete][context 2] The setter induced by this augmentation is complete, but the setter being augmented is already complete.
+''');
+  }
+
+  test_topLevel_getter_hasBody_setter_hasBody_augmentation_variable_abstract() async {
+    await resolveTestCodeWithDiagnostics(r'''
+int get foo => 0;
+set foo(int _) {}
+augment abstract int foo;
 ''');
   }
 
@@ -2121,12 +2455,27 @@ int get foo;
 ''');
   }
 
+  test_topLevel_getter_noBody_augmentation_variable_final() async {
+    await resolveTestCodeWithDiagnostics(r'''
+int get foo;
+augment final int foo = 1;
+''');
+  }
+
   test_topLevel_getter_noBody_language305() async {
     await resolveTestCodeWithDiagnostics(r'''
 // @dart = 3.5
 int get foo;
 //         ^
 // [diag.missingFunctionBody] A function body must be provided.
+''');
+  }
+
+  test_topLevel_getter_noBody_setter_noBody_augmentation_variable() async {
+    await resolveTestCodeWithDiagnostics(r'''
+int get foo;
+set foo(int _);
+augment int foo = 1;
 ''');
   }
 
@@ -2175,6 +2524,19 @@ augment set foo(int _) {}
 ''');
   }
 
+  test_topLevel_setter_hasBody_augmentation_variable() async {
+    await resolveTestCodeWithDiagnostics(r'''
+set foo(int _) {}
+//  ^^^
+// [context 1] The corresponding setter is declared here.
+// [context 2] The complete declaration is here.
+augment int foo = 1;
+//          ^^^
+// [diag.augmentationWithoutGetterDeclaration][context 1] This augmentation induces a getter, but no getter declaration named 'foo' exists to augment.
+// [diag.augmentationInducedSetterAlreadyComplete][context 2] The setter induced by this augmentation is complete, but the setter being augmented is already complete.
+''');
+  }
+
   test_topLevel_setter_hasBody_language305() async {
     await resolveTestCodeWithDiagnostics(r'''
 // @dart = 3.5
@@ -2196,6 +2558,73 @@ set foo(int _);
 set foo(int _);
 //            ^
 // [diag.missingFunctionBody] A function body must be provided.
+''');
+  }
+
+  test_topLevel_variable_abstract() async {
+    await resolveTestCodeWithDiagnostics(r'''
+abstract int foo;
+//           ^^^
+// [diag.inducedGetterWithoutBody] The getter induced by 'foo' must have a body.
+// [diag.inducedSetterWithoutBody] The setter induced by 'foo' must have a body.
+''');
+  }
+
+  test_topLevel_variable_abstract_completeAfterAugmentations() async {
+    await resolveTestCodeWithDiagnostics(r'''
+abstract int foo;
+augment int get foo => 0;
+augment set foo(int _) {}
+''');
+  }
+
+  test_topLevel_variable_abstract_incompleteGetterAfterAugmentations() async {
+    await resolveTestCodeWithDiagnostics(r'''
+abstract int foo;
+//           ^^^
+// [diag.inducedGetterNotCompleteAfterAugmentations] The getter induced by 'foo' must have a body after all augmentations are applied.
+augment set foo(int _) {}
+''');
+  }
+
+  test_topLevel_variable_abstract_incompleteSetterAfterAugmentations() async {
+    await resolveTestCodeWithDiagnostics(r'''
+abstract int foo;
+//           ^^^
+// [diag.inducedSetterNotCompleteAfterAugmentations] The setter induced by 'foo' must have a body after all augmentations are applied.
+augment int get foo => 0;
+''');
+  }
+
+  test_topLevel_variable_abstract_language305() async {
+    await resolveTestCodeWithDiagnostics(r'''
+// @dart = 3.5
+abstract int foo;
+// [diag.extraneousModifier][column 1][length 8] Can't have modifier 'abstract' here.
+''');
+  }
+
+  test_topLevel_variable_abstractFinal() async {
+    await resolveTestCodeWithDiagnostics(r'''
+abstract final int foo;
+//                 ^^^
+// [diag.inducedGetterWithoutBody] The getter induced by 'foo' must have a body.
+''');
+  }
+
+  test_topLevel_variable_abstractFinal_completeAfterAugmentations() async {
+    await resolveTestCodeWithDiagnostics(r'''
+abstract final int foo;
+augment int get foo => 0;
+''');
+  }
+
+  test_topLevel_variable_abstractFinal_incompleteGetterAfterAugmentations() async {
+    await resolveTestCodeWithDiagnostics(r'''
+abstract final int foo;
+//                 ^^^
+// [diag.inducedGetterNotCompleteAfterAugmentations] The getter induced by 'foo' must have a body after all augmentations are applied.
+augment abstract final int foo;
 ''');
   }
 }

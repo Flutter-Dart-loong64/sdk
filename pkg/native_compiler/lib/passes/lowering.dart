@@ -59,6 +59,20 @@ final class Lowering extends Pass with DefaultInstructionVisitor<void> {
     ),
   );
 
+  late final CFunction _prependTypeArguments = functionRegistry.getFunction(
+    GlobalContext.instance.coreTypes.index.getTopLevelProcedure(
+      'dart:_internal',
+      '_prependTypeArguments',
+    ),
+  );
+
+  late final CFunction _instantiateClosure = functionRegistry.getFunction(
+    GlobalContext.instance.coreTypes.index.getTopLevelProcedure(
+      'dart:_internal',
+      '_instantiateClosure',
+    ),
+  );
+
   late final _emptyList = ConstantValue(
     ast.ListConstant(const ast.DynamicType(), const []),
   );
@@ -160,8 +174,44 @@ final class Lowering extends Pass with DefaultInstructionVisitor<void> {
           user.replaceInputAt(user.getInputIndex(use), load);
         }
       case .functionTypeParameters:
-        final replacement = instr.inputDefAt(0);
-        instr.replaceUsesWith(replacement);
+        switch (instr.inputCount) {
+          case 1:
+            final replacement = instr.inputDefAt(0);
+            instr.replaceUsesWith(replacement);
+            break;
+          case 2:
+            final function = graph.function;
+            final numEnclosingTypeParameters =
+                function.numberOfEnclosingFunctionTypeParameters;
+            final numTotalTypeParameters =
+                numEnclosingTypeParameters +
+                function.numberOfFunctionTypeParameters;
+            final replacement = DirectCall(
+              graph,
+              instr.sourcePosition,
+              _prependTypeArguments,
+              instr.type,
+              inputCount: 4,
+              argumentsShape: functionRegistry.getArgumentsShape(4),
+            );
+            replacement.setInputAt(0, instr.inputDefAt(0));
+            replacement.setInputAt(1, instr.inputDefAt(1));
+            replacement.setInputAt(
+              2,
+              graph.getConstant(
+                ConstantValue.fromInt(numEnclosingTypeParameters),
+              ),
+            );
+            replacement.setInputAt(
+              3,
+              graph.getConstant(ConstantValue.fromInt(numTotalTypeParameters)),
+            );
+            replacement.insertBefore(instr);
+            instr.replaceUsesWith(replacement);
+            break;
+          default:
+            throw 'Unexpected number of inputs in ${IrToText.instruction(instr)}';
+        }
         break;
     }
     instr.removeFromGraph();
@@ -357,6 +407,23 @@ final class Lowering extends Pass with DefaultInstructionVisitor<void> {
       argumentsShape: functionRegistry.getArgumentsShape(1),
     );
     replacement.setInputAt(0, argument);
+    replacement.insertBefore(instr);
+    instr.replaceUsesWith(replacement);
+    instr.removeFromGraph();
+  }
+
+  @override
+  void visitInstantiateClosure(InstantiateClosure instr) {
+    final replacement = DirectCall(
+      graph,
+      instr.sourcePosition,
+      _instantiateClosure,
+      instr.type,
+      inputCount: 2,
+      argumentsShape: functionRegistry.getArgumentsShape(2),
+    );
+    replacement.setInputAt(0, instr.closure);
+    replacement.setInputAt(1, instr.typeArguments);
     replacement.insertBefore(instr);
     instr.replaceUsesWith(replacement);
     instr.removeFromGraph();

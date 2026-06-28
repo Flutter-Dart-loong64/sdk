@@ -44,7 +44,7 @@
 #   issue created for it.
 #
 # Stats:
-# -  78 "needsEvaluation"
+# -  85 "needsEvaluation"
 # - 302 "needsFix"
 # - 525 "hasFix"
 # - 487 "noFix"
@@ -235,15 +235,35 @@ async_for_in_wrong_context:
   status: hasFix
 augmentation_extends_clause_already_present:
   status: needsEvaluation
+augmentation_formal_parameter_modifier_extra:
+  status: needsEvaluation
+augmentation_formal_parameter_modifier_missing:
+  status: needsEvaluation
+augmentation_formal_parameter_type_mismatch:
+  status: needsEvaluation
+augmentation_induced_getter_already_complete:
+  status: needsEvaluation
 augmentation_induced_getter_return_type_mismatch:
+  status: needsEvaluation
+augmentation_induced_setter_already_complete:
   status: needsEvaluation
 augmentation_modifier_extra:
   status: hasFix
 augmentation_modifier_missing:
   status: needsFix
+augmentation_named_formal_parameter_extra:
+  status: needsEvaluation
+augmentation_named_formal_parameter_missing:
+  status: needsEvaluation
 augmentation_of_different_declaration_kind:
   status: noFix
 augmentation_of_mixin_application_class:
+  status: needsEvaluation
+augmentation_optional_positional_formal_parameter_count:
+  status: needsEvaluation
+augmentation_positional_formal_parameter_name:
+  status: needsEvaluation
+augmentation_required_positional_formal_parameter_count:
   status: needsEvaluation
 augmentation_return_type_mismatch:
   status: needsEvaluation
@@ -267,6 +287,8 @@ augmented_expression_is_setter:
   status: noFix
 augmented_expression_not_operator:
   status: noFix
+augments_constant_variable:
+  status: needsEvaluation
 await_in_late_local_variable_initializer:
   status: hasFix
 await_in_wrong_context:
@@ -554,10 +576,14 @@ constant_pattern_with_non_constant_expression:
   notes: |-
     Has fix for expression that can be made constant. More cases to be
     implemented as per the tests.
+constant_variable_augmentation:
+  status: needsEvaluation
 continue_label_invalid:
   status: noFix
 could_not_infer:
   status: noFix
+default_value_already_specified_in_augmentation_chain:
+  status: needsEvaluation
 default_value_in_redirecting_factory_constructor:
   status: needsFix
   notes: |-
@@ -910,6 +936,14 @@ implicit_this_reference_in_initializer:
   status: hasFix
 implicit_super_initializer_missing_arguments:
   status: hasFix
+induced_getter_not_complete_after_augmentations:
+  status: needsEvaluation
+induced_getter_without_body:
+  status: needsEvaluation
+induced_setter_not_complete_after_augmentations:
+  status: needsEvaluation
+induced_setter_without_body:
+  status: needsEvaluation
 import_internal_library:
   status: hasFix
 import_of_non_library:
@@ -1941,6 +1975,8 @@ annotate_overrides:
   status: hasFix
 annotate_redeclares:
   status: hasFix
+async_return_with_no_await:
+  status: hasFix
 avoid_annotating_with_dynamic:
   status: hasFix
 avoid_bool_literals_in_conditional_expressions:
@@ -2252,6 +2288,9 @@ no_default_cases:
     values that the default would have matched.
 no_duplicate_case_values:
   status: hasFix
+no_dynamic_casts:
+  status: needsFix
+  notes: The easy fix is to wrap the expression in a cast.
 no_leading_underscores_for_library_prefixes:
   status: hasFix
 no_leading_underscores_for_local_identifiers:
@@ -2260,6 +2299,11 @@ no_literal_bool_comparisons:
   status: hasFix
 no_logic_in_create_state:
   status: noFix
+no_raw_types:
+  status: needsFix
+  notes: |-
+    There are a few basic cases where we can look at another expression's type
+    in order to find a replacement, like `C c = C<int>()`.
 no_runtimetype_tostring:
   status: noFix
 no_self_assignments:
@@ -2544,6 +2588,8 @@ unnecessary_nullable_for_final_variable_declarations:
 unnecessary_overrides:
   status: hasFix
 unnecessary_parenthesis:
+  status: hasFix
+unnecessary_primary_constructor_body:
   status: hasFix
 unnecessary_raw_strings:
   status: hasFix
@@ -3632,7 +3678,12 @@ inference_failure_on_instance_creation:
 inference_failure_on_uninitialized_variable:
   status: noFix
 inference_failure_on_untyped_parameter:
-  status: noFix
+  status: needsFix
+  notes:
+    The fix is to add a type for the parameter. The simple version of that is to
+    use `AddTypeAnnotation`, which will add `Object?` as the type. Longer term
+    we could consider looking at uses of the parameter to try to get a more
+    accurate type.
 invalid_annotation_target:
   status: hasFix
 invalid_await_not_required_annotation:

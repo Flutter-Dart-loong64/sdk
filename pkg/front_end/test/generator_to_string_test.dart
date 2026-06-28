@@ -50,9 +50,10 @@ import 'package:kernel/ast.dart'
         ProcedureKind,
         StringLiteral,
         TypeParameter,
-        Variable,
         VariableGet,
-        defaultLanguageVersion;
+        defaultLanguageVersion,
+        SyntheticVariable,
+        LocalVariable;
 import 'package:kernel/class_hierarchy.dart';
 import 'package:kernel/core_types.dart';
 import 'package:kernel/target/targets.dart' show NoneTarget, TargetFlags;
@@ -82,8 +83,12 @@ Future<void> main() async {
       hasNamedBeforePositional: false,
       positionalCount: 1,
     );
-    Expression expression = new VariableGet(new Variable("expression"));
-    Expression index = new VariableGet(new Variable("index"));
+    Expression expression = new VariableGet(
+      new LocalVariable(name: "expression", type: const DynamicType()),
+    );
+    Expression index = new VariableGet(
+      new LocalVariable(name: "index", type: const DynamicType()),
+    );
     UriTranslator uriTranslator = await c.options.getUriTranslator();
     SourceLoader loader = new KernelTarget(
       c,
@@ -177,7 +182,11 @@ Future<void> main() async {
       new TypeParameter("T", const DynamicType(), const DynamicType()),
       loader: null,
     );
-    Variable variable = new Variable(null, isSynthesized: true);
+    InternalVariable variable = new InternalSyntheticVariable(
+      astVariable: new SyntheticVariable(),
+      isImplicitlyTyped: false,
+      fileOffset: -1,
+    );
 
     TypeInferenceEngineImpl engine = new TypeInferenceEngineImpl();
     engine.prepareTopLevel(coreTypes, hierarchy);
@@ -242,7 +251,7 @@ Future<void> main() async {
       new DelayedPostfixIncrement(helper, token, generator, binaryOperator),
     );
     check(
-      "VariableUseGenerator(offset: 4, variable: dynamic #0;)",
+      "VariableUseGenerator(offset: 4, variable: dynamic #0)",
       new VariableUseGenerator(helper, token, variable),
     );
     check(

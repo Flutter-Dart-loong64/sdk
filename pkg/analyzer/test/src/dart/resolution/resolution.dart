@@ -8,7 +8,6 @@ import 'package:analyzer/dart/constant/value.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/diagnostic/diagnostic.dart';
-import 'package:analyzer/error/error.dart';
 import 'package:analyzer/file_system/file_system.dart';
 import 'package:analyzer/src/dart/analysis/results.dart';
 import 'package:analyzer/src/dart/ast/ast.dart';
@@ -23,12 +22,10 @@ import 'package:analyzer/src/dart/element/type_system.dart';
 import 'package:analyzer/src/test_utilities/find_element2.dart';
 import 'package:analyzer/src/test_utilities/find_node.dart';
 import 'package:analyzer_testing/resource_provider_mixin.dart';
-import 'package:analyzer_testing/src/analysis_rule/pub_package_resolution.dart';
 import 'package:analyzer_testing/src/expected_diagnostics.dart';
 import 'package:analyzer_utilities/testing/tree_string_sink.dart';
 import 'package:test/test.dart';
 
-import '../../../generated/test_support.dart';
 import '../../../util/diff.dart';
 import '../../../util/element_printer.dart';
 import '../../summary/resolved_ast_printer.dart';
@@ -71,7 +68,9 @@ mixin ResolutionTest implements ResourceProviderMixin {
     var actual = buffer.toString();
     if (actual != expected) {
       NodeTextExpectationsCollector.add(actual);
-      printPrettyDiff(expected, actual);
+      if (NodeTextExpectationsCollector.shouldPrintFailureDetails) {
+        printPrettyDiff(expected, actual);
+      }
       fail('See the difference above.');
     }
   }
@@ -119,88 +118,6 @@ mixin ResolutionTest implements ResourceProviderMixin {
     }
   }
 
-  Future<TestResolvedUnitResult> assertErrorsInCode(
-    String code,
-    List<ExpectedDiagnostic> expectedDiagnostics,
-  ) async {
-    addTestFile(code);
-    var result = await resolveTestFile();
-
-    assertErrorsInList(result.diagnostics, expectedDiagnostics);
-    return result;
-  }
-
-  Future<ResolvedUnitResult> assertErrorsInFile(
-    String path,
-    String content,
-    List<ExpectedDiagnostic> expectedDiagnostics,
-  ) async {
-    var file = newFile(path, content);
-    var result = await resolveFile(file);
-    assertErrorsInResolvedUnit(result, expectedDiagnostics);
-
-    return result;
-  }
-
-  Future<void> assertErrorsInFile2(
-    File file,
-    List<ExpectedDiagnostic> expectedDiagnostics,
-  ) async {
-    var result = await resolveFile(file);
-    assertErrorsInResolvedUnit(result, expectedDiagnostics);
-  }
-
-  void assertErrorsInList(
-    List<Diagnostic> diagnostics,
-    List<ExpectedDiagnostic> expectedDiagnostics,
-  ) {
-    GatheringDiagnosticListener diagnosticListener =
-        GatheringDiagnosticListener();
-    diagnosticListener.addAll(diagnostics);
-    diagnosticListener.assertErrors(expectedDiagnostics);
-  }
-
-  void assertErrorsInResolvedUnit(
-    ResolvedUnitResult result,
-    List<ExpectedDiagnostic> expectedDiagnostics,
-  ) {
-    assertErrorsInList(result.diagnostics, expectedDiagnostics);
-  }
-
-  void assertErrorsInResult(
-    ResolvedUnitResult result,
-    List<ExpectedDiagnostic> expectedDiagnostics,
-  ) {
-    assertErrorsInResolvedUnit(result, expectedDiagnostics);
-  }
-
-  void assertErrorsInTestResult(
-    TestResolvedUnitResult result,
-    List<ExpectedDiagnostic> expectedDiagnostics,
-  ) {
-    assertErrorsInList(result.diagnostics, expectedDiagnostics);
-  }
-
-  void assertHasTestErrors(TestResolvedUnitResult result) {
-    expect(result.diagnostics, isNotEmpty);
-  }
-
-  /// Resolve the [code], and ensure that it can be resolved without a crash,
-  /// and is invalid, i.e. produces a diagnostic.
-  Future<TestResolvedUnitResult> assertInvalidTestCode(String code) async {
-    var result = await resolveTestCode(code);
-    expect(result.diagnostics, isNotEmpty);
-    return result;
-  }
-
-  void assertNoErrorsInResult(ResolvedUnitResult result) {
-    assertErrorsInResult(result, const []);
-  }
-
-  void assertNoErrorsInTestResult(TestResolvedUnitResult result) {
-    assertErrorsInTestResult(result, const []);
-  }
-
   void assertParsedNodeText(AstNode node, String expected) {
     var buffer = StringBuffer();
     var sink = TreeStringSink(sink: buffer, indent: '');
@@ -221,11 +138,12 @@ mixin ResolutionTest implements ResourceProviderMixin {
 
     var actual = buffer.toString();
     if (actual != expected) {
-      print('-------- Actual --------');
-      print('$actual------------------------');
       NodeTextExpectationsCollector.add(actual);
+      if (NodeTextExpectationsCollector.shouldPrintFailureDetails) {
+        printPrettyDiff(expected, actual);
+      }
+      fail('See the difference above.');
     }
-    expect(actual, expected);
   }
 
   void assertResolvedLibraryResultText(
@@ -251,18 +169,21 @@ mixin ResolutionTest implements ResourceProviderMixin {
 
     var actual = buffer.toString();
     if (actual != expected) {
-      print('-------- Actual --------');
-      print('$actual------------------------');
       NodeTextExpectationsCollector.add(actual);
+      if (NodeTextExpectationsCollector.shouldPrintFailureDetails) {
+        printPrettyDiff(expected, actual);
+      }
+      fail('See the difference above.');
     }
-    expect(actual, expected);
   }
 
   void assertResolvedNodeText(AstNode node, String expected) {
     var actual = _resolvedNodeText(node);
     if (actual != expected) {
       NodeTextExpectationsCollector.add(actual);
-      printPrettyDiff(expected, actual);
+      if (NodeTextExpectationsCollector.shouldPrintFailureDetails) {
+        printPrettyDiff(expected, actual);
+      }
       fail('See the difference above.');
     }
   }
@@ -317,35 +238,6 @@ mixin ResolutionTest implements ResourceProviderMixin {
     expect(actual, isDynamicType);
   }
 
-  void assertTypeNull(Expression node) {
-    expect(node.staticType, isNull);
-  }
-
-  ExpectedError error(
-    DiagnosticCode code,
-    int offset,
-    int length, {
-    Pattern? correctionContains,
-    // TODO(FMorschel): refactor the uses of this to prefer `messageContains`
-    String? text,
-    List<Pattern> messageContains = const [],
-    List<ExpectedContextMessage> contextMessages =
-        const <ExpectedContextMessage>[],
-  }) {
-    assert(
-      text == null || messageContains.isEmpty,
-      'Only use one of text or messageContains',
-    );
-    return ExpectedError(
-      code,
-      offset,
-      length,
-      correctionContains: correctionContains,
-      messageContainsAll: text != null ? [text] : messageContains,
-      contextMessages: contextMessages,
-    );
-  }
-
   Element? getNodeElement2(AstNode node) {
     if (node is Annotation) {
       return node.element;
@@ -397,9 +289,6 @@ mixin ResolutionTest implements ResourceProviderMixin {
     }
   }
 
-  ExpectedContextMessage message(File file, int offset, int length) =>
-      ExpectedContextMessage(file, offset, length);
-
   Future<ResolvedUnitResultImpl> resolveFile(File file);
 
   /// Resolve [file] and return a test view of it.
@@ -414,6 +303,67 @@ mixin ResolutionTest implements ResourceProviderMixin {
     return resolveFile2(file);
   }
 
+  /// Writes all [filesToCode], resolves each file, and checks that each file's
+  /// inline diagnostic markers match its diagnostics.
+  ///
+  /// All files are written before any file is resolved. This supports tests
+  /// where resolving one file cleanly requires related files to already exist,
+  /// such as a library with its parts.
+  Future<Map<File, TestResolvedUnitResult>> resolveFilesWithDiagnostics(
+    Map<File, String> filesToCode,
+  ) async {
+    var files = <({File file, String code, String cleanCode})>[];
+
+    for (var entry in filesToCode.entries) {
+      var cleanCode = removeDiagnosticExpectations(entry.value);
+      modifyFile2(entry.key, cleanCode);
+      files.add((file: entry.key, code: entry.value, cleanCode: cleanCode));
+    }
+
+    var results = <File, TestResolvedUnitResult>{};
+    var diagnosticsByFile = <File, List<Diagnostic>>{};
+
+    for (var file in files) {
+      var result = await resolveFile2(file.file);
+      results[file.file] = result;
+      diagnosticsByFile[file.file] = result.diagnostics;
+    }
+
+    var actualCodeByFile = updateExpectedDiagnosticsForFiles(
+      contentByFile: {for (var file in files) file.file: file.cleanCode},
+      actualDiagnosticsByFile: diagnosticsByFile,
+    );
+
+    var hasMismatch = false;
+    for (var index = 0; index < files.length; index++) {
+      var file = files[index];
+      var actual = actualCodeByFile[file.file]!;
+      if (actual != file.code) {
+        NodeTextExpectationsCollector.add(actual, intraInvocationId: '$index');
+        if (NodeTextExpectationsCollector.shouldPrintFailureDetails) {
+          print('-------- ${file.file.path} --------');
+          printPrettyDiff(file.code, actual);
+        }
+        hasMismatch = true;
+      }
+    }
+
+    if (hasMismatch) {
+      fail('See the difference above.');
+    }
+
+    return results;
+  }
+
+  /// Writes [code] to [file], resolves it, and checks that its inline
+  /// diagnostic markers match its diagnostics.
+  Future<TestResolvedUnitResult> resolveFileWithDiagnostics(
+    File file,
+    String code,
+  ) async {
+    return await _resolveFileWithDiagnostics(file, code);
+  }
+
   /// Put the [code] into the test file, and resolve it.
   Future<TestResolvedUnitResult> resolveTestCode(String code) {
     addTestFile(code);
@@ -425,21 +375,7 @@ mixin ResolutionTest implements ResourceProviderMixin {
   Future<TestResolvedUnitResult> resolveTestCodeWithDiagnostics(
     String code,
   ) async {
-    var cleanCode = removeDiagnosticExpectations(code);
-    addTestFile(cleanCode);
-    var result = await resolveTestFile();
-
-    var actual = updateExpectedDiagnostics(
-      content: cleanCode,
-      actualDiagnostics: result.diagnostics,
-    );
-    if (actual != code) {
-      NodeTextExpectationsCollector.add(actual);
-      printPrettyDiff(code, actual);
-      fail('See the difference above.');
-    }
-
-    return result;
+    return await _resolveFileWithDiagnostics(testFile, code);
   }
 
   Future<TestResolvedUnitResult> resolveTestFile() {
@@ -479,6 +415,29 @@ mixin ResolutionTest implements ResourceProviderMixin {
     }
 
     return buffer.toString();
+  }
+
+  Future<TestResolvedUnitResult> _resolveFileWithDiagnostics(
+    File file,
+    String code,
+  ) async {
+    var cleanCode = removeDiagnosticExpectations(code);
+    modifyFile2(file, cleanCode);
+    var result = await resolveFile2(file);
+
+    var actual = updateExpectedDiagnostics(
+      content: cleanCode,
+      actualDiagnostics: result.diagnostics,
+    );
+    if (actual != code) {
+      NodeTextExpectationsCollector.add(actual);
+      if (NodeTextExpectationsCollector.shouldPrintFailureDetails) {
+        printPrettyDiff(code, actual);
+      }
+      fail('See the difference above.');
+    }
+
+    return result;
   }
 }
 

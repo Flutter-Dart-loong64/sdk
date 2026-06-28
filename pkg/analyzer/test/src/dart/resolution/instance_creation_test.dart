@@ -2,7 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-import 'package:analyzer/src/diagnostic/diagnostic.dart' as diag;
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 
 import 'context_collection_resolution.dart';
@@ -164,117 +163,6 @@ InstanceCreationExpression
 ''');
   }
 
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_class_generic_constructor_named_augmentationDeclares() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part of 'test.dart'
-
-augment class A<T2> {
-  A.named(T2 value);
-}
-''');
-    var result = await resolveTestCodeWithDiagnostics(r'''
-part 'a.dart';
-
-class A<T> {}
-
-void f() {
-  A.named(0);
-}
-''');
-
-    var node = result.findNode.singleInstanceCreationExpression;
-    // TODO(scheglov): should be `A<int>`
-    assertResolvedNodeText(node, r'''
-InstanceCreationExpression
-  constructorName: ConstructorName
-    type: NamedType
-      name: A
-      element: <testLibraryFragment>::@class::A
-      element2: <testLibrary>::@class::A
-      type: A<dynamic>
-    period: .
-    name: SimpleIdentifier
-      token: named
-      staticElement: ConstructorMember
-        base: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::named
-        augmentationSubstitution: {T2: T}
-        substitution: {T: dynamic}
-      element: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::named#element
-      staticType: null
-    staticElement: ConstructorMember
-      base: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::named
-      augmentationSubstitution: {T2: T}
-      substitution: {T: dynamic}
-    element: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::named#element
-  argumentList: ArgumentList
-    leftParenthesis: (
-    arguments
-      IntegerLiteral
-        literal: 0
-        parameter: ParameterMember
-          base: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::named::@parameter::value
-          augmentationSubstitution: {T2: T}
-          substitution: {T: dynamic}
-        staticType: int
-    rightParenthesis: )
-  staticType: A<dynamic>
-''');
-  }
-
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_class_generic_constructor_unnamed_augmentationDeclares() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part of 'test.dart'
-
-augment class A<T2> {
-  A(T2 value);
-}
-''');
-    var result = await assertErrorsInCode(
-      r'''
-part 'a.dart';
-
-class A<T> {
-  A._();
-}
-
-void f() {
-  A(0);
-}
-''',
-      [error(diag.unusedElement, 33, 1)],
-    );
-
-    var node = result.findNode.singleInstanceCreationExpression;
-    assertResolvedNodeText(node, r'''
-InstanceCreationExpression
-  constructorName: ConstructorName
-    type: NamedType
-      name: A
-      element: <testLibraryFragment>::@class::A
-      element2: <testLibrary>::@class::A
-      type: A<int>
-    staticElement: ConstructorMember
-      base: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::new
-      augmentationSubstitution: {T2: T}
-      substitution: {T: int}
-    element: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::new#element
-  argumentList: ArgumentList
-    leftParenthesis: (
-    arguments
-      IntegerLiteral
-        literal: 0
-        parameter: ParameterMember
-          base: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::new::@parameter::value
-          augmentationSubstitution: {T2: T}
-          substitution: {T: int}
-        staticType: int
-    rightParenthesis: )
-  staticType: A<int>
-''');
-  }
-
   test_class_generic_named_inferTypeArguments() async {
     var result = await resolveTestCodeWithDiagnostics(r'''
 class A<T> {
@@ -297,11 +185,11 @@ InstanceCreationExpression
     period: .
     name: SimpleIdentifier
       token: named
-      element: ConstructorMember
+      element: SubstitutedConstructorElementImpl
         baseElement: <testLibrary>::@class::A::@constructor::named
         substitution: {T: dynamic}
       staticType: null
-    element: ConstructorMember
+    element: SubstitutedConstructorElementImpl
       baseElement: <testLibrary>::@class::A::@constructor::named
       substitution: {T: int}
   argumentList: ArgumentList
@@ -309,7 +197,7 @@ InstanceCreationExpression
     arguments
       IntegerLiteral
         literal: 0
-        correspondingParameter: ParameterMember
+        correspondingParameter: SubstitutedFormalParameterElementImpl
           baseElement: <testLibrary>::@class::A::@constructor::named::@formalParameter::t
           substitution: {T: int}
         staticType: int
@@ -348,11 +236,11 @@ InstanceCreationExpression
     period: .
     name: SimpleIdentifier
       token: named
-      element: ConstructorMember
+      element: SubstitutedConstructorElementImpl
         baseElement: <testLibrary>::@class::A::@constructor::named
         substitution: {T: int}
       staticType: null
-    element: ConstructorMember
+    element: SubstitutedConstructorElementImpl
       baseElement: <testLibrary>::@class::A::@constructor::named
       substitution: {T: int}
   argumentList: ArgumentList
@@ -381,7 +269,7 @@ InstanceCreationExpression
       name: A
       element: <testLibrary>::@class::A
       type: A<int>
-    element: ConstructorMember
+    element: SubstitutedConstructorElementImpl
       baseElement: <testLibrary>::@class::A::@constructor::new
       substitution: {T: int}
   argumentList: ArgumentList
@@ -389,7 +277,7 @@ InstanceCreationExpression
     arguments
       IntegerLiteral
         literal: 0
-        correspondingParameter: ParameterMember
+        correspondingParameter: SubstitutedFormalParameterElementImpl
           baseElement: <testLibrary>::@class::A::@constructor::new::@formalParameter::t
           substitution: {T: int}
         staticType: int
@@ -423,182 +311,13 @@ InstanceCreationExpression
         rightBracket: >
       element: <testLibrary>::@class::A
       type: A<int>
-    element: ConstructorMember
+    element: SubstitutedConstructorElementImpl
       baseElement: <testLibrary>::@class::A::@constructor::new
       substitution: {T: int}
   argumentList: ArgumentList
     leftParenthesis: (
     rightParenthesis: )
   staticType: A<int>
-''');
-  }
-
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_class_notGeneric_constructor_named_augmentationAugments() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part of 'test.dart'
-
-augment class A {
-  augment A.named();
-}
-''');
-    var result = await resolveTestCodeWithDiagnostics(r'''
-part 'a.dart';
-
-class A {
-  A.named();
-}
-
-void f() {
-  A.named();
-}
-''');
-
-    var node = result.findNode.singleInstanceCreationExpression;
-    assertResolvedNodeText(node, r'''
-InstanceCreationExpression
-  constructorName: ConstructorName
-    type: NamedType
-      name: A
-      element: <testLibraryFragment>::@class::A
-      element2: <testLibrary>::@class::A
-      type: A
-    period: .
-    name: SimpleIdentifier
-      token: named
-      staticElement: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructorAugmentation::named
-      element: <testLibraryFragment>::@class::A::@constructor::named#element
-      staticType: null
-    staticElement: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructorAugmentation::named
-    element: <testLibraryFragment>::@class::A::@constructor::named#element
-  argumentList: ArgumentList
-    leftParenthesis: (
-    rightParenthesis: )
-  staticType: A
-''');
-  }
-
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_class_notGeneric_constructor_named_augmentationDeclares() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part of 'test.dart'
-
-augment class A {
-  A.named();
-}
-''');
-    var result = await resolveTestCodeWithDiagnostics(r'''
-part 'a.dart';
-
-class A {}
-
-void f() {
-  A.named();
-}
-''');
-
-    var node = result.findNode.singleInstanceCreationExpression;
-    assertResolvedNodeText(node, r'''
-InstanceCreationExpression
-  constructorName: ConstructorName
-    type: NamedType
-      name: A
-      element: <testLibraryFragment>::@class::A
-      element2: <testLibrary>::@class::A
-      type: A
-    period: .
-    name: SimpleIdentifier
-      token: named
-      staticElement: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::named
-      element: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::named#element
-      staticType: null
-    staticElement: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::named
-    element: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::named#element
-  argumentList: ArgumentList
-    leftParenthesis: (
-    rightParenthesis: )
-  staticType: A
-''');
-  }
-
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_class_notGeneric_constructor_unnamed_augmentationAugments() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part of 'test.dart'
-
-augment class A {
-  augment A();
-}
-''');
-    var result = await resolveTestCodeWithDiagnostics(r'''
-part 'a.dart';
-
-class A {
-  A();
-}
-
-void f() {
-  A();
-}
-''');
-
-    var node = result.findNode.singleInstanceCreationExpression;
-    assertResolvedNodeText(node, r'''
-InstanceCreationExpression
-  constructorName: ConstructorName
-    type: NamedType
-      name: A
-      element: <testLibraryFragment>::@class::A
-      element2: <testLibrary>::@class::A
-      type: A
-    staticElement: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructorAugmentation::new
-    element: <testLibraryFragment>::@class::A::@constructor::new#element
-  argumentList: ArgumentList
-    leftParenthesis: (
-    rightParenthesis: )
-  staticType: A
-''');
-  }
-
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_class_notGeneric_constructor_unnamed_augmentationDeclares() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part of 'test.dart'
-
-augment class A {
-  A();
-}
-''');
-    var result = await assertErrorsInCode(
-      r'''
-part 'a.dart';
-
-class A {
-  A._();
-}
-
-void f() {
-  A();
-}
-''',
-      [error(diag.unusedElement, 30, 1)],
-    );
-
-    var node = result.findNode.singleInstanceCreationExpression;
-    assertResolvedNodeText(node, r'''
-InstanceCreationExpression
-  constructorName: ConstructorName
-    type: NamedType
-      name: A
-      element: <testLibraryFragment>::@class::A
-      element2: <testLibrary>::@class::A
-      type: A
-    staticElement: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::new
-    element: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::new#element
-  argumentList: ArgumentList
-    leftParenthesis: (
-    rightParenthesis: )
-  staticType: A
 ''');
   }
 
@@ -733,7 +452,7 @@ InstanceCreationExpression
       name: A
       element: <testLibrary>::@class::A
       type: A<S>
-    element: ConstructorMember
+    element: SubstitutedConstructorElementImpl
       baseElement: <testLibrary>::@class::A::@constructor::new
       substitution: {T: S}
   argumentList: ArgumentList
@@ -741,7 +460,7 @@ InstanceCreationExpression
     arguments
       SimpleIdentifier
         token: s
-        correspondingParameter: ParameterMember
+        correspondingParameter: SubstitutedFormalParameterElementImpl
           baseElement: <testLibrary>::@class::A::@constructor::new::@formalParameter::t
           substitution: {T: S}
         element: <testLibrary>::@function::f::@formalParameter::s
@@ -774,7 +493,7 @@ InstanceCreationExpression
         rightBracket: >
       element: dart:core::@class::Map
       type: Map<dynamic, dynamic>
-    element: ConstructorMember
+    element: SubstitutedConstructorElementImpl
       baseElement: dart:core::@class::Map::@constructor::new
       substitution: {K: dynamic, V: dynamic}
   argumentList: ArgumentList
@@ -809,11 +528,11 @@ InstanceCreationExpression
     period: .
     name: SimpleIdentifier
       token: bar
-      element: ConstructorMember
+      element: SubstitutedConstructorElementImpl
         baseElement: <testLibrary>::@class::Foo::@constructor::bar
         substitution: {X: dynamic}
       staticType: null
-    element: ConstructorMember
+    element: SubstitutedConstructorElementImpl
       baseElement: <testLibrary>::@class::Foo::@constructor::bar
       substitution: {X: dynamic}
   typeArguments: TypeArgumentList
@@ -856,11 +575,11 @@ InstanceCreationExpression
     period: .
     name: SimpleIdentifier
       token: new
-      element: ConstructorMember
+      element: SubstitutedConstructorElementImpl
         baseElement: <testLibrary>::@class::Foo::@constructor::new
         substitution: {X: dynamic}
       staticType: null
-    element: ConstructorMember
+    element: SubstitutedConstructorElementImpl
       baseElement: <testLibrary>::@class::Foo::@constructor::new
       substitution: {X: dynamic}
   typeArguments: TypeArgumentList
@@ -912,11 +631,11 @@ InstanceCreationExpression
     period: .
     name: SimpleIdentifier
       token: bar
-      element: ConstructorMember
+      element: SubstitutedConstructorElementImpl
         baseElement: package:test/a.dart::@class::Foo::@constructor::bar
         substitution: {X: dynamic}
       staticType: null
-    element: ConstructorMember
+    element: SubstitutedConstructorElementImpl
       baseElement: package:test/a.dart::@class::Foo::@constructor::bar
       substitution: {X: dynamic}
   typeArguments: TypeArgumentList
@@ -958,11 +677,11 @@ InstanceCreationExpression
     period: .
     name: SimpleIdentifier
       token: bar
-      element: ConstructorMember
+      element: SubstitutedConstructorElementImpl
         baseElement: <testLibrary>::@class::Foo::@constructor::bar
         substitution: {X: dynamic}
       staticType: null
-    element: ConstructorMember
+    element: SubstitutedConstructorElementImpl
       baseElement: <testLibrary>::@class::Foo::@constructor::bar
       substitution: {X: dynamic}
   typeArguments: TypeArgumentList
@@ -1019,11 +738,11 @@ InstanceCreationExpression
     period: .
     name: SimpleIdentifier
       token: bar
-      element: ConstructorMember
+      element: SubstitutedConstructorElementImpl
         baseElement: package:test/a.dart::@class::Foo::@constructor::bar
         substitution: {X: int}
       staticType: null
-    element: ConstructorMember
+    element: SubstitutedConstructorElementImpl
       baseElement: package:test/a.dart::@class::Foo::@constructor::bar
       substitution: {X: int}
   argumentList: ArgumentList
@@ -1050,7 +769,7 @@ InstanceCreationExpression
       name: A
       element: <testLibrary>::@extensionType::A
       type: A<int>
-    element: ConstructorMember
+    element: SubstitutedConstructorElementImpl
       baseElement: <testLibrary>::@extensionType::A::@constructor::new
       substitution: {T: int}
   argumentList: ArgumentList
@@ -1058,7 +777,7 @@ InstanceCreationExpression
     arguments
       IntegerLiteral
         literal: 0
-        correspondingParameter: FieldFormalParameterMember
+        correspondingParameter: SubstitutedFieldFormalParameterElementImpl
           baseElement: <testLibrary>::@extensionType::A::@constructor::new::@formalParameter::it
           substitution: {T: int}
         staticType: int
@@ -1086,7 +805,7 @@ InstanceCreationExpression
       name: A
       element: <testLibrary>::@extensionType::A
       type: A<int>
-    element: ConstructorMember
+    element: SubstitutedConstructorElementImpl
       baseElement: <testLibrary>::@extensionType::A::@constructor::new
       substitution: {T: int}
   argumentList: ArgumentList
@@ -1094,7 +813,7 @@ InstanceCreationExpression
     arguments
       IntegerLiteral
         literal: 0
-        correspondingParameter: FieldFormalParameterMember
+        correspondingParameter: SubstitutedFieldFormalParameterElementImpl
           baseElement: <testLibrary>::@extensionType::A::@constructor::new::@formalParameter::it
           substitution: {T: int}
         staticType: int
@@ -1309,134 +1028,6 @@ InstanceCreationExpression
 ''');
   }
 
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_importPrefix_class_generic_constructor_named_augmentationDeclares() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part 'b.dart';
-
-class A<T> {}
-''');
-
-    newFile('$testPackageLibPath/b.dart', r'''
-part of 'a.dart'
-
-augment class A<T2> {
-  A.named(T2 value);
-}
-''');
-
-    var result = await resolveTestCodeWithDiagnostics(r'''
-import 'a.dart' as prefix;
-
-void f() {
-  prefix.A.named(0);
-}
-''');
-
-    var node = result.findNode.singleInstanceCreationExpression;
-    // TODO(scheglov): should be `A<int>`
-    assertResolvedNodeText(node, r'''
-InstanceCreationExpression
-  constructorName: ConstructorName
-    type: NamedType
-      importPrefix: ImportPrefixReference
-        name: prefix
-        period: .
-        element: <testLibraryFragment>::@prefix::prefix
-        element2: <testLibraryFragment>::@prefix::prefix
-      name: A
-      element: package:test/a.dart::<fragment>::@class::A
-      element2: package:test/a.dart::@class::A
-      type: A<dynamic>
-    period: .
-    name: SimpleIdentifier
-      token: named
-      staticElement: ConstructorMember
-        base: package:test/a.dart::@fragment::package:test/b.dart::@classAugmentation::A::@constructor::named
-        augmentationSubstitution: {T2: T}
-        substitution: {T: dynamic}
-      element: package:test/a.dart::@fragment::package:test/b.dart::@classAugmentation::A::@constructor::named#element
-      staticType: null
-    staticElement: ConstructorMember
-      base: package:test/a.dart::@fragment::package:test/b.dart::@classAugmentation::A::@constructor::named
-      augmentationSubstitution: {T2: T}
-      substitution: {T: dynamic}
-    element: package:test/a.dart::@fragment::package:test/b.dart::@classAugmentation::A::@constructor::named#element
-  argumentList: ArgumentList
-    leftParenthesis: (
-    arguments
-      IntegerLiteral
-        literal: 0
-        parameter: ParameterMember
-          base: package:test/a.dart::@fragment::package:test/b.dart::@classAugmentation::A::@constructor::named::@parameter::value
-          augmentationSubstitution: {T2: T}
-          substitution: {T: dynamic}
-        staticType: int
-    rightParenthesis: )
-  staticType: A<dynamic>
-''');
-  }
-
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_importPrefix_class_generic_constructor_unnamed_augmentationDeclares() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part 'b.dart';
-
-class A<T> {
-  A._();
-}
-''');
-
-    newFile('$testPackageLibPath/b.dart', r'''
-part of 'a.dart'
-
-augment class A<T2> {
-  A(T2 value);
-}
-''');
-
-    var result = await resolveTestCodeWithDiagnostics(r'''
-import 'a.dart' as prefix;
-
-void f() {
-  prefix.A(0);
-}
-''');
-
-    var node = result.findNode.singleInstanceCreationExpression;
-    assertResolvedNodeText(node, r'''
-InstanceCreationExpression
-  constructorName: ConstructorName
-    type: NamedType
-      importPrefix: ImportPrefixReference
-        name: prefix
-        period: .
-        element: <testLibraryFragment>::@prefix::prefix
-        element2: <testLibraryFragment>::@prefix::prefix
-      name: A
-      element: package:test/a.dart::<fragment>::@class::A
-      element2: package:test/a.dart::@class::A
-      type: A<int>
-    staticElement: ConstructorMember
-      base: package:test/a.dart::@fragment::package:test/b.dart::@classAugmentation::A::@constructor::new
-      augmentationSubstitution: {T2: T}
-      substitution: {T: int}
-    element: package:test/a.dart::@fragment::package:test/b.dart::@classAugmentation::A::@constructor::new#element
-  argumentList: ArgumentList
-    leftParenthesis: (
-    arguments
-      IntegerLiteral
-        literal: 0
-        parameter: ParameterMember
-          base: package:test/a.dart::@fragment::package:test/b.dart::@classAugmentation::A::@constructor::new::@parameter::value
-          augmentationSubstitution: {T2: T}
-          substitution: {T: int}
-        staticType: int
-    rightParenthesis: )
-  staticType: A<int>
-''');
-  }
-
   test_importPrefix_class_named() async {
     newFile('$testPackageLibPath/a.dart', r'''
 class A {
@@ -1483,108 +1074,6 @@ InstanceCreationExpression
 ''');
   }
 
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_importPrefix_class_notGeneric_constructor_named_augmentationDeclares() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part 'b.dart';
-
-class A {}
-''');
-
-    newFile('$testPackageLibPath/b.dart', r'''
-part of 'a.dart'
-
-augment class A {
-  A.named();
-}
-''');
-
-    var result = await resolveTestCodeWithDiagnostics(r'''
-import 'a.dart' as prefix;
-
-void f() {
-  prefix.A.named();
-}
-''');
-
-    var node = result.findNode.singleInstanceCreationExpression;
-    assertResolvedNodeText(node, r'''
-InstanceCreationExpression
-  constructorName: ConstructorName
-    type: NamedType
-      importPrefix: ImportPrefixReference
-        name: prefix
-        period: .
-        element: <testLibraryFragment>::@prefix::prefix
-        element2: <testLibraryFragment>::@prefix::prefix
-      name: A
-      element: package:test/a.dart::<fragment>::@class::A
-      element2: package:test/a.dart::@class::A
-      type: A
-    period: .
-    name: SimpleIdentifier
-      token: named
-      staticElement: package:test/a.dart::@fragment::package:test/b.dart::@classAugmentation::A::@constructor::named
-      element: package:test/a.dart::@fragment::package:test/b.dart::@classAugmentation::A::@constructor::named#element
-      staticType: null
-    staticElement: package:test/a.dart::@fragment::package:test/b.dart::@classAugmentation::A::@constructor::named
-    element: package:test/a.dart::@fragment::package:test/b.dart::@classAugmentation::A::@constructor::named#element
-  argumentList: ArgumentList
-    leftParenthesis: (
-    rightParenthesis: )
-  staticType: A
-''');
-  }
-
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_importPrefix_class_notGeneric_constructor_unnamed_augmentationDeclares() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part 'b.dart';
-
-class A {
-  A._();
-}
-''');
-
-    newFile('$testPackageLibPath/b.dart', r'''
-part of 'a.dart'
-
-augment class A {
-  A();
-}
-''');
-
-    var result = await resolveTestCodeWithDiagnostics(r'''
-import 'a.dart' as prefix;
-
-void f() {
-  prefix.A();
-}
-''');
-
-    var node = result.findNode.singleInstanceCreationExpression;
-    assertResolvedNodeText(node, r'''
-InstanceCreationExpression
-  constructorName: ConstructorName
-    type: NamedType
-      importPrefix: ImportPrefixReference
-        name: prefix
-        period: .
-        element: <testLibraryFragment>::@prefix::prefix
-        element2: <testLibraryFragment>::@prefix::prefix
-      name: A
-      element: package:test/a.dart::<fragment>::@class::A
-      element2: package:test/a.dart::@class::A
-      type: A
-    staticElement: package:test/a.dart::@fragment::package:test/b.dart::@classAugmentation::A::@constructor::new
-    element: package:test/a.dart::@fragment::package:test/b.dart::@classAugmentation::A::@constructor::new#element
-  argumentList: ArgumentList
-    leftParenthesis: (
-    rightParenthesis: )
-  staticType: A
-''');
-  }
-
   test_importPrefix_class_typeArguments_named() async {
     newFile('$testPackageLibPath/a.dart', r'''
 class A<T> {
@@ -1624,11 +1113,11 @@ InstanceCreationExpression
     period: .
     name: SimpleIdentifier
       token: named
-      element: ConstructorMember
+      element: SubstitutedConstructorElementImpl
         baseElement: package:test/a.dart::@class::A::@constructor::named
         substitution: {T: int}
       staticType: null
-    element: ConstructorMember
+    element: SubstitutedConstructorElementImpl
       baseElement: package:test/a.dart::@class::A::@constructor::named
       substitution: {T: int}
   argumentList: ArgumentList
@@ -1636,7 +1125,7 @@ InstanceCreationExpression
     arguments
       IntegerLiteral
         literal: 0
-        correspondingParameter: ParameterMember
+        correspondingParameter: SubstitutedFormalParameterElementImpl
           baseElement: package:test/a.dart::@class::A::@constructor::named::@formalParameter::a
           substitution: {T: int}
         staticType: int
@@ -1681,7 +1170,7 @@ InstanceCreationExpression
         rightBracket: >
       element: package:test/a.dart::@class::A
       type: A<int>
-    element: ConstructorMember
+    element: SubstitutedConstructorElementImpl
       baseElement: package:test/a.dart::@class::A::@constructor::new
       substitution: {T: int}
   argumentList: ArgumentList
@@ -1689,7 +1178,7 @@ InstanceCreationExpression
     arguments
       IntegerLiteral
         literal: 0
-        correspondingParameter: ParameterMember
+        correspondingParameter: SubstitutedFormalParameterElementImpl
           baseElement: package:test/a.dart::@class::A::@constructor::new::@formalParameter::a
           substitution: {T: int}
         staticType: int
@@ -2003,120 +1492,6 @@ InstanceCreationExpression
 ''');
   }
 
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_typeAlias_generic_class_generic_constructor_named_augmentationDeclares() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part of 'test.dart'
-
-augment class A<T2> {
-  A.named(T2 value);
-}
-''');
-    var result = await resolveTestCodeWithDiagnostics(r'''
-part 'a.dart';
-
-class A<T> {}
-
-typedef X<U> = A<U>;
-
-void f() {
-  X.named(0);
-}
-''');
-
-    var node = result.findNode.singleInstanceCreationExpression;
-    assertResolvedNodeText(node, r'''
-InstanceCreationExpression
-  constructorName: ConstructorName
-    type: NamedType
-      name: X
-      element: <testLibraryFragment>::@typeAlias::X
-      element2: <testLibrary>::@typeAlias::X
-      type: A<int>
-    period: .
-    name: SimpleIdentifier
-      token: named
-      staticElement: ConstructorMember
-        base: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::named
-        augmentationSubstitution: {T2: T}
-        substitution: {T: dynamic}
-      element: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::named#element
-      staticType: null
-    staticElement: ConstructorMember
-      base: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::named
-      augmentationSubstitution: {T2: T}
-      substitution: {T: int}
-    element: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::named#element
-  argumentList: ArgumentList
-    leftParenthesis: (
-    arguments
-      IntegerLiteral
-        literal: 0
-        parameter: ParameterMember
-          base: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::named::@parameter::value
-          augmentationSubstitution: {T2: T}
-          substitution: {T: int}
-        staticType: int
-    rightParenthesis: )
-  staticType: A<int>
-''');
-  }
-
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_typeAlias_generic_class_generic_constructor_unnamed_augmentationDeclares() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part of 'test.dart'
-
-augment class A<T2> {
-  A(T2 value);
-}
-''');
-    var result = await assertErrorsInCode(
-      r'''
-part 'a.dart';
-
-class A<T> {
-  A._();
-}
-
-typedef X<U> = A<U>;
-
-void f() {
-  X(0);
-}
-''',
-      [error(diag.unusedElement, 33, 1)],
-    );
-
-    var node = result.findNode.singleInstanceCreationExpression;
-    assertResolvedNodeText(node, r'''
-InstanceCreationExpression
-  constructorName: ConstructorName
-    type: NamedType
-      name: X
-      element: <testLibraryFragment>::@typeAlias::X
-      element2: <testLibrary>::@typeAlias::X
-      type: A<int>
-    staticElement: ConstructorMember
-      base: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::new
-      augmentationSubstitution: {T2: T}
-      substitution: {T: int}
-    element: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::new#element
-  argumentList: ArgumentList
-    leftParenthesis: (
-    arguments
-      IntegerLiteral
-        literal: 0
-        parameter: ParameterMember
-          base: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::new::@parameter::value
-          augmentationSubstitution: {T2: T}
-          substitution: {T: int}
-        staticType: int
-    rightParenthesis: )
-  staticType: A<int>
-''');
-  }
-
   test_typeAlias_generic_class_generic_named_infer_all() async {
     var result = await resolveTestCodeWithDiagnostics(r'''
 class A<T> {
@@ -2141,11 +1516,11 @@ InstanceCreationExpression
     period: .
     name: SimpleIdentifier
       token: named
-      element: ConstructorMember
+      element: SubstitutedConstructorElementImpl
         baseElement: <testLibrary>::@class::A::@constructor::named
         substitution: {T: dynamic}
       staticType: null
-    element: ConstructorMember
+    element: SubstitutedConstructorElementImpl
       baseElement: <testLibrary>::@class::A::@constructor::named
       substitution: {T: int}
   argumentList: ArgumentList
@@ -2153,7 +1528,7 @@ InstanceCreationExpression
     arguments
       IntegerLiteral
         literal: 0
-        correspondingParameter: ParameterMember
+        correspondingParameter: SubstitutedFormalParameterElementImpl
           baseElement: <testLibrary>::@class::A::@constructor::named::@formalParameter::t
           substitution: {T: int}
         staticType: int
@@ -2186,11 +1561,11 @@ InstanceCreationExpression
     period: .
     name: SimpleIdentifier
       token: named
-      element: ConstructorMember
+      element: SubstitutedConstructorElementImpl
         baseElement: <testLibrary>::@class::A::@constructor::named
         substitution: {T: dynamic, U: String}
       staticType: null
-    element: ConstructorMember
+    element: SubstitutedConstructorElementImpl
       baseElement: <testLibrary>::@class::A::@constructor::named
       substitution: {T: int, U: String}
   argumentList: ArgumentList
@@ -2198,7 +1573,7 @@ InstanceCreationExpression
     arguments
       IntegerLiteral
         literal: 0
-        correspondingParameter: ParameterMember
+        correspondingParameter: SubstitutedFormalParameterElementImpl
           baseElement: <testLibrary>::@class::A::@constructor::named::@formalParameter::t
           substitution: {T: int, U: String}
         staticType: int
@@ -2230,7 +1605,7 @@ InstanceCreationExpression
       name: B
       element: <testLibrary>::@typeAlias::B
       type: A<int>
-    element: ConstructorMember
+    element: SubstitutedConstructorElementImpl
       baseElement: <testLibrary>::@class::A::@constructor::new
       substitution: {T: int}
   argumentList: ArgumentList
@@ -2238,7 +1613,7 @@ InstanceCreationExpression
     arguments
       IntegerLiteral
         literal: 0
-        correspondingParameter: ParameterMember
+        correspondingParameter: SubstitutedFormalParameterElementImpl
           baseElement: <testLibrary>::@class::A::@constructor::new::@formalParameter::t
           substitution: {T: int}
         staticType: int
@@ -2268,7 +1643,7 @@ InstanceCreationExpression
       name: B
       element: <testLibrary>::@typeAlias::B
       type: A<int, String>
-    element: ConstructorMember
+    element: SubstitutedConstructorElementImpl
       baseElement: <testLibrary>::@class::A::@constructor::new
       substitution: {T: int, U: String}
   argumentList: ArgumentList
@@ -2276,7 +1651,7 @@ InstanceCreationExpression
     arguments
       IntegerLiteral
         literal: 0
-        correspondingParameter: ParameterMember
+        correspondingParameter: SubstitutedFormalParameterElementImpl
           baseElement: <testLibrary>::@class::A::@constructor::new::@formalParameter::t
           substitution: {T: int, U: String}
         staticType: int
@@ -2313,11 +1688,11 @@ InstanceCreationExpression
     period: .
     name: SimpleIdentifier
       token: named
-      element: ConstructorMember
+      element: SubstitutedConstructorElementImpl
         baseElement: <testLibrary>::@class::A::@constructor::named
         substitution: {T: String}
       staticType: null
-    element: ConstructorMember
+    element: SubstitutedConstructorElementImpl
       baseElement: <testLibrary>::@class::A::@constructor::named
       substitution: {T: String}
   argumentList: ArgumentList
@@ -2325,7 +1700,7 @@ InstanceCreationExpression
     arguments
       IntegerLiteral
         literal: 0
-        correspondingParameter: ParameterMember
+        correspondingParameter: SubstitutedFormalParameterElementImpl
           baseElement: <testLibrary>::@class::A::@constructor::named::@formalParameter::t
           substitution: {T: String}
         staticType: int
@@ -2357,7 +1732,7 @@ InstanceCreationExpression
       name: B
       element: <testLibrary>::@typeAlias::B
       type: A<String>
-    element: ConstructorMember
+    element: SubstitutedConstructorElementImpl
       baseElement: <testLibrary>::@class::A::@constructor::new
       substitution: {T: String}
   argumentList: ArgumentList
@@ -2365,101 +1740,12 @@ InstanceCreationExpression
     arguments
       IntegerLiteral
         literal: 0
-        correspondingParameter: ParameterMember
+        correspondingParameter: SubstitutedFormalParameterElementImpl
           baseElement: <testLibrary>::@class::A::@constructor::new::@formalParameter::t
           substitution: {T: String}
         staticType: int
     rightParenthesis: )
   staticType: A<String>
-''');
-  }
-
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_typeAlias_notGeneric_class_notGeneric_constructor_named_augmentationDeclares() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part of 'test.dart'
-
-augment class A {
-  A.named();
-}
-''');
-    var result = await resolveTestCodeWithDiagnostics(r'''
-part 'a.dart';
-
-class A {}
-
-typedef X = A;
-
-void f() {
-  X.named();
-}
-''');
-
-    var node = result.findNode.singleInstanceCreationExpression;
-    assertResolvedNodeText(node, r'''
-InstanceCreationExpression
-  constructorName: ConstructorName
-    type: NamedType
-      name: X
-      element: <testLibraryFragment>::@typeAlias::X
-      element2: <testLibrary>::@typeAlias::X
-      type: A
-    period: .
-    name: SimpleIdentifier
-      token: named
-      staticElement: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::named
-      element: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::named#element
-      staticType: null
-    staticElement: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::named
-    element: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::named#element
-  argumentList: ArgumentList
-    leftParenthesis: (
-    rightParenthesis: )
-  staticType: A
-''');
-  }
-
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_typeAlias_notGeneric_class_notGeneric_constructor_unnamed_augmentationDeclares() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part of 'test.dart'
-
-augment class A {
-  A();
-}
-''');
-    var result = await assertErrorsInCode(
-      r'''
-part 'a.dart';
-
-class A {
-  A._();
-}
-
-typedef X = A;
-
-void f() {
-  X();
-}
-''',
-      [error(diag.unusedElement, 30, 1)],
-    );
-
-    var node = result.findNode.singleInstanceCreationExpression;
-    assertResolvedNodeText(node, r'''
-InstanceCreationExpression
-  constructorName: ConstructorName
-    type: NamedType
-      name: X
-      element: <testLibraryFragment>::@typeAlias::X
-      element2: <testLibrary>::@typeAlias::X
-      type: A
-    staticElement: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::new
-    element: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@constructor::new#element
-  argumentList: ArgumentList
-    leftParenthesis: (
-    rightParenthesis: )
-  staticType: A
 ''');
   }
 

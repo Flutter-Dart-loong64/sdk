@@ -14,17 +14,19 @@ import 'package:kernel/src/hierarchy_based_type_environment.dart'
 import 'package:kernel/type_algebra.dart';
 import 'package:kernel/type_environment.dart';
 
+import '../kernel/internal_ast.dart';
 import 'standard_bounds.dart' show TypeSchemaStandardBounds;
 import 'type_constraint_gatherer.dart' show TypeConstraintGatherer;
 import 'type_inference_engine.dart';
 import 'type_demotion.dart';
 import 'type_schema.dart' show UnknownType;
 
-typedef GeneratedTypeConstraint = shared.GeneratedTypeConstraint<Variable>;
+typedef GeneratedTypeConstraint =
+    shared.GeneratedTypeConstraint<InternalVariable>;
 
 typedef MergedTypeConstraint =
     shared.MergedTypeConstraint<
-      Variable,
+      InternalVariable,
       TypeDeclarationType,
       TypeDeclaration,
       TreeNode
@@ -32,7 +34,7 @@ typedef MergedTypeConstraint =
 
 typedef UnknownTypeConstraintOrigin =
     shared.UnknownTypeConstraintOrigin<
-      Variable,
+      InternalVariable,
       TypeDeclarationType,
       TypeDeclaration,
       TreeNode
@@ -59,8 +61,7 @@ class TypeSchemaEnvironment extends HierarchyBasedTypeEnvironment
   @override
   final ClassHierarchy hierarchy;
 
-  TypeSchemaEnvironment(CoreTypes coreTypes, this.hierarchy)
-    : super(coreTypes, hierarchy);
+  new(CoreTypes coreTypes, this.hierarchy) : super(coreTypes, hierarchy);
 
   // Coverage-ignore(suite): Not run.
   InterfaceType functionRawType(Nullability nullability) {
@@ -317,7 +318,7 @@ class AllTypeParameterEliminator extends Substitution {
   final DartType bottomType;
   final DartType topType;
 
-  AllTypeParameterEliminator(this.bottomType, this.topType);
+  new(this.bottomType, this.topType);
 
   @override
   DartType getSubstitute(TypeParameter parameter, bool upperBound) {

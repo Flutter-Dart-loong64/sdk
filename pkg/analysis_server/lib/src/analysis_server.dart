@@ -104,13 +104,12 @@ import 'package:watcher/watcher.dart';
 typedef OpenUriNotificationSender = Future<void> Function(Uri uri);
 
 /// The function for sending prompts to the user and collecting button presses.
-typedef UserPromptSender =
-    Future<String?> Function(
-      MessageType type,
-      String message,
-      List<String> actionLabels,
-      lsp.CancellationToken cancellationToken,
-    );
+typedef UserPromptSender = Future<String?> Function(
+  MessageType type,
+  String message,
+  List<String> actionLabels,
+  lsp.CancellationToken cancellationToken,
+);
 
 /// Implementations of [AnalysisServer] implement a server that listens
 /// on an [AbstractNotificationManager] for analysis messages and process them.
@@ -293,7 +292,7 @@ abstract class AnalysisServer {
   /// temporary content.
   bool suppressAnalysisResults = false;
 
-  AnalysisServer(
+  new(
     this.options,
     this.sdkManager,
     this.diagnosticServer,
@@ -1211,7 +1210,7 @@ abstract class CommonServerContextManagerCallbacks
   /// The set of files for which notifications were sent.
   final Set<String> filesToFlush = {};
 
-  CommonServerContextManagerCallbacks(this.resourceProvider);
+  new(this.resourceProvider);
 
   @override
   @mustCallSuper
@@ -1323,7 +1322,7 @@ enum MessageType {
   final lsp.MessageType forLsp;
   final legacy.MessageType forLegacy;
 
-  const MessageType(this.forLsp, this.forLegacy);
+  new(this.forLsp, this.forLegacy);
 }
 
 class ServerRecentPerformance {

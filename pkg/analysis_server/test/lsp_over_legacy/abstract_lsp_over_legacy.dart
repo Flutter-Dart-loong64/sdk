@@ -30,7 +30,7 @@ class EventsCollector {
   final ContextResolutionTest test;
   List<Object> events = [];
 
-  EventsCollector(this.test) {
+  new(this.test) {
     test.notificationListener = (notification) {
       switch (notification.event) {
         case analysisNotificationErrors:
@@ -71,7 +71,7 @@ class EventsPrinter {
   final ResourceProvider resourceProvider;
   final TreeStringSink sink;
 
-  EventsPrinter({
+  new({
     required this.configuration,
     required this.resourceProvider,
     required this.sink,
@@ -131,7 +131,7 @@ abstract class LspOverLegacyTest extends PubPackageAnalysisServerTest
   final StreamController<NotificationMessage> _notificationsFromServer =
       StreamController<NotificationMessage>.broadcast();
 
-  LspOverLegacyTest() {
+  new() {
     // Ensure the base fields for the tests are populated with the same default
     // client caapbilities that the server uses. This ensures if a test does not
     // explicitly set capabilities, they match on the client+server (so we can -
@@ -292,9 +292,9 @@ abstract class LspOverLegacyTest extends PubPackageAnalysisServerTest
       // Round-trip response via JSON because this doesn't happen automatically
       // when we're bypassing the streams (running in-process) and we want to
       // validate everything.
-      var lspNotificationJson =
-          jsonDecode(jsonEncode(params.lspNotification))
-              as Map<String, Object?>;
+      var lspNotificationJson = jsonDecode(
+        jsonEncode(params.lspNotification),
+      ) as Map<String, Object?>;
       var lspNotificationMessage = NotificationMessage.fromJson(
         lspNotificationJson,
       );
@@ -366,9 +366,8 @@ abstract class LspOverLegacyTest extends PubPackageAnalysisServerTest
         // A client-provided response to an LSP reverse-request is always
         // a full LSP result payload as the "result". The legacy request should
         // always succeed and any errors handled as LSP error responses within.
-        result: LspHandleResult(
-          response,
-        ).toJson(clientUriConverter: uriConverter),
+        result: LspHandleResult(response)
+            .toJson(clientUriConverter: uriConverter),
       ),
     );
   }

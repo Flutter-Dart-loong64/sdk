@@ -79,9 +79,9 @@ mixin FinalizableTransformer on Transformer {
       final alwaysInitialized = entry.value;
       addPossiblyUninitializedTo!.statements.insert(
         addPossiblyUninitializedTo.statements.indexOf(
-          possiblyUninitialized.parent as VariableStatement,
+          possiblyUninitialized.parent?.parent as VariableStatement,
         ),
-        VariableStatement(alwaysInitialized),
+        VariableStatement(VariableDeclaration(alwaysInitialized)),
       );
     }
     assert(_currentScope == scope);
@@ -279,9 +279,10 @@ mixin FinalizableTransformer on Transformer {
     }
     if (_isFinalizable(node.type)) {
       if (_possiblyUninitialized(node)) {
-        final alwaysInitializedDeclaration = Variable(
-          ':${node.name}:finalizableValue',
+        final alwaysInitializedDeclaration = SyntheticVariable(
+          cosmeticName: ':${node.cosmeticName}:finalizableValue',
           type: node.type.withDeclaredNullability(Nullability.nullable),
+          isSynthesized: false,
         );
         _currentScope!.addPossiblyUninitializedDeclaration(
           node,
@@ -553,16 +554,15 @@ mixin FinalizableTransformer on Transformer {
     Expression expression,
     List<Expression> declarations,
   ) {
-    final resultVariable = Variable(
-      ":expressionValueWrappedFinalizable",
+    final resultVariable = SyntheticVariable(
+      cosmeticName: ":expressionValueWrappedFinalizable",
       initializer: expression,
       type: staticTypeContext!.getExpressionType(expression),
       isFinal: true,
-      isSynthesized: true,
     );
     return BlockExpression(
       Block(<Statement>[
-        VariableStatement(resultVariable),
+        VariableStatement(VariableDeclaration(resultVariable)),
         ..._reachabilityFences(declarations),
       ]),
       VariableGet(resultVariable),
@@ -744,7 +744,7 @@ ${parent?.toStringIndented(indentation: indentation + 2)}
     Variable possiblyUninitialized,
     Variable nullableValue,
   ) {
-    assert(possiblyUninitialized.parent is VariableStatement);
+    assert(possiblyUninitialized.parent?.parent is VariableStatement);
     _possiblyUninitializedDeclarations[possiblyUninitialized] = nullableValue;
     addDeclaration(possiblyUninitialized);
   }

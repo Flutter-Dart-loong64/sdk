@@ -4,13 +4,11 @@
 
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/file_system/file_system.dart';
-import 'package:analyzer/source/file_source.dart';
-import 'package:analyzer/source/source.dart';
 import 'package:analyzer/src/dart/analysis/index.dart';
 import 'package:analyzer/src/dart/element/element.dart';
-import 'package:analyzer/src/diagnostic/diagnostic.dart' as diag;
 import 'package:analyzer/src/summary/idl.dart';
 import 'package:analyzer/src/test_utilities/find_element2.dart';
+import 'package:analyzer_testing/package_config_file_builder.dart';
 import 'package:collection/collection.dart';
 import 'package:test/test.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
@@ -26,83 +24,102 @@ main() {
   });
 }
 
-class ExpectedLocation {
-  final int offset;
-  final int length;
-  final bool isQualified;
-
-  ExpectedLocation(this.offset, this.length, this.isQualified);
-
-  @override
-  String toString() {
-    return '(offset=$offset; length=$length; isQualified=$isQualified)';
-  }
-}
-
 @reflectiveTest
-class IndexTest extends PubPackageResolutionTest with _IndexMixin {
+class IndexTest extends PubPackageResolutionTest {
   void assertElementIndexText(
-    TestResolvedUnitResult result,
+    _IndexResult result,
     Element element,
     String expected,
   ) {
-    var actual = _getRelationsText(result, element);
+    var actual = _IndexTextBuilder(result).elementRelations(element);
     if (actual != expected) {
       NodeTextExpectationsCollector.add(actual);
-      printPrettyDiff(expected, actual);
+      if (NodeTextExpectationsCollector.shouldPrintFailureDetails) {
+        printPrettyDiff(expected, actual);
+      }
       fail('See the difference above.');
     }
   }
 
   void assertLibraryFragmentIndexText(
-    TestResolvedUnitResult result,
+    _IndexResult result,
     LibraryFragmentImpl fragment,
     String expected,
   ) {
-    var actual = _getLibraryFragmentReferenceText(result, fragment);
+    var actual = _IndexTextBuilder(result).libraryFragmentReferences(fragment);
     if (actual != expected) {
-      print(actual);
       NodeTextExpectationsCollector.add(actual);
+      if (NodeTextExpectationsCollector.shouldPrintFailureDetails) {
+        printPrettyDiff(expected, actual);
+      }
+      fail('See the difference above.');
     }
-    expect(actual, expected);
+  }
+
+  void assertNameIndexText(_IndexResult result, String name, String expected) {
+    var actual = _IndexTextBuilder(result).nameRelations(name);
+    if (actual != expected) {
+      NodeTextExpectationsCollector.add(actual);
+      if (NodeTextExpectationsCollector.shouldPrintFailureDetails) {
+        printPrettyDiff(expected, actual);
+      }
+      fail('See the difference above.');
+    }
+  }
+
+  void assertSubtypeIndexText(_IndexResult result, String expected) {
+    var actual = _toPosixPaths(_IndexTextBuilder(result).subtypes());
+    if (actual != expected) {
+      NodeTextExpectationsCollector.add(actual);
+      if (NodeTextExpectationsCollector.shouldPrintFailureDetails) {
+        printPrettyDiff(expected, actual);
+      }
+      fail('See the difference above.');
+    }
   }
 
   test_analyzer_diagnosticCode() async {
-    var diagnosticFile = newFile('$testPackageLibPath/diagnostic.dart', r'''
+    var analyzerPackageRootPath = '$workspaceRootPath/pkg/analyzer';
+    writePackageConfig(
+      analyzerPackageRootPath,
+      PackageConfigFileBuilder()
+        ..add(name: 'analyzer', rootFolder: getFolder(analyzerPackageRootPath)),
+    );
+
+    var analyzerPackageLibPath = '$analyzerPackageRootPath/lib';
+    var analyzerPackageTestPath = '$analyzerPackageRootPath/test';
+    var diagnosticFile = newFile(
+      '$analyzerPackageLibPath/src/diagnostic/diagnostic.dart',
+      r'''
 const myDiagnosticCode = 0;
-''');
+''',
+    );
 
     var diagnosticLibrary = await libraryElementForFile(diagnosticFile);
     var element = diagnosticLibrary.topLevelVariables.firstWhere(
       (v) => v.name == 'myDiagnosticCode',
     );
 
-    newFile('$testPackageLibPath/helper.dart', r'''
-import 'diagnostic.dart';
-''');
-
-    var result = await _indexTestUnit(r'''
-import 'helper.dart';
-
+    var testFile = getFile('$analyzerPackageTestPath/test.dart');
+    var result = await _indexFileWithDiagnostics(testFile, r'''
 void f() {
   '// [diag.myDiagnosticCode] message';
 }
 ''');
 
     assertElementIndexText(result, element, r'''
-46 4:13 |myDiagnosticCode| IS_REFERENCED_BY qualified
+23 2:13 |myDiagnosticCode| IS_REFERENCED_BY qualified
 ''');
   }
 
   test_ClassElement_emptyBody() async {
-    var result = await _indexTestUnit(r'''
+    await _indexTestCode(r'''
 class C;
 ''');
-    assertErrorsInTestResult(result, []);
   }
 
   test_ClassElement_hierarchy_class_extends() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 class A {}
@@ -110,7 +127,6 @@ class A {}
 class B extends A {}
 class B_q extends p.A {}
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.class_('A');
     assertElementIndexText(result, element, r'''
@@ -123,17 +139,17 @@ Prefixes: (unprefixed),p
   }
 
   test_ClassElement_hierarchy_class_extends_implicitObject() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A {}
 ''');
-    var element = result.typeProvider.objectType.element;
+    var element = result.resolvedUnit.typeProvider.objectElement;
     assertElementIndexText(result, element, r'''
 6 1:7 || IS_EXTENDED_BY qualified
 ''');
   }
 
   test_ClassElement_hierarchy_class_implements() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 class A {}
@@ -141,7 +157,6 @@ class A {}
 class B implements A {}
 class B_q implements p.A {}
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.class_('A');
     assertElementIndexText(result, element, r'''
@@ -154,18 +169,18 @@ Prefixes: (unprefixed),p
   }
 
   test_ClassElement_hierarchy_class_with() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 class A {}
 
 class D extends Object with A {}
+//                          ^
+// [diag.classUsedAsMixin] The class 'A' can't be used as a mixin because it's neither a mixin class nor a mixin.
 class D_q extends Object with p.A {}
+//                            ^^^
+// [diag.classUsedAsMixin] The class 'A' can't be used as a mixin because it's neither a mixin class nor a mixin.
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.classUsedAsMixin, 66, 1),
-      error(diag.classUsedAsMixin, 101, 3),
-    ]);
 
     var element = result.findElement.class_('A');
     assertElementIndexText(result, element, r'''
@@ -178,18 +193,18 @@ Prefixes: (unprefixed),p
   }
 
   test_ClassElement_hierarchy_classTypeAlias_with() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 class A {}
 
 class D2 = Object with A;
+//                     ^
+// [diag.classUsedAsMixin] The class 'A' can't be used as a mixin because it's neither a mixin class nor a mixin.
 class D2_q = Object with p.A;
+//                       ^^^
+// [diag.classUsedAsMixin] The class 'A' can't be used as a mixin because it's neither a mixin class nor a mixin.
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.classUsedAsMixin, 61, 1),
-      error(diag.classUsedAsMixin, 89, 3),
-    ]);
 
     var element = result.findElement.class_('A');
     assertElementIndexText(result, element, r'''
@@ -202,7 +217,7 @@ Prefixes: (unprefixed),p
   }
 
   test_ClassElement_hierarchy_enum_implements() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 class A {}
@@ -210,7 +225,6 @@ class A {}
 enum E implements A { v }
 enum E_q implements p.A { v }
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.class_('A');
     assertElementIndexText(result, element, r'''
@@ -223,7 +237,7 @@ Prefixes: (unprefixed),p
   }
 
   test_ClassElement_hierarchy_extensionType_implements() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 class A {}
@@ -231,7 +245,6 @@ class A {}
 extension type E(A it) implements A {}
 extension type E_q(A it) implements p.A {}
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.class_('A');
     assertElementIndexText(result, element, r'''
@@ -246,7 +259,7 @@ Prefixes: (unprefixed),p
   }
 
   test_ClassElement_hierarchy_mixin_implements() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 class A {}
@@ -254,7 +267,6 @@ class A {}
 mixin M implements A {}
 mixin M_q implements p.A {}
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.class_('A');
     assertElementIndexText(result, element, r'''
@@ -267,7 +279,7 @@ Prefixes: (unprefixed),p
   }
 
   test_ClassElement_hierarchy_mixin_on() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 class A {}
@@ -275,7 +287,6 @@ class A {}
 mixin M2 on A {}
 mixin M2_q on p.A {}
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.class_('A');
     assertElementIndexText(result, element, r'''
@@ -288,7 +299,7 @@ Prefixes: (unprefixed),p
   }
 
   test_ClassElement_reference_annotation() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 class A {
@@ -305,7 +316,6 @@ class A {
 @p.A.myConstant
 void f() {}
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.class_('A');
     assertElementIndexText(result, element, r'''
@@ -321,8 +331,29 @@ Prefixes: (unprefixed),p
 ''');
   }
 
-  test_ClassElement_reference_annotation_typeArgument() async {
-    var result = await _indexTestUnit(r'''
+  test_ClassElement_reference_annotation_typeArgument_namedConstructor() async {
+    var result = await _indexTestCode(r'''
+import 'test.dart' as p;
+
+class A<T> {
+  const A.named();
+}
+
+class B {}
+
+@A<B>.named()
+@p.A<B>.named()
+void f() {}
+''');
+    var element = result.findElement.class_('B');
+    assertElementIndexText(result, element, r'''
+76 9:4 |B| IS_REFERENCED_BY
+92 10:6 |B| IS_REFERENCED_BY
+''');
+  }
+
+  test_ClassElement_reference_annotation_typeArgument_unnamedConstructor() async {
+    var result = await _indexTestCode(r'''
 class A<T> {
   const A();
 }
@@ -339,11 +370,15 @@ void f() {}
   }
 
   test_ClassElement_reference_classTypeAlias() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A {}
 class B = Object with A;
+//                    ^
+// [diag.classUsedAsMixin] The class 'A' can't be used as a mixin because it's neither a mixin class nor a mixin.
 void f(B p) {
   B v;
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'v' isn't used.
 }
 ''');
     var element = result.findElement.class_('B');
@@ -354,7 +389,7 @@ void f(B p) {
   }
 
   test_ClassElement_reference_comment() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 class A {}
@@ -371,10 +406,14 @@ Prefixes: (unprefixed),p
   }
 
   test_ClassElement_reference_definedInSdk() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'dart:math';
 Random v1;
+//     ^^
+// [diag.notInitializedNonNullableVariable] The non-nullable variable 'v1' must be initialized.
 Random v2;
+//     ^^
+// [diag.notInitializedNonNullableVariable] The non-nullable variable 'v2' must be initialized.
 ''');
     var element = result.findElement.importFind('dart:math').class_('Random');
     assertElementIndexText(result, element, r'''
@@ -387,14 +426,16 @@ Random v2;
     newFile('$testPackageLibPath/lib.dart', r'''
 class A {}
 ''');
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'lib.dart';
 
 void f(A p) {
   A v = p;
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'v' isn't used.
 }
 ''');
-    var element = result.findNode.namedType('A p').element!;
+    var element = result.resolvedUnit.findNode.namedType('A p').element!;
     assertElementIndexText(result, element, r'''
 27 3:8 |A| IS_REFERENCED_BY
 36 4:3 |A| IS_REFERENCED_BY
@@ -402,7 +443,7 @@ void f(A p) {
   }
 
   test_ClassElement_reference_instanceCreation() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 class A {}
@@ -412,7 +453,6 @@ void f() {
   p.A();
 }
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.class_('A');
     assertElementIndexText(result, element, r'''
@@ -423,7 +463,7 @@ Prefixes: (unprefixed),p
   }
 
   test_ClassElement_reference_memberAccess() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 class A {
@@ -435,7 +475,6 @@ void f() {
   p.A.foo();
 }
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.class_('A');
     assertElementIndexText(result, element, r'''
@@ -446,24 +485,26 @@ Prefixes: (unprefixed),p
   }
 
   test_ClassElement_reference_namedType() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 class A {}
 
 void f() {
   A v1;
+//  ^^
+// [diag.unusedLocalVariable] The value of the local variable 'v1' isn't used.
   p.A v2;
+//    ^^
+// [diag.unusedLocalVariable] The value of the local variable 'v2' isn't used.
   List<A> v3;
+//        ^^
+// [diag.unusedLocalVariable] The value of the local variable 'v3' isn't used.
   List<p.A> v4;
+//          ^^
+// [diag.unusedLocalVariable] The value of the local variable 'v4' isn't used.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.unusedLocalVariable, 53, 2),
-      error(diag.unusedLocalVariable, 63, 2),
-      error(diag.unusedLocalVariable, 77, 2),
-      error(diag.unusedLocalVariable, 93, 2),
-    ]);
 
     var element = result.findElement.class_('A');
     assertElementIndexText(result, element, r'''
@@ -476,7 +517,7 @@ Prefixes: (unprefixed),p
   }
 
   test_ClassElement_reference_recordTypeAnnotation_named() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 class A {}
 
 void f(({int foo, A bar}) r) {}
@@ -488,7 +529,7 @@ void f(({int foo, A bar}) r) {}
   }
 
   test_ClassElement_reference_recordTypeAnnotation_positional() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 class A {}
 
 void f((int, A) r) {}
@@ -500,7 +541,7 @@ void f((int, A) r) {}
   }
 
   test_ClassElement_reference_typeLiteral() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 class A {}
@@ -516,8 +557,37 @@ Prefixes: (unprefixed),p
 ''');
   }
 
+  test_ConstructorElement_class_annotation() async {
+    var result = await _indexTestCode(r'''
+import 'test.dart' as p;
+
+class A {
+  const A();
+  const A.named();
+}
+
+@A()
+@p.A()
+@A.named()
+@p.A.named()
+void f() {}
+''');
+
+    var unnamed = result.findElement.unnamedConstructor('A');
+    assertElementIndexText(result, unnamed, r'''
+73 8:3 || IS_INVOKED_BY qualified
+80 9:5 || IS_INVOKED_BY qualified
+''');
+
+    var named = result.findElement.constructor('named', of: 'A');
+    assertElementIndexText(result, named, r'''
+85 10:3 |.named| IS_INVOKED_BY qualified
+98 11:5 |.named| IS_INVOKED_BY qualified
+''');
+  }
+
   test_ConstructorElement_class_method_sameName() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A {
   A.foo() {
     foo();
@@ -539,8 +609,10 @@ class A {
   }
 
   test_ConstructorElement_class_named_newHead() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [new A.foo] and [A.foo]
+//   ^^^
+// [diag.deprecatedNewInCommentReference] Using the 'new' keyword in a comment reference is deprecated.
 class A {
   new foo() {}
   new bar() : this.foo();
@@ -553,12 +625,10 @@ void useConstructor() {
   A.foo();
   A.foo;
   A a = .foo();
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.deprecatedNewInCommentReference, 5, 3),
-      error(diag.unusedLocalVariable, 200, 1),
-    ]);
     var element = result.findElement.constructor('foo');
     assertElementIndexText(result, element, r'''
 10 1:11 |.foo| IS_REFERENCED_BY qualified
@@ -573,8 +643,10 @@ void useConstructor() {
   }
 
   test_ConstructorElement_class_named_primary() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [new A.foo] and [A.foo]
+//   ^^^
+// [diag.deprecatedNewInCommentReference] Using the 'new' keyword in a comment reference is deprecated.
 class A.foo() {
   new bar() : this.foo();
   factory baz() = A.foo;
@@ -586,12 +658,10 @@ void useConstructor() {
   A.foo();
   A.foo;
   A a = .foo();
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.deprecatedNewInCommentReference, 5, 3),
-      error(diag.unusedLocalVariable, 191, 1),
-    ]);
     var element = result.findElement.constructor('foo');
     assertElementIndexText(result, element, r'''
 10 1:11 |.foo| IS_REFERENCED_BY qualified
@@ -606,8 +676,10 @@ void useConstructor() {
   }
 
   test_ConstructorElement_class_named_typeName() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [new A.foo] and [A.foo]
+//   ^^^
+// [diag.deprecatedNewInCommentReference] Using the 'new' keyword in a comment reference is deprecated.
 class A {
   A.foo() {}
   A.bar() : this.foo();
@@ -620,12 +692,10 @@ void useConstructor() {
   A.foo();
   A.foo;
   A a = .foo();
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.deprecatedNewInCommentReference, 5, 3),
-      error(diag.unusedLocalVariable, 195, 1),
-    ]);
     var element = result.findElement.constructor('foo');
     assertElementIndexText(result, element, r'''
 10 1:11 |.foo| IS_REFERENCED_BY qualified
@@ -640,8 +710,10 @@ void useConstructor() {
   }
 
   test_ConstructorElement_class_named_typeName_viaTypeAlias() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [new B.foo] and [B.foo]
+//   ^^^
+// [diag.deprecatedNewInCommentReference] Using the 'new' keyword in a comment reference is deprecated.
 class A<T> {
   A.foo() {}
   A.bar() : this.foo();
@@ -655,12 +727,10 @@ void useConstructor() {
   B.foo();
   B.foo;
   B b = .foo();
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'b' isn't used.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.deprecatedNewInCommentReference, 5, 3),
-      error(diag.unusedLocalVariable, 218, 1),
-    ]);
     var element = result.findElement.constructor('foo');
     assertElementIndexText(result, element, r'''
 10 1:11 |.foo| IS_REFERENCED_BY qualified
@@ -675,8 +745,10 @@ void useConstructor() {
   }
 
   test_ConstructorElement_class_unnamed_implicit() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [new A] and [A.new]
+//   ^^^
+// [diag.deprecatedNewInCommentReference] Using the 'new' keyword in a comment reference is deprecated.
 class B {
   B();
   factory B.baz() = A;
@@ -689,12 +761,10 @@ void useConstructor() {
   A();
   A.new;
   A a = .new();
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.deprecatedNewInCommentReference, 5, 3),
-      error(diag.unusedLocalVariable, 170, 1),
-    ]);
     var element = result.findElement.unnamedConstructor('A');
     assertElementIndexText(result, element, r'''
 10 1:11 || IS_REFERENCED_BY qualified
@@ -708,7 +778,7 @@ void useConstructor() {
   }
 
   test_ConstructorElement_class_unnamed_implicitInvocation_fromNewHead() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A {
   A();
 }
@@ -717,6 +787,11 @@ class B extends A {
   new ();
   new bar();
   factory new.baz() = A;
+//        ^^^
+// [diag.expectedIdentifierButGotKeyword] 'new' can't be used as an identifier because it's a keyword.
+// [diag.invalidFactoryNameNotAClass] The name of a factory constructor must be the same as the name of the immediately enclosing class.
+//                    ^
+// [diag.redirectToInvalidReturnType] The return type 'A' of the redirected constructor isn't a subtype of 'B'.
 }
 ''');
 
@@ -729,7 +804,7 @@ class B extends A {
   }
 
   test_ConstructorElement_class_unnamed_implicitInvocation_fromTypeName() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A {
   A();
 }
@@ -738,6 +813,8 @@ class B extends A {
   B();
   B.bar();
   factory B.baz() = A;
+//                  ^
+// [diag.redirectToInvalidReturnType] The return type 'A' of the redirected constructor isn't a subtype of 'B'.
 }
 
 class C extends A {}
@@ -753,8 +830,10 @@ class C extends A {}
   }
 
   test_ConstructorElement_class_unnamed_newHead() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [new A] and [A.new]
+//   ^^^
+// [diag.deprecatedNewInCommentReference] Using the 'new' keyword in a comment reference is deprecated.
 class A {
   new () {}
   new bar() : this();
@@ -767,12 +846,10 @@ void useConstructor() {
   A();
   A.new;
   A a = .new();
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.deprecatedNewInCommentReference, 5, 3),
-      error(diag.unusedLocalVariable, 177, 1),
-    ]);
     var element = result.findElement.unnamedConstructor('A');
     assertElementIndexText(result, element, r'''
 10 1:11 || IS_REFERENCED_BY qualified
@@ -787,8 +864,16 @@ void useConstructor() {
   }
 
   test_ConstructorElement_class_unnamed_otherFile() async {
-    var other = convertPath('$testPackageLibPath/other.dart');
-    var otherFile = newFile(other, '''
+    var otherFile = getFile('$testPackageLibPath/other.dart');
+
+    var unitResult = await resolveTestCodeWithDiagnostics('''
+class A {
+  A() {}
+}
+''');
+    var element = unitResult.findElement.unnamedConstructor('A');
+
+    var result = await _indexFileWithDiagnostics(otherFile, '''
 import 'test.dart';
 
 void f() {
@@ -796,27 +881,16 @@ void f() {
 }
 ''');
 
-    var result = await resolveTestCode('''
-class A {
-  A() {}
-}
-''');
-    var element = result.findElement.unnamedConstructor('A');
-
-    result = await resolveFile2(otherFile);
-    index = AnalysisDriverUnitIndex.fromBuffer(
-      indexUnit(result.unit).toBuffer(),
-    );
-
-    assertErrorsInTestResult(result, []);
     assertElementIndexText(result, element, r'''
 35 4:4 || IS_INVOKED_BY qualified
 ''');
   }
 
   test_ConstructorElement_class_unnamed_primary() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [new A] and [A.new]
+//   ^^^
+// [diag.deprecatedNewInCommentReference] Using the 'new' keyword in a comment reference is deprecated.
 class A() {
   new bar() : this();
   factory baz() = A;
@@ -828,12 +902,10 @@ void useConstructor() {
   A();
   A.new;
   A a = .new();
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.deprecatedNewInCommentReference, 5, 3),
-      error(diag.unusedLocalVariable, 167, 1),
-    ]);
     var element = result.findElement.unnamedConstructor('A');
     assertElementIndexText(result, element, r'''
 10 1:11 || IS_REFERENCED_BY qualified
@@ -848,8 +920,10 @@ void useConstructor() {
   }
 
   test_ConstructorElement_class_unnamed_typeName() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [new A] and [A.new]
+//   ^^^
+// [diag.deprecatedNewInCommentReference] Using the 'new' keyword in a comment reference is deprecated.
 class A {
   A() {}
   A.bar() : this();
@@ -862,12 +936,10 @@ void useConstructor() {
   A();
   A.new;
   A a = .new();
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.deprecatedNewInCommentReference, 5, 3),
-      error(diag.unusedLocalVariable, 171, 1),
-    ]);
     var element = result.findElement.unnamedConstructor('A');
     assertElementIndexText(result, element, r'''
 10 1:11 || IS_REFERENCED_BY qualified
@@ -882,8 +954,10 @@ void useConstructor() {
   }
 
   test_ConstructorElement_class_unnamed_typeName_explicitNew() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [new A] and [A.new]
+//   ^^^
+// [diag.deprecatedNewInCommentReference] Using the 'new' keyword in a comment reference is deprecated.
 class A {
   A.new() {}
   A.bar() : this.new();
@@ -896,12 +970,10 @@ void useConstructor() {
   A.new();
   A.new;
   A a = .new();
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.deprecatedNewInCommentReference, 5, 3),
-      error(diag.unusedLocalVariable, 191, 1),
-    ]);
     var element = result.findElement.unnamedConstructor('A');
     assertElementIndexText(result, element, r'''
 10 1:11 || IS_REFERENCED_BY qualified
@@ -916,14 +988,18 @@ void useConstructor() {
   }
 
   test_ConstructorElement_classTypeAlias() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class M {}
 class A {
   A() {}
   A.named() {}
 }
 class B = A with M;
+//               ^
+// [diag.classUsedAsMixin] The class 'M' can't be used as a mixin because it's neither a mixin class nor a mixin.
 class C = B with M;
+//               ^
+// [diag.classUsedAsMixin] The class 'M' can't be used as a mixin because it's neither a mixin class nor a mixin.
 void useConstructor() {
   B();
   B.named();
@@ -931,10 +1007,6 @@ void useConstructor() {
   C.named();
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.classUsedAsMixin, 64, 1),
-      error(diag.classUsedAsMixin, 84, 1),
-    ]);
     var constructor = result.findElement.unnamedConstructor('A');
     assertElementIndexText(result, constructor, r'''
 114 9:4 || IS_INVOKED_BY qualified
@@ -949,48 +1021,86 @@ void useConstructor() {
   }
 
   test_ConstructorElement_classTypeAlias_cycle() async {
-    var result = await _indexTestUnit('''
+    await _indexTestCode('''
 class M {}
 class A = B with M;
+//    ^
+// [diag.recursiveInterfaceInheritance] 'A' can't be a superinterface of itself: B, A.
+//               ^
+// [diag.classUsedAsMixin] The class 'M' can't be used as a mixin because it's neither a mixin class nor a mixin.
 class B = A with M;
+//    ^
+// [diag.recursiveInterfaceInheritance] 'B' can't be a superinterface of itself: B, A.
+//               ^
+// [diag.classUsedAsMixin] The class 'M' can't be used as a mixin because it's neither a mixin class nor a mixin.
 void useConstructor() {
   A();
   B();
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.recursiveInterfaceInheritance, 17, 1),
-      error(diag.classUsedAsMixin, 28, 1),
-      error(diag.recursiveInterfaceInheritance, 37, 1),
-      error(diag.classUsedAsMixin, 48, 1),
-    ]);
     // No additional validation, but it should not fail with stack overflow.
   }
 
+  test_ConstructorElement_enum_annotation() async {
+    var result = await _indexTestCode(r'''
+import 'test.dart' as p;
+
+enum E {
+  v;
+  const E();
+  const E.named();
+}
+
+@E()
+@p.E()
+@E.named()
+@p.E.named()
+void f() {}
+''');
+
+    var unnamed = result.findElement.unnamedConstructor('E');
+    assertElementIndexText(result, unnamed, r'''
+38 4:4 || IS_INVOKED_BY_ENUM_CONSTANT_WITHOUT_ARGUMENTS qualified
+77 9:3 || IS_INVOKED_BY qualified
+84 10:5 || IS_INVOKED_BY qualified
+''');
+
+    var named = result.findElement.constructor('named');
+    assertElementIndexText(result, named, r'''
+89 11:3 |.named| IS_INVOKED_BY qualified
+102 12:5 |.named| IS_INVOKED_BY qualified
+''');
+  }
+
   test_ConstructorElement_enum_named_newHead() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [new E.foo] and [E.foo]
+//   ^^^
+// [diag.deprecatedNewInCommentReference] Using the 'new' keyword in a comment reference is deprecated.
 enum E {
   v.foo();
   const new foo();
   const new bar() : this.foo();
+//          ^^^
+// [diag.unusedElement] The declaration 'E.bar' isn't referenced.
   const factory baz() = E.foo;
+//                      ^^^^^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
 }
 void useConstructor() {
   E.foo();
+//^^^^^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
   E.foo;
+//^^^^^
+// [diag.invalidReferenceToGenerativeEnumConstructorTearoff] Generative enum constructors can't be torn off.
   E a = .foo();
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
+//       ^^^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.deprecatedNewInCommentReference, 5, 3),
-      error(diag.unusedElement, 79, 3),
-      error(diag.invalidReferenceToGenerativeEnumConstructor, 123, 5),
-      error(diag.invalidReferenceToGenerativeEnumConstructor, 158, 5),
-      error(diag.invalidReferenceToGenerativeEnumConstructorTearoff, 169, 5),
-      error(diag.unusedLocalVariable, 180, 1),
-      error(diag.invalidReferenceToGenerativeEnumConstructor, 185, 3),
-    ]);
     var element = result.findElement.constructor('foo');
     assertElementIndexText(result, element, r'''
 10 1:11 |.foo| IS_REFERENCED_BY qualified
@@ -1005,28 +1115,33 @@ void useConstructor() {
   }
 
   test_ConstructorElement_enum_named_primary() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [new E.foo] and [E.foo]
+//   ^^^
+// [diag.deprecatedNewInCommentReference] Using the 'new' keyword in a comment reference is deprecated.
 enum E.foo() {
   v.foo();
   const new bar() : this.foo();
+//          ^^^
+// [diag.unusedElement] The declaration 'E.bar' isn't referenced.
   const factory baz() = E.foo;
+//                      ^^^^^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
 }
 void useConstructor() {
   E.foo();
+//^^^^^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
   E.foo;
+//^^^^^
+// [diag.invalidReferenceToGenerativeEnumConstructorTearoff] Generative enum constructors can't be torn off.
   E a = .foo();
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
+//       ^^^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.deprecatedNewInCommentReference, 5, 3),
-      error(diag.unusedElement, 66, 3),
-      error(diag.invalidReferenceToGenerativeEnumConstructor, 110, 5),
-      error(diag.invalidReferenceToGenerativeEnumConstructor, 145, 5),
-      error(diag.invalidReferenceToGenerativeEnumConstructorTearoff, 156, 5),
-      error(diag.unusedLocalVariable, 167, 1),
-      error(diag.invalidReferenceToGenerativeEnumConstructor, 172, 3),
-    ]);
     var element = result.findElement.constructor('foo');
     assertElementIndexText(result, element, r'''
 10 1:11 |.foo| IS_REFERENCED_BY qualified
@@ -1041,29 +1156,34 @@ void useConstructor() {
   }
 
   test_ConstructorElement_enum_named_typeName() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [new E.foo] and [E.foo]
+//   ^^^
+// [diag.deprecatedNewInCommentReference] Using the 'new' keyword in a comment reference is deprecated.
 enum E {
   v.foo();
   const E.foo();
   const E.bar() : this.foo();
+//        ^^^
+// [diag.unusedElement] The declaration 'E.bar' isn't referenced.
   const factory E.baz() = E.foo;
+//                        ^^^^^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
 }
 void useConstructor() {
   E.foo();
+//^^^^^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
   E.foo;
+//^^^^^
+// [diag.invalidReferenceToGenerativeEnumConstructorTearoff] Generative enum constructors can't be torn off.
   E a = .foo();
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
+//       ^^^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.deprecatedNewInCommentReference, 5, 3),
-      error(diag.unusedElement, 75, 3),
-      error(diag.invalidReferenceToGenerativeEnumConstructor, 121, 5),
-      error(diag.invalidReferenceToGenerativeEnumConstructor, 156, 5),
-      error(diag.invalidReferenceToGenerativeEnumConstructorTearoff, 167, 5),
-      error(diag.unusedLocalVariable, 178, 1),
-      error(diag.invalidReferenceToGenerativeEnumConstructor, 183, 3),
-    ]);
     var element = result.findElement.constructor('foo');
     assertElementIndexText(result, element, r'''
 10 1:11 |.foo| IS_REFERENCED_BY qualified
@@ -1078,28 +1198,32 @@ void useConstructor() {
   }
 
   test_ConstructorElement_enum_unnamed_implicit() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [new E] and [E.new]
+//   ^^^
+// [diag.deprecatedNewInCommentReference] Using the 'new' keyword in a comment reference is deprecated.
 enum E {
   v1,
   v2(),
   v3.new();
   const factory E.other() = E;
+//                          ^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
 }
 void useConstructor() {
   E();
+//^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
   E.new;
+//^^^^^
+// [diag.invalidReferenceToGenerativeEnumConstructorTearoff] Generative enum constructors can't be torn off.
   E a = .new();
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
+//       ^^^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.deprecatedNewInCommentReference, 5, 3),
-      error(diag.invalidReferenceToGenerativeEnumConstructor, 87, 1),
-      error(diag.invalidReferenceToGenerativeEnumConstructor, 118, 1),
-      error(diag.invalidReferenceToGenerativeEnumConstructorTearoff, 125, 5),
-      error(diag.unusedLocalVariable, 136, 1),
-      error(diag.invalidReferenceToGenerativeEnumConstructor, 141, 3),
-    ]);
     var element = result.findElement.unnamedConstructor('E');
     assertElementIndexText(result, element, r'''
 10 1:11 || IS_REFERENCED_BY qualified
@@ -1115,29 +1239,33 @@ void useConstructor() {
   }
 
   test_ConstructorElement_enum_unnamed_newHead() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [new E] and [E.new]
+//   ^^^
+// [diag.deprecatedNewInCommentReference] Using the 'new' keyword in a comment reference is deprecated.
 enum E {
   v1,
   v2(),
   v3.new();
   const new ();
   const factory other() = E.new;
+//                        ^^^^^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
 }
 void useConstructor() {
   E();
+//^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
   E.new;
+//^^^^^
+// [diag.invalidReferenceToGenerativeEnumConstructorTearoff] Generative enum constructors can't be torn off.
   E a = .new();
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
+//       ^^^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.deprecatedNewInCommentReference, 5, 3),
-      error(diag.invalidReferenceToGenerativeEnumConstructor, 101, 5),
-      error(diag.invalidReferenceToGenerativeEnumConstructor, 136, 1),
-      error(diag.invalidReferenceToGenerativeEnumConstructorTearoff, 143, 5),
-      error(diag.unusedLocalVariable, 154, 1),
-      error(diag.invalidReferenceToGenerativeEnumConstructor, 159, 3),
-    ]);
     var element = result.findElement.unnamedConstructor('E');
     assertElementIndexText(result, element, r'''
 10 1:11 || IS_REFERENCED_BY qualified
@@ -1153,28 +1281,32 @@ void useConstructor() {
   }
 
   test_ConstructorElement_enum_unnamed_primary() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [new E] and [E.new]
+//   ^^^
+// [diag.deprecatedNewInCommentReference] Using the 'new' keyword in a comment reference is deprecated.
 enum E() {
   v1,
   v2(),
   v3.new();
   const factory other() = E.new;
+//                        ^^^^^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
 }
 void useConstructor() {
   E();
+//^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
   E.new;
+//^^^^^
+// [diag.invalidReferenceToGenerativeEnumConstructorTearoff] Generative enum constructors can't be torn off.
   E a = .new();
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
+//       ^^^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.deprecatedNewInCommentReference, 5, 3),
-      error(diag.invalidReferenceToGenerativeEnumConstructor, 87, 5),
-      error(diag.invalidReferenceToGenerativeEnumConstructor, 122, 1),
-      error(diag.invalidReferenceToGenerativeEnumConstructorTearoff, 129, 5),
-      error(diag.unusedLocalVariable, 140, 1),
-      error(diag.invalidReferenceToGenerativeEnumConstructor, 145, 3),
-    ]);
     var element = result.findElement.unnamedConstructor('E');
     assertElementIndexText(result, element, r'''
 10 1:11 || IS_REFERENCED_BY qualified
@@ -1190,29 +1322,33 @@ void useConstructor() {
   }
 
   test_ConstructorElement_enum_unnamed_typeName() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [new E] and [E.new]
+//   ^^^
+// [diag.deprecatedNewInCommentReference] Using the 'new' keyword in a comment reference is deprecated.
 enum E {
   v1,
   v2(),
   v3.new();
   const E();
   const factory E.other() = E;
+//                          ^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
 }
 void useConstructor() {
   E();
+//^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
   E.new;
+//^^^^^
+// [diag.invalidReferenceToGenerativeEnumConstructorTearoff] Generative enum constructors can't be torn off.
   E a = .new();
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
+//       ^^^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.deprecatedNewInCommentReference, 5, 3),
-      error(diag.invalidReferenceToGenerativeEnumConstructor, 100, 1),
-      error(diag.invalidReferenceToGenerativeEnumConstructor, 131, 1),
-      error(diag.invalidReferenceToGenerativeEnumConstructorTearoff, 138, 5),
-      error(diag.unusedLocalVariable, 149, 1),
-      error(diag.invalidReferenceToGenerativeEnumConstructor, 154, 3),
-    ]);
     var element = result.findElement.unnamedConstructor('E');
     assertElementIndexText(result, element, r'''
 10 1:11 || IS_REFERENCED_BY qualified
@@ -1228,29 +1364,33 @@ void useConstructor() {
   }
 
   test_ConstructorElement_enum_unnamed_typeName_explicitNew() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [new E] and [E.new]
+//   ^^^
+// [diag.deprecatedNewInCommentReference] Using the 'new' keyword in a comment reference is deprecated.
 enum E {
   v1,
   v2(),
   v3.new();
   const E.new();
   const factory E.other() = E.new;
+//                          ^^^^^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
 }
 void useConstructor() {
   E();
+//^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
   E.new;
+//^^^^^
+// [diag.invalidReferenceToGenerativeEnumConstructorTearoff] Generative enum constructors can't be torn off.
   E a = .new();
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
+//       ^^^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.deprecatedNewInCommentReference, 5, 3),
-      error(diag.invalidReferenceToGenerativeEnumConstructor, 104, 5),
-      error(diag.invalidReferenceToGenerativeEnumConstructor, 139, 1),
-      error(diag.invalidReferenceToGenerativeEnumConstructorTearoff, 146, 5),
-      error(diag.unusedLocalVariable, 157, 1),
-      error(diag.invalidReferenceToGenerativeEnumConstructor, 162, 3),
-    ]);
     var element = result.findElement.unnamedConstructor('E');
     assertElementIndexText(result, element, r'''
 10 1:11 || IS_REFERENCED_BY qualified
@@ -1265,9 +1405,40 @@ void useConstructor() {
 ''');
   }
 
+  test_ConstructorElement_extensionType_annotation() async {
+    var result = await _indexTestCode(r'''
+import 'test.dart' as p;
+
+extension type const A(int it) {
+  const A.named(int it) : this(it);
+}
+
+@A(0)
+@p.A(0)
+@A.named(0)
+@p.A.named(0)
+void f() {}
+''');
+
+    var unnamed = result.findElement.unnamedConstructor('A');
+    assertElementIndexText(result, unnamed, r'''
+89 4:31 || IS_INVOKED_BY qualified
+100 7:3 || IS_INVOKED_BY qualified
+108 8:5 || IS_INVOKED_BY qualified
+''');
+
+    var named = result.findElement.constructor('named');
+    assertElementIndexText(result, named, r'''
+114 9:3 |.named| IS_INVOKED_BY qualified
+128 10:5 |.named| IS_INVOKED_BY qualified
+''');
+  }
+
   test_ConstructorElement_extensionType_named_newHead() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [new A.foo] and [A.foo]
+//   ^^^
+// [diag.deprecatedNewInCommentReference] Using the 'new' keyword in a comment reference is deprecated.
 extension type A(int it) {
   new foo(this.it);
   new bar() : this.foo(0);
@@ -1277,12 +1448,10 @@ void useConstructor() {
   A.foo(0);
   A.foo;
   A a = .foo(0);
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.deprecatedNewInCommentReference, 5, 3),
-      error(diag.unusedLocalVariable, 184, 1),
-    ]);
     var element = result.findElement.constructor('foo');
     assertElementIndexText(result, element, r'''
 10 1:11 |.foo| IS_REFERENCED_BY qualified
@@ -1296,8 +1465,10 @@ void useConstructor() {
   }
 
   test_ConstructorElement_extensionType_named_primary() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [new A.foo] and [A.foo]
+//   ^^^
+// [diag.deprecatedNewInCommentReference] Using the 'new' keyword in a comment reference is deprecated.
 extension type A.foo(int it) {
   new bar() : this.foo(0);
   factory baz(int it) = A.foo;
@@ -1306,12 +1477,10 @@ void useConstructor() {
   A.foo(0);
   A.foo;
   A a = .foo(0);
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.deprecatedNewInCommentReference, 5, 3),
-      error(diag.unusedLocalVariable, 168, 1),
-    ]);
     var element = result.findElement.constructor('foo');
     assertElementIndexText(result, element, r'''
 10 1:11 |.foo| IS_REFERENCED_BY qualified
@@ -1325,8 +1494,10 @@ void useConstructor() {
   }
 
   test_ConstructorElement_extensionType_named_typeName() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [new A.foo] and [A.foo]
+//   ^^^
+// [diag.deprecatedNewInCommentReference] Using the 'new' keyword in a comment reference is deprecated.
 extension type A(int it) {
   A.foo(this.it);
   A.bar() : this.foo(0);
@@ -1336,12 +1507,10 @@ void useConstructor() {
   A.foo(0);
   A.foo;
   A a = .foo(0);
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.deprecatedNewInCommentReference, 5, 3),
-      error(diag.unusedLocalVariable, 182, 1),
-    ]);
     var element = result.findElement.constructor('foo');
     assertElementIndexText(result, element, r'''
 10 1:11 |.foo| IS_REFERENCED_BY qualified
@@ -1355,8 +1524,10 @@ void useConstructor() {
   }
 
   test_ConstructorElement_extensionType_unnamed_newHead() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [new A] and [A.new]
+//   ^^^
+// [diag.deprecatedNewInCommentReference] Using the 'new' keyword in a comment reference is deprecated.
 extension type A.named(int it) {
   new (this.it);
   new bar() : this(0);
@@ -1366,12 +1537,10 @@ void useConstructor() {
   A(0);
   A.new;
   A a = .new(0);
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.deprecatedNewInCommentReference, 5, 3),
-      error(diag.unusedLocalVariable, 175, 1),
-    ]);
     var element = result.findElement.unnamedConstructor('A');
     assertElementIndexText(result, element, r'''
 10 1:11 || IS_REFERENCED_BY qualified
@@ -1385,8 +1554,10 @@ void useConstructor() {
   }
 
   test_ConstructorElement_extensionType_unnamed_primary() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [new A] and [A.new]
+//   ^^^
+// [diag.deprecatedNewInCommentReference] Using the 'new' keyword in a comment reference is deprecated.
 extension type A(int it) {
   new bar() : this(0);
   factory baz(int it) = A.new;
@@ -1395,12 +1566,10 @@ void useConstructor() {
   A(0);
   A.new;
   A a = .new(0);
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.deprecatedNewInCommentReference, 5, 3),
-      error(diag.unusedLocalVariable, 152, 1),
-    ]);
     var element = result.findElement.unnamedConstructor('A');
     assertElementIndexText(result, element, r'''
 10 1:11 || IS_REFERENCED_BY qualified
@@ -1414,8 +1583,10 @@ void useConstructor() {
   }
 
   test_ConstructorElement_extensionType_unnamed_typeName() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [new A] and [A.new]
+//   ^^^
+// [diag.deprecatedNewInCommentReference] Using the 'new' keyword in a comment reference is deprecated.
 extension type A.named(int it) {
   A(this.it);
   A.bar() : this(0);
@@ -1425,12 +1596,10 @@ void useConstructor() {
   A(0);
   A.new;
   A a = .new(0);
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.deprecatedNewInCommentReference, 5, 3),
-      error(diag.unusedLocalVariable, 172, 1),
-    ]);
     var element = result.findElement.unnamedConstructor('A');
     assertElementIndexText(result, element, r'''
 10 1:11 || IS_REFERENCED_BY qualified
@@ -1444,8 +1613,10 @@ void useConstructor() {
   }
 
   test_ConstructorElement_extensionType_unnamed_typeName_explicitNew() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [new A] and [A.new]
+//   ^^^
+// [diag.deprecatedNewInCommentReference] Using the 'new' keyword in a comment reference is deprecated.
 extension type A.named(int it) {
   A.new(this.it);
   A.bar() : this.new(0);
@@ -1455,12 +1626,10 @@ void useConstructor() {
   A.new(0);
   A.new;
   A a = .new(0);
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.deprecatedNewInCommentReference, 5, 3),
-      error(diag.unusedLocalVariable, 184, 1),
-    ]);
     var element = result.findElement.unnamedConstructor('A');
     assertElementIndexText(result, element, r'''
 10 1:11 || IS_REFERENCED_BY qualified
@@ -1474,21 +1643,22 @@ void useConstructor() {
   }
 
   test_DynamicElement() async {
-    await _indexTestUnit('''
+    var result = await _indexTestCode('''
 dynamic f() {}
 ''');
-    expect(index.usedElementOffsets, isEmpty);
+    expect(result.index.usedElementOffsets, isEmpty);
   }
 
   test_EnumElement_emptyBody() async {
-    var result = await _indexTestUnit(r'''
+    await _indexTestCode(r'''
 enum E;
+//   ^
+// [diag.enumWithoutConstants] The enum must have at least one enum constant.
 ''');
-    assertErrorsInTestResult(result, [error(diag.enumWithoutConstants, 5, 1)]);
   }
 
   test_EnumElement_reference_annotation() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 enum E {
@@ -1506,7 +1676,6 @@ enum E {
 @p.E.myConstant
 void f() {}
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.enum_('E');
     assertElementIndexText(result, element, r'''
@@ -1523,7 +1692,7 @@ Prefixes: (unprefixed),p
   }
 
   test_EnumElement_reference_comment() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 enum E { v }
@@ -1531,7 +1700,6 @@ enum E { v }
 /// [E] and [p.E].
 void f() {}
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.enum_('E');
     assertElementIndexText(result, element, r'''
@@ -1542,7 +1710,7 @@ Prefixes: (unprefixed),p
   }
 
   test_EnumElement_reference_instanceCreation() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 enum E {
@@ -1552,13 +1720,13 @@ enum E {
 
 void f() {
   const E();
+//      ^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
   const p.E();
+//      ^^^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.invalidReferenceToGenerativeEnumConstructor, 75, 1),
-      error(diag.invalidReferenceToGenerativeEnumConstructor, 88, 3),
-    ]);
 
     var element = result.findElement.enum_('E');
     assertElementIndexText(result, element, r'''
@@ -1570,7 +1738,7 @@ Prefixes: (unprefixed),p
   }
 
   test_EnumElement_reference_memberAccess() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 enum E {
@@ -1583,7 +1751,6 @@ void f() {
   p.E.foo();
 }
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.enum_('E');
     assertElementIndexText(result, element, r'''
@@ -1594,20 +1761,20 @@ Prefixes: (unprefixed),p
   }
 
   test_EnumElement_reference_namedType() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 enum E { v }
 
 void f() {
   E v1;
+//  ^^
+// [diag.unusedLocalVariable] The value of the local variable 'v1' isn't used.
   p.E v2;
+//    ^^
+// [diag.unusedLocalVariable] The value of the local variable 'v2' isn't used.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.unusedLocalVariable, 55, 2),
-      error(diag.unusedLocalVariable, 65, 2),
-    ]);
 
     var element = result.findElement.enum_('E');
     assertElementIndexText(result, element, r'''
@@ -1618,14 +1785,13 @@ Prefixes: (unprefixed),p
   }
 
   test_ExtensionElement_emptyBody() async {
-    var result = await _indexTestUnit(r'''
+    await _indexTestCode(r'''
 extension E on int;
 ''');
-    assertErrorsInTestResult(result, []);
   }
 
   test_ExtensionElement_reference_memberAccess() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 extension E on int {
@@ -1637,7 +1803,6 @@ void f() {
   p.E.foo();
 }
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.extension_('E');
     assertElementIndexText(result, element, r'''
@@ -1648,7 +1813,7 @@ Prefixes: (unprefixed),p
   }
 
   test_ExtensionElement_reference_override() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 extension E on int {
@@ -1660,7 +1825,6 @@ void f() {
   p.E(0).foo();
 }
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.extension_('E');
     assertElementIndexText(result, element, r'''
@@ -1671,7 +1835,7 @@ Prefixes: (unprefixed),p
   }
 
   test_ExtensionTypeElement_hierarchy_extensionType_implements() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 extension type A(int it) {}
@@ -1679,7 +1843,6 @@ extension type A(int it) {}
 extension type B(int it) implements A {}
 extension type B_q(int it) implements p.A {}
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.extensionType('A');
     assertElementIndexText(result, element, r'''
@@ -1692,7 +1855,7 @@ Prefixes: (unprefixed),p
   }
 
   test_ExtensionTypeElement_reference_annotation() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 extension type const A(int it) {}
@@ -1701,7 +1864,6 @@ extension type const A(int it) {}
 @p.A(0)
 void f() {}
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.extensionType('A');
     assertElementIndexText(result, element, r'''
@@ -1712,7 +1874,7 @@ Prefixes: (unprefixed),p
   }
 
   test_ExtensionTypeElement_reference_comment() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 extension type A(int it) {}
@@ -1720,7 +1882,6 @@ extension type A(int it) {}
 /// [A] and [p.A].
 void f() {}
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.extensionType('A');
     assertElementIndexText(result, element, r'''
@@ -1731,7 +1892,7 @@ Prefixes: (unprefixed),p
   }
 
   test_ExtensionTypeElement_reference_instanceCreation() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 extension type A(int it) {}
@@ -1741,7 +1902,6 @@ void f() {
   p.A(0);
 }
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.extensionType('A');
     assertElementIndexText(result, element, r'''
@@ -1752,7 +1912,7 @@ Prefixes: (unprefixed),p
   }
 
   test_ExtensionTypeElement_reference_memberAccess() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 extension type A(int it) {
@@ -1764,7 +1924,6 @@ void f() {
   p.A.foo();
 }
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.extensionType('A');
     assertElementIndexText(result, element, r'''
@@ -1775,20 +1934,20 @@ Prefixes: (unprefixed),p
   }
 
   test_ExtensionTypeElement_reference_namedType() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 extension type A(int it) {}
 
 void f() {
   A v1;
+//  ^^
+// [diag.unusedLocalVariable] The value of the local variable 'v1' isn't used.
   p.A v2;
+//    ^^
+// [diag.unusedLocalVariable] The value of the local variable 'v2' isn't used.
 }
 ''');
-    assertErrorsInTestResult(result, [
-      error(diag.unusedLocalVariable, 70, 2),
-      error(diag.unusedLocalVariable, 80, 2),
-    ]);
 
     var element = result.findElement.extensionType('A');
     assertElementIndexText(result, element, r'''
@@ -1799,11 +1958,13 @@ Prefixes: (unprefixed),p
   }
 
   test_FieldElement_ofClass_instance() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [foo] and [A.foo]
 class A {
   int foo;
   A({this.foo});
+//        ^^^
+// [diag.missingDefaultValueForParameter] The parameter 'foo' can't have a value of 'null' because of its type, but the implicit default value is 'null'.
   A.foo() : foo = 0;
 
   void useField() {
@@ -1843,9 +2004,11 @@ void useField(A a) {
   }
 
   test_FieldElement_ofClass_instance_synthetic_hasGetter() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A {
   A() : foo = 0;
+//      ^^^^^^^
+// [diag.initializerForNonExistentField] 'foo' isn't a field in the enclosing class.
   int get foo => 0;
 }
 ''');
@@ -1856,9 +2019,11 @@ class A {
   }
 
   test_FieldElement_ofClass_instance_synthetic_hasGetterSetter() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A {
   A() : foo = 0;
+//      ^^^^^^^
+// [diag.initializerForNonExistentField] 'foo' isn't a field in the enclosing class.
   int get foo => 0;
   set foo(_) {}
 }
@@ -1870,9 +2035,11 @@ class A {
   }
 
   test_FieldElement_ofClass_instance_synthetic_hasSetter() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A {
   A() : foo = 0;
+//      ^^^^^^^
+// [diag.initializerForNonExistentField] 'foo' isn't a field in the enclosing class.
   set foo(_) {}
 }
 ''');
@@ -1883,7 +2050,7 @@ class A {
   }
 
   test_FieldElement_ofClass_static() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [foo] and [A.foo]
 class A {
   static int foo = 0;
@@ -1899,6 +2066,10 @@ void useField() {
   A.foo;
   A.foo = 0;
   A a = .foo;
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
+//      ^^^^
+// [diag.invalidAssignment] A value of type 'int' can't be assigned to a variable of type 'A'.
 }
 ''');
 
@@ -1921,11 +2092,13 @@ void useField() {
   }
 
   test_FieldElement_ofEnum_instance() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [foo] and [E.foo]
 enum E {
   v;
   int? foo; // a compile-time error
+//     ^^^
+// [diag.nonFinalFieldInEnum] Enums can only declare final fields.
   E({this.foo});
   void useField() {
     foo;
@@ -1936,6 +2109,8 @@ void useField(E e) {
   e.foo;
   e.foo = 0;
   E(foo: 0);
+//^
+// [diag.invalidReferenceToGenerativeEnumConstructor] Generative enum constructors can only be used to create an enum constant.
 }
 ''');
     var field = result.findElement.field('foo');
@@ -1960,7 +2135,7 @@ void useField(E e) {
   }
 
   test_FieldElement_ofEnum_instance_index() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 enum MyEnum {
   v1, v2, v3
 }
@@ -1972,17 +2147,21 @@ void f() {
 }
 ''');
 
-    var index = result.typeProvider.enumElement!.getGetter('index')!;
+    var index = result.resolvedUnit.typeProvider.enumElement!.getGetter(
+      'index',
+    )!;
     assertElementIndexText(result, index, r'''
 69 6:13 |index| IS_REFERENCED_BY qualified
 ''');
   }
 
   test_FieldElement_ofEnum_instance_synthetic_hasGetter() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 enum E {
   v;
   E() : foo = 0;
+//      ^^^^^^^
+// [diag.initializerForNonExistentField] 'foo' isn't a field in the enclosing class.
   int get foo => 0;
 }
 ''');
@@ -1993,10 +2172,12 @@ enum E {
   }
 
   test_FieldElement_ofEnum_instance_synthetic_hasGetterSetter() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 enum E {
   v;
   E() : foo = 0;
+//      ^^^^^^^
+// [diag.initializerForNonExistentField] 'foo' isn't a field in the enclosing class.
   int get foo => 0;
   set foo(_) {}
 }
@@ -2008,10 +2189,12 @@ enum E {
   }
 
   test_FieldElement_ofEnum_instance_synthetic_hasSetter() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 enum E {
   v;
   E() : foo = 0;
+//      ^^^^^^^
+// [diag.initializerForNonExistentField] 'foo' isn't a field in the enclosing class.
   set foo(_) {}
 }
 ''');
@@ -2022,7 +2205,7 @@ enum E {
   }
 
   test_FieldElement_ofEnum_static_constants() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 /// [v1], [MyEnum.v1], and [p.MyEnum.v1]
@@ -2059,7 +2242,7 @@ void f() {
   }
 
   test_FieldElement_ofExtensionType_static() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [foo] and [A.foo]
 extension type A(int it) {
   static int foo = 0;
@@ -2091,9 +2274,11 @@ void useField() {
   }
 
   test_fieldFormalParameter_noSuchField() async {
-    await _indexTestUnit('''
+    await _indexTestCode('''
 class B<T> {
   B({this.x}) {}
+//   ^^^^^^
+// [diag.initializingFormalForNonExistentField] 'x' isn't a field in the enclosing class.
 
   foo() {
     B<int>(x: 1);
@@ -2104,7 +2289,7 @@ class B<T> {
   }
 
   test_FieldFormalParameterElement_ofConstructor_optionalNamed_dotShorthand() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A {
   A({this.test}) : assert(test != null);
   int? test;
@@ -2113,7 +2298,6 @@ void foo() {
   A _ = .new(test: 0);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.fieldFormalParameter('test');
     assertElementIndexText(result, element, r'''
 36 2:27 |test| IS_READ_BY
@@ -2128,20 +2312,21 @@ void foo<T>({T? test}) {}
     newFile('$testPackageLibPath/b.dart', r'''
 void foo<T>({T? test}) {}
 ''');
-    var result = await _indexTestUnit(r"""
+    await _indexTestCode(r"""
 import 'a.dart';
 import 'b.dart';
 
 void f() {
   foo(test: 0);
+//^^^
+// [diag.ambiguousImport] The name 'foo' is defined in the libraries 'package:test/a.dart' and 'package:test/b.dart'.
 }
 """);
     // No exceptions.
-    assertErrorsInTestResult(result, [error(diag.ambiguousImport, 48, 3)]);
   }
 
   test_FormalParameterElement_ofConstructor_primary_optionalNamed() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A({int? test}) {
   /// [test]
   this : assert(test != null) {
@@ -2168,7 +2353,6 @@ void f() {
   A _ = .new(test: 0);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.unnamedConstructor('A').parameter('test');
     assertElementIndexText(result, element, r'''
 30 2:8 |test| IS_REFERENCED_BY
@@ -2187,7 +2371,7 @@ void f() {
   }
 
   test_FormalParameterElement_ofConstructor_primary_optionalNamed_genericClass() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A<T>({T? test}) {
   /// [test]
   this : assert(test != null) {
@@ -2213,7 +2397,6 @@ void f() {
   A<int> _ = .new(test: 0);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.unnamedConstructor('A').parameter('test');
     assertElementIndexText(result, element, r'''
 31 2:8 |test| IS_REFERENCED_BY
@@ -2231,7 +2414,7 @@ void f() {
   }
 
   test_FormalParameterElement_ofConstructor_primary_optionalPositional() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A([int? test]) {
   /// [test]
   this : assert(test != null) {
@@ -2258,7 +2441,6 @@ void f() {
   A _ = .new(0);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.unnamedConstructor('A').parameter('test');
     assertElementIndexText(result, element, r'''
 30 2:8 |test| IS_REFERENCED_BY
@@ -2273,7 +2455,7 @@ void f() {
   }
 
   test_FormalParameterElement_ofConstructor_primary_requiredNamed() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A({required int test}) {
   /// [test]
   this : assert(test != -1) {
@@ -2300,7 +2482,6 @@ void f() {
   A _ = .new(test: 0);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.unnamedConstructor('A').parameter('test');
     assertElementIndexText(result, element, r'''
 38 2:8 |test| IS_REFERENCED_BY
@@ -2319,7 +2500,7 @@ void f() {
   }
 
   test_FormalParameterElement_ofConstructor_primary_requiredPositional() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A(int test) {
   /// [test]
   this : assert(test != -1) {
@@ -2346,7 +2527,6 @@ void f() {
   A _ = .new(0);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.unnamedConstructor('A').parameter('test');
     assertElementIndexText(result, element, r'''
 27 2:8 |test| IS_REFERENCED_BY
@@ -2361,7 +2541,7 @@ void f() {
   }
 
   test_FormalParameterElement_ofConstructor_typeName_optionalNamed() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A {
   /// [test]
   A({int? test}) : assert(test != null) {
@@ -2388,7 +2568,6 @@ void f() {
   A _ = .new(test: 0);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.unnamedConstructor('A').parameter('test');
     assertElementIndexText(result, element, r'''
 17 2:8 |test| IS_REFERENCED_BY
@@ -2406,8 +2585,47 @@ void f() {
 ''');
   }
 
+  test_FormalParameterElement_ofConstructor_typeName_optionalNamed_const() async {
+    var result = await _indexTestCode(r'''
+import 'test.dart' as p;
+
+class A {
+  /// [test]
+  const A({int? test}) : assert(test != null);
+  const A.redirect({int? test}) : this(test: test);
+}
+
+class B extends A {
+  const B({super.test});
+}
+
+class C extends A {
+  const C({int? test}) : super(test: test);
+}
+
+@A(test: 0)
+@p.A(test: 1)
+void f() {
+  const A(test: 2);
+  A _ = .new(test: 3);
+}
+''');
+    var element = result.findElement.unnamedConstructor('A').parameter('test');
+    assertElementIndexText(result, element, r'''
+43 4:8 |test| IS_REFERENCED_BY
+81 5:33 |test| IS_READ_BY
+135 6:40 |test| IS_REFERENCED_BY_NAMED_ARGUMENT qualified
+188 10:18 |test| IS_REFERENCED_BY_NAMED_ARGUMENT qualified
+250 14:32 |test| IS_REFERENCED_BY_NAMED_ARGUMENT qualified
+269 17:4 |test| IS_REFERENCED_BY_NAMED_ARGUMENT qualified
+283 18:6 |test| IS_REFERENCED_BY_NAMED_ARGUMENT qualified
+313 20:11 |test| IS_REFERENCED_BY_NAMED_ARGUMENT qualified
+336 21:14 |test| IS_REFERENCED_BY_NAMED_ARGUMENT qualified
+''');
+  }
+
   test_FormalParameterElement_ofConstructor_typeName_optionalNamed_genericClass() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A<T> {
   /// [test]
   A({T? test}) : assert(test != null) {
@@ -2433,7 +2651,6 @@ void f() {
   A<int> _ = .new(test: 0);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.unnamedConstructor('A').parameter('test');
     assertElementIndexText(result, element, r'''
 20 2:8 |test| IS_REFERENCED_BY
@@ -2451,7 +2668,7 @@ void f() {
   }
 
   test_FormalParameterElement_ofConstructor_typeName_optionalPositional() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A {
   /// [test]
   A([int? test]) : assert(test != null) {
@@ -2478,7 +2695,6 @@ void f() {
   A _ = .new(0);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.unnamedConstructor('A').parameter('test');
     assertElementIndexText(result, element, r'''
 17 2:8 |test| IS_REFERENCED_BY
@@ -2493,7 +2709,7 @@ void f() {
   }
 
   test_FormalParameterElement_ofConstructor_typeName_requiredNamed() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A {
   /// [test]
   A({required int test}) : assert(test != -1) {
@@ -2520,7 +2736,6 @@ void f() {
   A _ = .new(test: 0);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.unnamedConstructor('A').parameter('test');
     assertElementIndexText(result, element, r'''
 17 2:8 |test| IS_REFERENCED_BY
@@ -2539,7 +2754,7 @@ void f() {
   }
 
   test_FormalParameterElement_ofConstructor_typeName_requiredPositional() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A {
   /// [test]
   A(int test) : assert(test != -1) {
@@ -2566,7 +2781,6 @@ void f() {
   A _ = .new(0);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.unnamedConstructor('A').parameter('test');
     assertElementIndexText(result, element, r'''
 17 2:8 |test| IS_REFERENCED_BY
@@ -2581,7 +2795,7 @@ void f() {
   }
 
   test_FormalParameterElement_ofGenericFunctionType_optionalNamed() async {
-    var result = await _indexTestUnit('''
+    await _indexTestCode('''
 typedef F = void Function({int? test});
 
 void g(F f) {
@@ -2590,11 +2804,10 @@ void g(F f) {
 ''');
     // We should not crash because of reference to "test" - a named parameter
     // of a generic function type.
-    assertErrorsInTestResult(result, []);
   }
 
   test_FormalParameterElement_ofGenericFunctionType_optionalNamed_call() async {
-    var result = await _indexTestUnit('''
+    await _indexTestCode('''
 typedef F<T> = void Function({T? test});
 
 void g(F<int> f) {
@@ -2602,11 +2815,10 @@ void g(F<int> f) {
 }
 ''');
     // No exceptions.
-    assertErrorsInTestResult(result, []);
   }
 
   test_FormalParameterElement_ofLocalFunction_optionalNamed() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 void f() {
   /// [test]
   void foo({int? test}) {
@@ -2622,14 +2834,13 @@ void f() {
   (foo)(test: 2);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.parameter('test');
     assertElementIndexText(result, element, r'''
 ''');
   }
 
   test_FormalParameterElement_ofLocalFunction_optionalPositional() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 void f() {
   /// [test]
   void foo([int? test]) {
@@ -2645,14 +2856,13 @@ void f() {
   (foo)(2);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.parameter('test');
     assertElementIndexText(result, element, r'''
 ''');
   }
 
   test_FormalParameterElement_ofLocalFunction_requiredNamed() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 void f() {
   /// [test]
   void foo({required int test}) {
@@ -2668,14 +2878,13 @@ void f() {
   (foo)(test: 2);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.parameter('test');
     assertElementIndexText(result, element, r'''
 ''');
   }
 
   test_FormalParameterElement_ofLocalFunction_requiredPositional() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 void f() {
   /// [test]
   void foo(int test) {
@@ -2691,14 +2900,13 @@ void f() {
   (foo)(2);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.parameter('test');
     assertElementIndexText(result, element, r'''
 ''');
   }
 
   test_FormalParameterElement_ofMethod_optionalNamed() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A {
   /// [test]
   void foo({int? test}) {
@@ -2716,7 +2924,6 @@ void f(A a) {
   (a.foo)(test: 2);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.parameter('test');
     assertElementIndexText(result, element, r'''
 17 2:8 |test| IS_REFERENCED_BY
@@ -2732,7 +2939,7 @@ void f(A a) {
   }
 
   test_FormalParameterElement_ofMethod_optionalNamed_genericClass() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A<T> {
   /// [test]
   void foo({T? test}) {
@@ -2750,7 +2957,6 @@ void f(A<int> a) {
   (a.foo)(test: 2);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.parameter('test');
     assertElementIndexText(result, element, r'''
 20 2:8 |test| IS_REFERENCED_BY
@@ -2765,7 +2971,7 @@ void f(A<int> a) {
   }
 
   test_FormalParameterElement_ofMethod_optionalPositional() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A {
   /// [test]
   void foo([int? test]) {
@@ -2783,7 +2989,6 @@ void f(A a) {
   (a.foo)(2);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.parameter('test');
     assertElementIndexText(result, element, r'''
 17 2:8 |test| IS_REFERENCED_BY
@@ -2796,7 +3001,7 @@ void f(A a) {
   }
 
   test_FormalParameterElement_ofMethod_requiredNamed() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A {
   /// [test]
   void foo({required int test}) {
@@ -2814,7 +3019,6 @@ void f(A a) {
   (a.foo)(test: 2);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.parameter('test');
     assertElementIndexText(result, element, r'''
 17 2:8 |test| IS_REFERENCED_BY
@@ -2830,7 +3034,7 @@ void f(A a) {
   }
 
   test_FormalParameterElement_ofMethod_requiredPositional() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A {
   /// [test]
   void foo(int test) {
@@ -2848,7 +3052,6 @@ void f(A a) {
   (a.foo)(2);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.parameter('test');
     assertElementIndexText(result, element, r'''
 17 2:8 |test| IS_REFERENCED_BY
@@ -2861,7 +3064,7 @@ void f(A a) {
   }
 
   test_FormalParameterElement_ofTopLevelFunction_optionalNamed() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [test]
 void foo({int? test}) {
   test;
@@ -2876,7 +3079,6 @@ void f() {
   (foo)(test: 2);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.parameter('test');
     assertElementIndexText(result, element, r'''
 5 1:6 |test| IS_REFERENCED_BY
@@ -2892,7 +3094,7 @@ void f() {
   }
 
   test_FormalParameterElement_ofTopLevelFunction_optionalNamed_argumentAnywhere() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [test]
 void foo(int a, int b, {int? test}) {
   test;
@@ -2908,7 +3110,6 @@ void f() {
   (foo)(0, test: 2, 0);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.parameter('test');
     assertElementIndexText(result, element, r'''
 5 1:6 |test| IS_REFERENCED_BY
@@ -2924,7 +3125,7 @@ void f() {
   }
 
   test_FormalParameterElement_ofTopLevelFunction_optionalPositional() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [test]
 void foo([int? test]) {
   test;
@@ -2939,7 +3140,6 @@ void f() {
   (foo)(2);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.parameter('test');
     assertElementIndexText(result, element, r'''
 5 1:6 |test| IS_REFERENCED_BY
@@ -2952,7 +3152,7 @@ void f() {
   }
 
   test_FormalParameterElement_ofTopLevelFunction_requiredNamed() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [test]
 void foo({required int test}) {
   test;
@@ -2968,7 +3168,6 @@ void f() {
   (foo)(test: 2);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.parameter('test');
     assertElementIndexText(result, element, r'''
 5 1:6 |test| IS_REFERENCED_BY
@@ -2984,7 +3183,7 @@ void f() {
   }
 
   test_FormalParameterElement_ofTopLevelFunction_requiredPositional() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [test]
 void foo(int test) {
   test;
@@ -3000,7 +3199,6 @@ void f() {
   (foo)(2);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.parameter('test');
     assertElementIndexText(result, element, r'''
 5 1:6 |test| IS_REFERENCED_BY
@@ -3013,7 +3211,7 @@ void f() {
   }
 
   test_FormalParameterElement_synthetic_leastUpperBound() async {
-    var result = await _indexTestUnit('''
+    await _indexTestCode('''
 int f1({int? test}) => 0;
 int f2({int? test}) => 0;
 void g(bool b) {
@@ -3022,11 +3220,10 @@ void g(bool b) {
 }''');
     // We should not crash because of reference to "test" - a named parameter
     // of a synthetic LUB FunctionElement created for "f".
-    assertErrorsInTestResult(result, []);
   }
 
   test_GetterElement_ofClass_instance() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [foo] and [A.foo]
 class A {
   int get foo => 0;
@@ -3051,7 +3248,7 @@ void useGetter(A a) {
   }
 
   test_GetterElement_ofClass_invocation() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A {
   get foo => null;
   void useGetter() {
@@ -3067,7 +3264,7 @@ class A {
   }
 
   test_GetterElement_ofClass_objectPattern() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A {
   int get foo => 0;
 }
@@ -3075,6 +3272,8 @@ class A {
 void useGetter(Object? x) {
   if (x case A(foo: 0)) {}
   if (x case A(: var foo)) {}
+//                   ^^^
+// [diag.unusedLocalVariable] The value of the local variable 'foo' isn't used.
 }
 ''');
     var element = result.findElement.getter('foo');
@@ -3085,7 +3284,7 @@ void useGetter(Object? x) {
   }
 
   test_GetterElement_ofClass_static() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 import 'test.dart' as p;
 
 /// [foo], [A.foo], [p.A.foo]
@@ -3114,7 +3313,7 @@ void useGetter() {
 
   test_LibraryFragment_reference_export() async {
     newFile('$testPackageLibPath/lib.dart', '');
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 export 'lib.dart';
 ''');
     var export = result.findElement.export('package:test/lib.dart');
@@ -3126,8 +3325,10 @@ export 'lib.dart';
 
   test_LibraryFragment_reference_import() async {
     newFile('$testPackageLibPath/lib.dart', '');
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 import 'lib.dart';
+//     ^^^^^^^^^^
+// [diag.unusedImport] Unused import: 'lib.dart'.
 ''');
     var import = result.findElement.import('package:test/lib.dart');
     var fragment = import.importedLibrary!.firstFragment;
@@ -3138,7 +3339,7 @@ import 'lib.dart';
 
   test_LibraryFragment_reference_part() async {
     newFile('$testPackageLibPath/my_unit.dart', "part of 'test.dart';");
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 part 'my_unit.dart';
 ''');
     var fragment = result.findElement.part('package:test/my_unit.dart');
@@ -3155,14 +3356,16 @@ part of 'b.dart';
 library lib;
 part 'a.dart';
 ''');
-    await _indexTestUnit('''
+    await _indexTestCode('''
 part 'b.dart';
+//   ^^^^^^^^
+// [diag.partOfNonPart] The included part 'package:test/b.dart' must have a part-of directive.
 ''');
     // No exception, even though a.dart is a part of b.dart part.
   }
 
   test_MethodElement_normal_ofClass_instance() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [foo] and [A.foo]
 class A {
   void foo() {}
@@ -3173,6 +3376,8 @@ class A {
     foo;
     if (x case A(foo: _)) {}
     if (x case A(: var foo)) {}
+//                     ^^^
+// [diag.unusedLocalVariable] The value of the local variable 'foo' isn't used.
   }
 }
 void useFoo(A a) {
@@ -3196,7 +3401,7 @@ void useFoo(A a) {
   }
 
   test_MethodElement_normal_ofClass_static() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 import 'test.dart' as p;
 
 /// [foo], [A.foo], [p.A.foo]
@@ -3212,6 +3417,8 @@ void useFoo() {
   A.foo();
   A.foo;
   A a = .foo();
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'a' isn't used.
   p.A.foo();
   p.A.foo;
 }
@@ -3232,7 +3439,7 @@ void useFoo() {
   }
 
   test_MethodElement_normal_ofEnum_instance() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [foo] and [E.foo]
 enum E {
   v;
@@ -3263,7 +3470,7 @@ void useFoo(E e) {
   }
 
   test_MethodElement_normal_ofEnum_static() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [foo] and [E.foo]
 enum E {
   v;
@@ -3290,7 +3497,7 @@ void useFoo() {
   }
 
   test_MethodElement_normal_ofExtension_named_instance() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [foo] and [E.foo]
 extension E on int {
   void foo() {}
@@ -3311,7 +3518,7 @@ void useFoo() {
   }
 
   test_MethodElement_normal_ofExtension_named_static() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [foo] and [E.foo]
 extension E on int {
   static void foo() {}
@@ -3332,7 +3539,7 @@ void useFoo() {
   }
 
   test_MethodElement_normal_ofExtension_unnamed_instance() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [foo] and [int.foo]
 extension on int {
   void foo() {} // int
@@ -3351,14 +3558,18 @@ void useFoo() {
 }
 ''');
 
-    var intMethod = result.findNode.methodDeclaration('foo() {} // int');
+    var intMethod = result.resolvedUnit.findNode.methodDeclaration(
+      'foo() {} // int',
+    );
     assertElementIndexText(result, intMethod.declaredFragment!.element, r'''
 5 1:6 |foo| IS_REFERENCED_BY
 167 12:5 |foo| IS_INVOKED_BY qualified
 178 13:5 |foo| IS_REFERENCED_BY qualified
 ''');
 
-    var doubleMethod = result.findNode.methodDeclaration('foo() {} // double');
+    var doubleMethod = result.resolvedUnit.findNode.methodDeclaration(
+      'foo() {} // double',
+    );
     assertElementIndexText(result, doubleMethod.declaredFragment!.element, r'''
 74 6:6 |foo| IS_REFERENCED_BY
 191 14:9 |foo| IS_INVOKED_BY qualified
@@ -3367,7 +3578,7 @@ void useFoo() {
   }
 
   test_MethodElement_normal_ofExtensionType_instance() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [foo] and [A.foo]
 extension type A(int it) {
   void foo() {}
@@ -3398,7 +3609,7 @@ void useFoo() {
   }
 
   test_MethodElement_normal_ofExtensionType_static() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [foo] and [A.foo]
 extension type A(int it) {
   static void foo() {}
@@ -3424,7 +3635,7 @@ void useFoo() {
   }
 
   test_MethodElement_normal_ofMixin_instance() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [foo] and [M.foo]
 mixin M {
   void foo() {}
@@ -3454,7 +3665,7 @@ void useFoo(M m) {
   }
 
   test_MethodElement_normal_ofMixin_static() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [foo] and [M.foo]
 mixin M {
   static void foo() {}
@@ -3467,6 +3678,10 @@ void useFoo() {
   M.foo();
   M.foo;
   M m = .foo();
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'm' isn't used.
+//      ^^^^^^
+// [diag.useOfVoidResult] This expression has a type of 'void' so its value can't be used.
 }
 ''');
     var element = result.findElement.method('foo');
@@ -3482,7 +3697,7 @@ void useFoo() {
   }
 
   test_MethodElement_operator_ofClass_binary() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [operator +] and [A.operator +]
 class A {
   operator +(other) => this;
@@ -3506,7 +3721,7 @@ void useOperator(A a) {
   }
 
   test_MethodElement_operator_ofClass_index() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [operator []] and [A.operator []]
 class A {
   operator [](i) => null;
@@ -3522,7 +3737,7 @@ void useOperator(A a) {
   }
 
   test_MethodElement_operator_ofClass_indexEq() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [operator []=] and [A.operator []=]
 class A {
   operator []=(i, v) {}
@@ -3538,7 +3753,7 @@ void useOperator(A a) {
   }
 
   test_MethodElement_operator_ofClass_prefix() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [operator ~] and [A.operator ~]
 class A {
   A operator ~() => this;
@@ -3556,7 +3771,7 @@ void useOperator(A a) {
   }
 
   test_MethodElement_operator_ofEnum_binary() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [operator +] and [E.operator +]
 enum E {
   v;
@@ -3565,8 +3780,14 @@ enum E {
 void useOperator(E e) {
   e + 1;
   e += 2;
+//     ^
+// [diag.invalidAssignment] A value of type 'int' can't be assigned to a variable of type 'E'.
   ++e;
+//^^^
+// [diag.invalidAssignment] A value of type 'int' can't be assigned to a variable of type 'E'.
   e++;
+//^^^
+// [diag.invalidAssignment] A value of type 'int' can't be assigned to a variable of type 'E'.
 }
 ''');
     var element = result.findElement.method('+');
@@ -3581,7 +3802,7 @@ void useOperator(E e) {
   }
 
   test_MethodElement_operator_ofEnum_index() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [operator []] and [E.operator []]
 enum E {
   v;
@@ -3598,7 +3819,7 @@ void useOperator(E e) {
   }
 
   test_MethodElement_operator_ofEnum_indexEq() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [operator []=] and [E.operator []=]
 enum E {
   v;
@@ -3615,7 +3836,7 @@ void useOperator(E e) {
   }
 
   test_MethodElement_operator_ofEnum_prefix() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [operator ~] and [E.operator ~]
 enum E {
   e;
@@ -3634,7 +3855,7 @@ void useOperator(E e) {
   }
 
   test_MethodElement_operator_ofExtension_binary() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [operator +] and [E.operator +]
 extension E on int {
   int operator +(int other) => 0;
@@ -3652,7 +3873,7 @@ void useOperator(int e) {
   }
 
   test_MethodElement_operator_ofExtension_index() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [operator []] and [E.operator []]
 extension E on int {
   int operator [](int index) => 0;
@@ -3668,7 +3889,7 @@ void useOperator(int e) {
   }
 
   test_MethodElement_operator_ofExtension_indexEq() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [operator []=] and [E.operator []=]
 extension E on int {
   operator []=(int index, int value) {}
@@ -3684,7 +3905,7 @@ void useOperator(int e) {
   }
 
   test_MethodElement_operator_ofExtension_prefix() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [operator ~] and [E.operator ~]
 extension E on int {
   int operator ~() => 0;
@@ -3702,7 +3923,7 @@ void useOperator(int e) {
   }
 
   test_MethodElement_operator_ofExtensionType_binary() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [operator +] and [A.operator +]
 extension type A(int it) {
   int operator +(int other) => 0;
@@ -3710,8 +3931,14 @@ extension type A(int it) {
 void useOperator(A a) {
   a + 1;
   a += 2;
+//     ^
+// [diag.invalidAssignment] A value of type 'int' can't be assigned to a variable of type 'A'.
   ++a;
+//^^^
+// [diag.invalidAssignment] A value of type 'int' can't be assigned to a variable of type 'A'.
   a++;
+//^^^
+// [diag.invalidAssignment] A value of type 'int' can't be assigned to a variable of type 'A'.
 }
 ''');
     var element = result.findElement.method('+');
@@ -3726,7 +3953,7 @@ void useOperator(A a) {
   }
 
   test_MethodElement_operator_ofExtensionType_index() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [operator []] and [A.operator []]
 extension type A(int it) {
   int operator [](int index) => 0;
@@ -3742,7 +3969,7 @@ void useOperator(A a) {
   }
 
   test_MethodElement_operator_ofExtensionType_indexEq() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [operator []=] and [A.operator []=]
 extension type A(int it) {
   operator []=(int index, int value) {}
@@ -3758,7 +3985,7 @@ void useOperator(A a) {
   }
 
   test_MethodElement_operator_ofExtensionType_prefix() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [operator ~] and [A.operator ~]
 extension type A(int it) {
   int operator ~() => 0;
@@ -3776,7 +4003,7 @@ void useOperator(A a) {
   }
 
   test_MethodElement_operator_ofMixin_binary() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [operator +] and [M.operator +]
 mixin M {
   int operator +(int other) => 0;
@@ -3784,8 +4011,14 @@ mixin M {
 void useOperator(M m) {
   m + 1;
   m += 2;
+//     ^
+// [diag.invalidAssignment] A value of type 'int' can't be assigned to a variable of type 'M'.
   ++m;
+//^^^
+// [diag.invalidAssignment] A value of type 'int' can't be assigned to a variable of type 'M'.
   m++;
+//^^^
+// [diag.invalidAssignment] A value of type 'int' can't be assigned to a variable of type 'M'.
 }
 ''');
     var element = result.findElement.method('+');
@@ -3800,7 +4033,7 @@ void useOperator(M m) {
   }
 
   test_MethodElement_operator_ofMixin_index() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [operator []] and [M.operator []]
 mixin M {
   int operator [](int index) => 0;
@@ -3816,7 +4049,7 @@ void useOperator(M m) {
   }
 
   test_MethodElement_operator_ofMixin_indexEq() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [operator []=] and [M.operator []=]
 mixin M {
   operator []=(int index, int value) {}
@@ -3832,7 +4065,7 @@ void useOperator(M m) {
   }
 
   test_MethodElement_operator_ofMixin_prefix() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [operator ~] and [M.operator ~]
 mixin M {
   int operator ~() => 0;
@@ -3850,18 +4083,16 @@ void useOperator(M m) {
   }
 
   test_MixinElement_emptyBody() async {
-    var result = await _indexTestUnit(r'''
+    await _indexTestCode(r'''
 mixin M;
 ''');
-    assertErrorsInTestResult(result, []);
   }
 
   test_MixinElement_hierarchy_class_implements() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 mixin A {}
 class B implements A {}
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.mixin('A');
     assertElementIndexText(result, element, r'''
@@ -3871,11 +4102,10 @@ class B implements A {}
   }
 
   test_MixinElement_hierarchy_class_with() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 mixin A {}
 class B extends Object with A {}
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.mixin('A');
     assertElementIndexText(result, element, r'''
@@ -3885,11 +4115,10 @@ class B extends Object with A {}
   }
 
   test_MixinElement_hierarchy_classTypeAlias_with() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 mixin A {}
 class B = Object with A;
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.mixin('A');
     assertElementIndexText(result, element, r'''
@@ -3899,13 +4128,12 @@ class B = Object with A;
   }
 
   test_MixinElement_hierarchy_enum_implements() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 mixin A {}
 enum E implements A {
   v
 }
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.mixin('A');
     assertElementIndexText(result, element, r'''
@@ -3915,13 +4143,12 @@ enum E implements A {
   }
 
   test_MixinElement_hierarchy_enum_with() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 mixin A {}
 enum E with A {
   v
 }
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.mixin('A');
     assertElementIndexText(result, element, r'''
@@ -3931,11 +4158,10 @@ enum E with A {
   }
 
   test_MixinElement_hierarchy_extensionType_implements() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 mixin A {}
 extension type E(A it) implements A {}
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.mixin('A');
     assertElementIndexText(result, element, r'''
@@ -3946,11 +4172,10 @@ extension type E(A it) implements A {}
   }
 
   test_MixinElement_hierarchy_mixin_implements() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 mixin A {}
 mixin M implements A {}
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.mixin('A');
     assertElementIndexText(result, element, r'''
@@ -3960,11 +4185,10 @@ mixin M implements A {}
   }
 
   test_MixinElement_hierarchy_mixin_on() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 mixin A {}
 mixin M on A {}
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.mixin('A');
     assertElementIndexText(result, element, r'''
@@ -3974,7 +4198,7 @@ mixin M on A {}
   }
 
   test_MixinElement_reference_annotation() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 mixin A {
@@ -3985,7 +4209,6 @@ mixin A {
 @p.A.myConstant
 void f() {}
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.mixin('A');
     assertElementIndexText(result, element, r'''
@@ -3996,7 +4219,7 @@ Prefixes: (unprefixed),p
   }
 
   test_MixinElement_reference_comment() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 mixin A {}
@@ -4004,7 +4227,6 @@ mixin A {}
 /// [A] and [p.A].
 void f() {}
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.mixin('A');
     assertElementIndexText(result, element, r'''
@@ -4015,7 +4237,7 @@ Prefixes: (unprefixed),p
   }
 
   test_MixinElement_reference_memberAccess() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 mixin A {
@@ -4027,7 +4249,6 @@ void f() {
   p.A.foo();
 }
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.mixin('A');
     assertElementIndexText(result, element, r'''
@@ -4038,14 +4259,13 @@ Prefixes: (unprefixed),p
   }
 
   test_MixinElement_reference_namedType() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 mixin A {}
 
 void f(A v1, p.A v2) {}
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.mixin('A');
     assertElementIndexText(result, element, r'''
@@ -4058,22 +4278,25 @@ Prefixes: (unprefixed),p
   test_MultiplyDefinedElement() async {
     newFile('$testPackageLibPath/a1.dart', 'class A {}');
     newFile('$testPackageLibPath/a2.dart', 'class A {}');
-    await _indexTestUnit('''
+    await _indexTestCode('''
 import 'a1.dart';
 import 'a2.dart';
 A v = null;
+// [diag.ambiguousImport][column 1][length 1] The name 'A' is defined in the libraries 'package:test/a1.dart' and 'package:test/a2.dart'.
 ''');
   }
 
   test_NeverElement() async {
-    await _indexTestUnit('''
+    var result = await _indexTestCode('''
 Never f() {}
+//    ^
+// [diag.bodyMightCompleteNormally] The body might complete normally, causing 'null' to be returned, but the return type, 'Never', is a potentially non-nullable type.
 ''');
-    expect(index.usedElementOffsets, isEmpty);
+    expect(result.index.usedElementOffsets, isEmpty);
   }
 
   test_SetterElement_ofClass_instance() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 /// [foo] and [A.foo]
 class A {
   set foo(int _) {}
@@ -4098,7 +4321,7 @@ void useSetter(A a) {
   }
 
   test_SetterElement_ofClass_static() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 import 'test.dart' as p;
 
 /// [foo], [A.foo], [p.A.foo]
@@ -4126,31 +4349,44 @@ void useSetter() {
   }
 
   test_subtypes_classDeclaration() async {
-    var libFile = newFile('$testPackageLibPath/lib.dart', '''
+    newFile('$testPackageLibPath/a.dart', '''
 class A {}
 class B {}
 class C {}
 class D {}
 class E {}
 ''');
-    String libP = '${libFile.path};${libFile.path}';
-    var result = await _indexTestUnit('''
-import 'lib.dart';
+    var result = await _indexTestCode('''
+import 'a.dart';
 
 class X extends A {
   X();
+//^
+// [diag.notInitializedNonNullableInstanceFieldConstructor] Non-nullable instance field 'field1' must be initialized.
+// [diag.notInitializedNonNullableInstanceFieldConstructor] Non-nullable instance field 'field2' must be initialized.
   X.namedConstructor();
+//^^^^^^^^^^^^^^^^^^
+// [diag.notInitializedNonNullableInstanceFieldConstructor] Non-nullable instance field 'field1' must be initialized.
+// [diag.notInitializedNonNullableInstanceFieldConstructor] Non-nullable instance field 'field2' must be initialized.
 
   int field1, field2;
   int get getter1 => null;
+//                   ^^^^
+// [diag.returnOfInvalidTypeFromFunction] A value of type 'Null' can't be returned from the function 'getter1' because it has a return type of 'int'.
   void set setter1(_) {}
   void method1() {}
 
   static int staticField;
+//           ^^^^^^^^^^^
+// [diag.notInitializedNonNullableVariable] The non-nullable variable 'staticField' must be initialized.
   static void staticMethod() {}
 }
 
 class Y extends Object with B, C {
+//                          ^
+// [diag.classUsedAsMixin] The class 'B' can't be used as a mixin because it's neither a mixin class nor a mixin.
+//                             ^
+// [diag.classUsedAsMixin] The class 'C' can't be used as a mixin because it's neither a mixin class nor a mixin.
   void methodY() {}
 }
 
@@ -4159,66 +4395,97 @@ class Z implements E, D {
 }
 ''');
 
-    expect(index.supertypes, hasLength(6));
-    expect(index.subtypes, hasLength(6));
+    assertSubtypeIndexText(result, r'''
+/home/test/lib/a.dart;/home/test/lib/a.dart;A -> X
+  field1
+  field2
+  getter1
+  method1
+  setter1
+/home/test/lib/a.dart;/home/test/lib/a.dart;B -> Y
+  methodY
+/home/test/lib/a.dart;/home/test/lib/a.dart;C -> Y
+  methodY
+/home/test/lib/a.dart;/home/test/lib/a.dart;D -> Z
+  methodZ
+/home/test/lib/a.dart;/home/test/lib/a.dart;E -> Z
+  methodZ
+/sdk/lib/core/core.dart;/sdk/lib/core/core.dart;Object -> Y
+  methodY
+''');
+  }
 
-    _assertSubtype(0, '$libP;A', 'X', [
-      'field1',
-      'field2',
-      'getter1',
-      'method1',
-      'setter1',
-    ]);
-    _assertSubtype(1, '$libP;B', 'Y', ['methodY']);
-    _assertSubtype(2, '$libP;C', 'Y', ['methodY']);
-    _assertSubtype(3, '$libP;D', 'Z', ['methodZ']);
-    _assertSubtype(4, '$libP;E', 'Z', ['methodZ']);
-    _assertSubtype(5, _interfaceId(result.typeProvider.objectElement)!, 'Y', [
-      'methodY',
-    ]);
+  test_subtypes_classDeclaration_supertypeInPart() async {
+    newFile('$testPackageLibPath/a.dart', '''
+part 'b.dart';
+''');
+
+    newFile('$testPackageLibPath/b.dart', '''
+part of 'a.dart';
+
+class A {}
+''');
+
+    var result = await _indexTestCode('''
+import 'a.dart';
+
+class X extends A {
+  void methodX() {}
+}
+''');
+
+    assertSubtypeIndexText(result, r'''
+/home/test/lib/a.dart;/home/test/lib/b.dart;A -> X
+  methodX
+''');
   }
 
   test_subtypes_classTypeAlias() async {
-    var libFile = newFile('$testPackageLibPath/lib.dart', '''
+    newFile('$testPackageLibPath/a.dart', '''
 class A {}
 class B {}
 class C {}
 class D {}
 ''');
-    String libP = '${libFile.path};${libFile.path}';
-    await _indexTestUnit('''
-import 'lib.dart';
+    var result = await _indexTestCode('''
+import 'a.dart';
 
 class X = A with B, C;
+//               ^
+// [diag.classUsedAsMixin] The class 'B' can't be used as a mixin because it's neither a mixin class nor a mixin.
+//                  ^
+// [diag.classUsedAsMixin] The class 'C' can't be used as a mixin because it's neither a mixin class nor a mixin.
 class Y = A with B implements C, D;
+//               ^
+// [diag.classUsedAsMixin] The class 'B' can't be used as a mixin because it's neither a mixin class nor a mixin.
 ''');
 
-    expect(index.supertypes, hasLength(7));
-    expect(index.subtypes, hasLength(7));
-
-    _assertSubtype(0, '$libP;A', 'X', []);
-    _assertSubtype(1, '$libP;A', 'Y', []);
-    _assertSubtype(2, '$libP;B', 'X', []);
-    _assertSubtype(3, '$libP;B', 'Y', []);
-    _assertSubtype(4, '$libP;C', 'X', []);
-    _assertSubtype(5, '$libP;C', 'Y', []);
-    _assertSubtype(6, '$libP;D', 'Y', []);
+    assertSubtypeIndexText(result, r'''
+/home/test/lib/a.dart;/home/test/lib/a.dart;A -> X
+/home/test/lib/a.dart;/home/test/lib/a.dart;A -> Y
+/home/test/lib/a.dart;/home/test/lib/a.dart;B -> X
+/home/test/lib/a.dart;/home/test/lib/a.dart;B -> Y
+/home/test/lib/a.dart;/home/test/lib/a.dart;C -> X
+/home/test/lib/a.dart;/home/test/lib/a.dart;C -> Y
+/home/test/lib/a.dart;/home/test/lib/a.dart;D -> Y
+''');
   }
 
   test_subtypes_dynamic() async {
-    await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class X extends dynamic {
+//              ^^^^^^^
+// [diag.extendsNonClass] Classes can only extend other classes.
   void foo() {}
 }
 ''');
 
-    expect(index.supertypes, isEmpty);
-    expect(index.subtypes, isEmpty);
+    assertSubtypeIndexText(result, r'''
+''');
   }
 
   test_subtypes_enum_implements() async {
-    String libP = '${testFile.path};${testFile.path}';
-    await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A {}
 
 enum E implements A {
@@ -4227,13 +4494,14 @@ enum E implements A {
 }
 ''');
 
-    expect(index.subtypes, hasLength(1));
-    _assertSubtype(0, '$libP;A', 'E', ['foo']);
+    assertSubtypeIndexText(result, r'''
+/home/test/lib/test.dart;/home/test/lib/test.dart;A -> E
+  foo
+''');
   }
 
   test_subtypes_enum_with() async {
-    String libP = '${testFile.path};${testFile.path}';
-    await _indexTestUnit('''
+    var result = await _indexTestCode('''
 mixin M {}
 
 enum E with M {
@@ -4242,20 +4510,21 @@ enum E with M {
 }
 ''');
 
-    expect(index.subtypes, hasLength(1));
-    _assertSubtype(0, '$libP;M', 'E', ['foo']);
+    assertSubtypeIndexText(result, r'''
+/home/test/lib/test.dart;/home/test/lib/test.dart;M -> E
+  foo
+''');
   }
 
   test_subtypes_extensionType_class() async {
-    var libFile = newFile('$testPackageLibPath/lib.dart', '''
+    newFile('$testPackageLibPath/a.dart', '''
 class A {
   void method1() {}
   void method2() {}
 }
 ''');
-    String libP = '${libFile.path};${libFile.path}';
-    await _indexTestUnit('''
-import 'lib.dart';
+    var result = await _indexTestCode('''
+import 'a.dart';
 
 extension type X(A it) implements A {
   void method1() {}
@@ -4263,22 +4532,22 @@ extension type X(A it) implements A {
 }
 ''');
 
-    expect(index.supertypes, hasLength(1));
-    expect(index.subtypes, hasLength(1));
-
-    _assertSubtype(0, '$libP;A', 'X', ['method1', 'method3']);
+    assertSubtypeIndexText(result, r'''
+/home/test/lib/a.dart;/home/test/lib/a.dart;A -> X
+  method1
+  method3
+''');
   }
 
   test_subtypes_extensionType_extensionType() async {
-    var libFile = newFile('$testPackageLibPath/lib.dart', '''
+    newFile('$testPackageLibPath/a.dart', '''
 extension type A(int it) {
   void method1() {}
   void method2() {}
 }
 ''');
-    String libP = '${libFile.path};${libFile.path}';
-    await _indexTestUnit('''
-import 'lib.dart';
+    var result = await _indexTestCode('''
+import 'a.dart';
 
 extension type X(int it) implements A {
   void method1() {}
@@ -4286,41 +4555,40 @@ extension type X(int it) implements A {
 }
 ''');
 
-    expect(index.supertypes, hasLength(1));
-    expect(index.subtypes, hasLength(1));
-
-    _assertSubtype(0, '$libP;A', 'X', ['method1', 'method3']);
+    assertSubtypeIndexText(result, r'''
+/home/test/lib/a.dart;/home/test/lib/a.dart;A -> X
+  method1
+  method3
+''');
   }
 
   test_subtypes_mixinDeclaration() async {
-    var libFile = newFile('$testPackageLibPath/lib.dart', '''
+    newFile('$testPackageLibPath/a.dart', '''
 class A {}
 class B {}
 class C {}
 class D {}
 class E {}
 ''');
-    String libP = '${libFile.path};${libFile.path}';
-    await _indexTestUnit('''
-import 'lib.dart';
+    var result = await _indexTestCode('''
+import 'a.dart';
 
 mixin X on A implements B, C {}
 mixin Y on A, B implements C;
 ''');
 
-    expect(index.supertypes, hasLength(6));
-    expect(index.subtypes, hasLength(6));
-
-    _assertSubtype(0, '$libP;A', 'X', []);
-    _assertSubtype(1, '$libP;A', 'Y', []);
-    _assertSubtype(2, '$libP;B', 'X', []);
-    _assertSubtype(3, '$libP;B', 'Y', []);
-    _assertSubtype(4, '$libP;C', 'X', []);
-    _assertSubtype(5, '$libP;C', 'Y', []);
+    assertSubtypeIndexText(result, r'''
+/home/test/lib/a.dart;/home/test/lib/a.dart;A -> X
+/home/test/lib/a.dart;/home/test/lib/a.dart;A -> Y
+/home/test/lib/a.dart;/home/test/lib/a.dart;B -> X
+/home/test/lib/a.dart;/home/test/lib/a.dart;B -> Y
+/home/test/lib/a.dart;/home/test/lib/a.dart;C -> X
+/home/test/lib/a.dart;/home/test/lib/a.dart;C -> Y
+''');
   }
 
   test_SuperFormalParameterElement_ofConstructor_optionalNamed() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A {
   A({int? test});
 }
@@ -4335,7 +4603,6 @@ void f() {
   B _ = .new(test: 0);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.unnamedConstructor('B').parameter('test');
     assertElementIndexText(result, element, r'''
 58 6:8 |test| IS_REFERENCED_BY
@@ -4346,7 +4613,7 @@ void f() {
   }
 
   test_SuperFormalParameterElement_ofConstructor_optionalPositional() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A {
   A([int? test]);
 }
@@ -4361,7 +4628,6 @@ void f() {
   B _ = .new(0);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.unnamedConstructor('B').parameter('test');
     assertElementIndexText(result, element, r'''
 58 6:8 |test| IS_REFERENCED_BY
@@ -4370,7 +4636,7 @@ void f() {
   }
 
   test_SuperFormalParameterElement_ofConstructor_requiredNamed() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A {
   A({required int test});
 }
@@ -4385,7 +4651,6 @@ void f() {
   B _ = .new(test: 0);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.unnamedConstructor('B').parameter('test');
     assertElementIndexText(result, element, r'''
 66 6:8 |test| IS_REFERENCED_BY
@@ -4396,7 +4661,7 @@ void f() {
   }
 
   test_SuperFormalParameterElement_ofConstructor_requiredPositional() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A {
   A(int test);
 }
@@ -4411,7 +4676,6 @@ void f() {
   B _ = .new(0);
 }
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.unnamedConstructor('B').parameter('test');
     assertElementIndexText(result, element, r'''
 55 6:8 |test| IS_REFERENCED_BY
@@ -4420,7 +4684,7 @@ void f() {
   }
 
   test_TopLevelFunctionElement() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 void foo() {}
@@ -4433,7 +4697,6 @@ void f() {
   p.foo;
 }
 ''');
-    assertErrorsInTestResult(result, []);
 
     var element = result.findElement.topFunction('foo');
     assertElementIndexText(result, element, r'''
@@ -4448,8 +4711,10 @@ Prefixes: (unprefixed),p
   }
 
   test_TopLevelFunctionElement_loadLibrary() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 import 'dart:math' deferred as math;
+//     ^^^^^^^^^^^
+// [diag.unusedImport] Unused import: 'dart:math'.
 
 void f() {
   math.loadLibrary();
@@ -4463,14 +4728,16 @@ void f() {
   }
 
   test_TopLevelVariableElement_reference() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 import 'test.dart' as p;
 
 var foo = 0;
 
 /// [foo] and [p.foo].
 @foo
+// [diag.invalidAnnotation][column 1][length 4] Annotation must be either a const variable reference or const constructor invocation.
 @p.foo
+// [diag.invalidAnnotation][column 1][length 6] Annotation must be either a const variable reference or const constructor invocation.
 void f() {
   foo;
   foo = 0;
@@ -4500,8 +4767,10 @@ Prefixes: (unprefixed),p
   }
 
   test_TopLevelVariableElement_reference_combinator_show_hasGetterSetter() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 import 'test.dart' show foo;
+//     ^^^^^^^^^^^
+// [diag.unusedImport] Unused import: 'test.dart'.
 
 int get foo => 0;
 void set foo(_) {}
@@ -4513,8 +4782,10 @@ void set foo(_) {}
   }
 
   test_TopLevelVariableElement_reference_combinator_show_hasSetter() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 import 'test.dart' show foo;
+//     ^^^^^^^^^^^
+// [diag.unusedImport] Unused import: 'test.dart'.
 
 void set foo(_) {}
 ''');
@@ -4525,7 +4796,7 @@ void set foo(_) {}
   }
 
   test_TypeAliasElement_legacy_reference() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 typedef void A();
 /// [A]
 void f(A p) {}
@@ -4538,7 +4809,7 @@ void f(A p) {}
   }
 
   test_TypeAliasElement_modern_hierarchy_class_extends() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A<T> {}
 typedef B = A<int>;
 class C extends B {}
@@ -4556,7 +4827,7 @@ class C extends B {}
   }
 
   test_TypeAliasElement_modern_hierarchy_class_implements() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A<T> {}
 typedef B = A<int>;
 class C implements B {}
@@ -4574,10 +4845,12 @@ class C implements B {}
   }
 
   test_TypeAliasElement_modern_hierarchy_class_with() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A<T> {}
 typedef B = A<int>;
 class C extends Object with B {}
+//                          ^
+// [diag.classUsedAsMixin] The class 'A' can't be used as a mixin because it's neither a mixin class nor a mixin.
 ''');
     var element = result.findElement.typeAlias('B');
     assertElementIndexText(result, element, r'''
@@ -4592,7 +4865,7 @@ class C extends Object with B {}
   }
 
   test_TypeAliasElement_modern_reference() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class A<T> {
   static int field = 0;
   static void method() {}
@@ -4603,6 +4876,8 @@ typedef B = A<int>;
 /// [B]
 void f(B p) {
   B v;
+//  ^
+// [diag.unusedLocalVariable] The value of the local variable 'v' isn't used.
   B();
   B.field;
   B.field = 0;
@@ -4627,7 +4902,7 @@ void f(B p) {
   }
 
   test_TypeAliasElement_modern_reference_comment() async {
-    var result = await _indexTestUnit(r'''
+    var result = await _indexTestCode(r'''
 import 'test.dart' as p;
 
 class A<T> {}
@@ -4636,7 +4911,6 @@ typedef B = A<int>;
 /// [B] and [p.B].
 void f() {}
 ''');
-    assertErrorsInTestResult(result, []);
     var element = result.findElement.typeAlias('B');
     assertElementIndexText(result, element, r'''
 66 6:6 |B| IS_REFERENCED_BY
@@ -4651,7 +4925,7 @@ Prefixes: (unprefixed),p
   }
 
   test_usedName_inLibraryIdentifier() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 library aaa.bbb.ccc;
 class C {
   var bbb;
@@ -4660,13 +4934,13 @@ void f(p) {
   p.bbb = 1;
 }
 ''');
-    assertThatName(result, 'bbb')
-      ..isNotUsed('bbb.ccc', IndexRelationKind.IS_READ_BY)
-      ..isUsedQ('bbb = 1;', IndexRelationKind.IS_WRITTEN_BY);
+    assertNameIndexText(result, 'bbb', r'''
+60 6:5 |bbb| IS_WRITTEN_BY qualified
+''');
   }
 
   test_usedName_qualified_resolved() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class C {
   var x;
 }
@@ -4677,15 +4951,12 @@ void f(C c) {
   c.x();
 }
 ''');
-    assertThatName(result, 'x')
-      ..isNotUsedQ('x; // 1', IndexRelationKind.IS_READ_BY)
-      ..isNotUsedQ('x = 1;', IndexRelationKind.IS_WRITTEN_BY)
-      ..isNotUsedQ('x += 2;', IndexRelationKind.IS_READ_WRITTEN_BY)
-      ..isNotUsedQ('x();', IndexRelationKind.IS_INVOKED_BY);
+    assertNameIndexText(result, 'x', r'''
+''');
   }
 
   test_usedName_qualified_unresolved() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 void f(p) {
   p.x;
   p.x = 1;
@@ -4693,15 +4964,16 @@ void f(p) {
   p.x();
 }
 ''');
-    assertThatName(result, 'x')
-      ..isUsedQ('x;', IndexRelationKind.IS_READ_BY)
-      ..isUsedQ('x = 1;', IndexRelationKind.IS_WRITTEN_BY)
-      ..isUsedQ('x += 2;', IndexRelationKind.IS_READ_WRITTEN_BY)
-      ..isUsedQ('x();', IndexRelationKind.IS_INVOKED_BY);
+    assertNameIndexText(result, 'x', r'''
+16 2:5 |x| IS_READ_BY qualified
+23 3:5 |x| IS_WRITTEN_BY qualified
+34 4:5 |x| IS_READ_WRITTEN_BY qualified
+46 5:5 |x| IS_INVOKED_BY qualified
+''');
   }
 
   test_usedName_unqualified_resolved() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 class C {
   var x;
   m() {
@@ -4712,34 +4984,119 @@ class C {
   }
 }
 ''');
-    assertThatName(result, 'x')
-      ..isNotUsedQ('x; // 1', IndexRelationKind.IS_READ_BY)
-      ..isNotUsedQ('x = 1;', IndexRelationKind.IS_WRITTEN_BY)
-      ..isNotUsedQ('x += 2;', IndexRelationKind.IS_READ_WRITTEN_BY)
-      ..isNotUsedQ('x();', IndexRelationKind.IS_INVOKED_BY);
+    assertNameIndexText(result, 'x', r'''
+''');
   }
 
   test_usedName_unqualified_unresolved() async {
-    var result = await _indexTestUnit('''
+    var result = await _indexTestCode('''
 void f() {
   x;
+//^
+// [diag.undefinedIdentifier] Undefined name 'x'.
   x = 1;
+//^
+// [diag.undefinedIdentifier] Undefined name 'x'.
   x += 2;
+//^
+// [diag.undefinedIdentifier] Undefined name 'x'.
   x();
+//^
+// [diag.undefinedFunction] The function 'x' isn't defined.
 }
 ''');
-    assertThatName(result, 'x')
-      ..isUsed('x;', IndexRelationKind.IS_READ_BY)
-      ..isUsed('x = 1;', IndexRelationKind.IS_WRITTEN_BY)
-      ..isUsed('x += 2;', IndexRelationKind.IS_READ_WRITTEN_BY)
-      ..isUsed('x();', IndexRelationKind.IS_INVOKED_BY);
+    assertNameIndexText(result, 'x', r'''
+13 2:3 |x| IS_READ_BY
+18 3:3 |x| IS_WRITTEN_BY
+27 4:3 |x| IS_READ_WRITTEN_BY
+37 5:3 |x| IS_INVOKED_BY
+''');
   }
 
-  String _getLibraryFragmentReferenceText(
-    TestResolvedUnitResult result,
-    LibraryFragmentImpl target,
-  ) {
-    var lineInfo = result.unit.lineInfo;
+  Future<_IndexResult> _indexFileWithDiagnostics(File file, String code) async {
+    var unitResult = await resolveFileWithDiagnostics(file, code);
+    var indexBuilder = indexUnit(unitResult.unit);
+    var indexBytes = indexBuilder.toBuffer();
+    var index = AnalysisDriverUnitIndex.fromBuffer(indexBytes);
+    return _IndexResult(unitResult, index);
+  }
+
+  Future<_IndexResult> _indexTestCode(String code) {
+    return _indexFileWithDiagnostics(testFile, code);
+  }
+
+  static String _toPosixPaths(String text) {
+    return text.replaceAllMapped(RegExp(r'C:\\([a-zA-Z0-9_.\\]+)'), (match) {
+      var path = match.group(1)!;
+      var posixPath = path.replaceAll(r'\', '/');
+      return '/$posixPath';
+    });
+  }
+}
+
+final class _IndexRelation {
+  final IndexRelationKind kind;
+  final int offset;
+  final int length;
+  final bool isQualified;
+
+  _IndexRelation({
+    required this.kind,
+    required this.offset,
+    required this.length,
+    required this.isQualified,
+  });
+
+  @override
+  String toString() {
+    return '_IndexRelation{kind: $kind, offset: $offset, length: $length, '
+        'isQualified: $isQualified})';
+  }
+}
+
+final class _IndexResult {
+  final TestResolvedUnitResult resolvedUnit;
+  final AnalysisDriverUnitIndex index;
+
+  _IndexResult(this.resolvedUnit, this.index);
+
+  FindElement2 get findElement => resolvedUnit.findElement;
+}
+
+final class _IndexTextBuilder {
+  final _IndexResult result;
+
+  _IndexTextBuilder(this.result);
+
+  String elementRelations(Element element) {
+    var index = result.index;
+    var elementId = _findElementId(element);
+    if (elementId == null) {
+      return '';
+    }
+
+    var relations = <_IndexRelation>[];
+    for (var i = 0; i < index.usedElementOffsets.length; i++) {
+      if (index.usedElements[i] == elementId) {
+        relations.add(
+          _IndexRelation(
+            kind: index.usedElementKinds[i],
+            offset: index.usedElementOffsets[i],
+            length: index.usedElementLengths[i],
+            isQualified: index.usedElementIsQualifiedFlags[i],
+          ),
+        );
+      }
+    }
+
+    var buffer = StringBuffer();
+    _writeRelationsText(buffer, relations);
+    _writeImportPrefixesText(buffer, index.elementImportPrefixes[elementId]);
+    return buffer.toString();
+  }
+
+  String libraryFragmentReferences(LibraryFragmentImpl target) {
+    var index = result.index;
     var targetId = index.getLibraryFragmentId(target);
 
     expect(
@@ -4755,182 +5112,63 @@ void f() {
     var buffer = StringBuffer();
     for (var i = 0; i < index.libFragmentRefTargets.length; i++) {
       if (index.libFragmentRefTargets[i] == targetId) {
-        var offset = index.libFragmentRefUriOffsets[i];
-        var length = index.libFragmentRefUriLengths[i];
-        var location = lineInfo.getLocation(offset);
-        var snippet = result.content.substring(offset, offset + length);
-        buffer.write(offset);
-        buffer.write(' ');
-        buffer.write(location.lineNumber);
-        buffer.write(':');
-        buffer.write(location.columnNumber);
-        buffer.write(' ');
-        buffer.write('|$snippet|');
+        _writeSourceSpanText(
+          buffer,
+          index.libFragmentRefUriOffsets[i],
+          index.libFragmentRefUriLengths[i],
+        );
         buffer.writeln();
       }
     }
     return buffer.toString();
   }
 
-  String _getRelationsText(TestResolvedUnitResult result, Element element) {
-    var lineInfo = result.unit.lineInfo;
-    var elementId = _findElementId(element);
-    if (elementId == null) {
+  String nameRelations(String name) {
+    var index = result.index;
+    var nameId = index.getStringId(name);
+    if (nameId == -1) {
       return '';
     }
 
-    var relations = <_Relation>[];
-    for (var i = 0; i < index.usedElementOffsets.length; i++) {
-      if (index.usedElements[i] == elementId) {
+    var relations = <_IndexRelation>[];
+    for (var i = 0; i < index.usedNameOffsets.length; i++) {
+      if (index.usedNames[i] == nameId) {
         relations.add(
-          _Relation(
-            kind: index.usedElementKinds[i],
-            offset: index.usedElementOffsets[i],
-            length: index.usedElementLengths[i],
-            isQualified: index.usedElementIsQualifiedFlags[i],
+          _IndexRelation(
+            kind: index.usedNameKinds[i],
+            offset: index.usedNameOffsets[i],
+            length: name.length,
+            isQualified: index.usedNameIsQualifiedFlags[i],
           ),
         );
       }
     }
 
-    var sortedRelations = relations.sorted((a, b) {
-      var byOffset = a.offset - b.offset;
-      if (byOffset != 0) {
-        return byOffset;
-      }
-      return a.kind.name.compareTo(b.kind.name);
-    });
-
-    // Verify that there are no duplicate relations.
-    var lastOffset = -1;
-    var lastLength = -1;
-    IndexRelationKind? lastKind;
-    for (var relation in sortedRelations) {
-      if (relation.offset == lastOffset &&
-          relation.length == lastLength &&
-          relation.kind == lastKind) {
-        fail('Duplicate relation: $relation');
-      }
-      lastOffset = relation.offset;
-      lastLength = relation.length;
-      lastKind = relation.kind;
-    }
-
     var buffer = StringBuffer();
-    for (var relation in sortedRelations) {
-      var offset = relation.offset;
-      var length = relation.length;
-      var location = lineInfo.getLocation(offset);
-      var snippet = result.content.substring(offset, offset + length);
-      buffer.write(offset);
-      buffer.write(' ');
-      buffer.write(location.lineNumber);
-      buffer.write(':');
-      buffer.write(location.columnNumber);
-      buffer.write(' ');
-      buffer.write('|$snippet|');
-      buffer.write(' ');
-      buffer.write(relation.kind.name);
-      if (relation.isQualified) {
-        buffer.write(' qualified');
-      }
-      buffer.writeln();
-    }
-
-    var prefixString = index.elementImportPrefixes[elementId];
-    // If the only access is unprefixed, omit the line
-    if (prefixString.isNotEmpty) {
-      // Otherwise, use some marker text for unprefixed so it's clearer in the
-      // output than an empty string.
-      var prefixes = prefixString
-          .split(',')
-          .map((prefix) => prefix.isEmpty ? '(unprefixed)' : prefix)
-          .join(',');
-
-      buffer.writeln('Prefixes: $prefixes');
-    }
-
+    _writeRelationsText(buffer, relations);
     return buffer.toString();
   }
-}
 
-mixin _IndexMixin on PubPackageResolutionTest {
-  late AnalysisDriverUnitIndex index;
+  String subtypes() {
+    var index = result.index;
+    expect(index.supertypes.length, index.subtypes.length);
 
-  _NameIndexAssert assertThatName(TestResolvedUnitResult result, String name) {
-    return _NameIndexAssert(this, result, name);
-  }
-
-  void _assertSubtype(
-    int i,
-    String superEncoded,
-    String subName,
-    List<String> members,
-  ) {
-    expect(index.strings[index.supertypes[i]], superEncoded);
-    var subtype = index.subtypes[i];
-    expect(index.strings[subtype.name], subName);
-    expect(_decodeStringList(subtype.members), members);
-  }
-
-  void _assertUsedName(
-    String name,
-    IndexRelationKind kind,
-    ExpectedLocation expectedLocation,
-    bool isNot,
-  ) {
-    int nameId = index.getStringId(name);
-    for (int i = 0; i < index.usedNames.length; i++) {
-      if (index.usedNames[i] == nameId &&
-          index.usedNameKinds[i] == kind &&
-          index.usedNameOffsets[i] == expectedLocation.offset &&
-          index.usedNameIsQualifiedFlags[i] == expectedLocation.isQualified) {
-        if (isNot) {
-          _failWithIndexDump('Unexpected $name $kind at $expectedLocation');
-        }
-        return;
+    var buffer = StringBuffer();
+    for (var i = 0; i < index.supertypes.length; i++) {
+      var supertypeId = index.strings[index.supertypes[i]];
+      var subtype = index.subtypes[i];
+      var subtypeName = index.strings[subtype.name];
+      buffer.writeln('$supertypeId -> $subtypeName');
+      for (var member in subtype.members) {
+        buffer.writeln('  ${index.strings[member]}');
       }
     }
-    if (isNot) {
-      return;
-    }
-    _failWithIndexDump('Not found $name $kind at $expectedLocation');
+    return buffer.toString();
   }
 
-  List<String> _decodeStringList(List<int> stringIds) {
-    return stringIds.map((i) => index.strings[i]).toList();
-  }
-
-  ExpectedLocation _expectedLocation(
-    TestResolvedUnitResult result,
-    String search,
-    bool isQualified, {
-    int? length,
-  }) {
-    int offset = result.findNode.offset(search);
-    var expectedLength = length ?? result.findNode.simple(search).length;
-    return ExpectedLocation(offset, expectedLength, isQualified);
-  }
-
-  void _failWithIndexDump(String msg) {
-    var buffer = StringBuffer();
-    for (int i = 0; i < index.usedElementOffsets.length; i++) {
-      buffer.write('  id = ');
-      buffer.write(index.usedElements[i]);
-      buffer.write(' kind = ');
-      buffer.write(index.usedElementKinds[i]);
-      buffer.write(' offset = ');
-      buffer.write(index.usedElementOffsets[i]);
-      buffer.write(' length = ');
-      buffer.write(index.usedElementLengths[i]);
-      buffer.write(' isQualified = ');
-      buffer.writeln(index.usedElementIsQualifiedFlags[i]);
-    }
-    fail('$msg in\n${buffer.toString()}');
-  }
-
-  /// Return the [element] identifier in [index], or `null`.
+  /// Return the [element] identifier in the result index, or `null`.
   int? _findElementId(Element element) {
+    var index = result.index;
     var unitId = _getUnitId(element);
 
     // Prepare the element that was put into the index.
@@ -4963,100 +5201,74 @@ mixin _IndexMixin on PubPackageResolutionTest {
 
   int _getUnitId(Element element) {
     var unitElement = getUnitElement(element);
-    return index.getLibraryFragmentId(unitElement);
+    return result.index.getLibraryFragmentId(unitElement);
   }
 
-  Future<TestResolvedUnitResult> _indexTestUnit(String code) async {
-    var result = await resolveTestCode(code);
+  void _writeImportPrefixesText(StringBuffer buffer, String prefixString) {
+    // If the only access is unprefixed, omit the line.
+    if (prefixString.isNotEmpty) {
+      // Otherwise, use some marker text for unprefixed so it's clearer in the
+      // output than an empty string.
+      var prefixes = prefixString
+          .split(',')
+          .map((prefix) => prefix.isEmpty ? '(unprefixed)' : prefix)
+          .join(',');
 
-    var indexBuilder = indexUnit(result.unit);
-    var indexBytes = indexBuilder.toBuffer();
-    index = AnalysisDriverUnitIndex.fromBuffer(indexBytes);
-    return result;
+      buffer.writeln('Prefixes: $prefixes');
+    }
   }
 
-  String? _interfaceId(InterfaceElement element) {
-    var libraryFile = element.library.firstFragment.source.mustBeFile;
-    var libraryPath = libraryFile.path;
+  void _writeRelationsText(
+    StringBuffer buffer,
+    List<_IndexRelation> relations,
+  ) {
+    var sortedRelations = relations.sorted((a, b) {
+      var byOffset = a.offset - b.offset;
+      if (byOffset != 0) {
+        return byOffset;
+      }
+      return a.kind.name.compareTo(b.kind.name);
+    });
 
-    var fragmentFile = element.firstFragment.libraryFragment.source.mustBeFile;
-    var fragmentPath = fragmentFile.path;
+    // Verify that there are no duplicate relations.
+    var lastOffset = -1;
+    var lastLength = -1;
+    IndexRelationKind? lastKind;
+    for (var relation in sortedRelations) {
+      if (relation.offset == lastOffset &&
+          relation.length == lastLength &&
+          relation.kind == lastKind) {
+        fail('Duplicate relation: $relation');
+      }
+      lastOffset = relation.offset;
+      lastLength = relation.length;
+      lastKind = relation.kind;
+    }
 
-    return '$libraryPath;$fragmentPath;${element.name}';
+    for (var relation in sortedRelations) {
+      _writeSourceSpanText(buffer, relation.offset, relation.length);
+      buffer.write(' ');
+      buffer.write(relation.kind.name);
+      if (relation.isQualified) {
+        buffer.write(' qualified');
+      }
+      buffer.writeln();
+    }
   }
-}
 
-class _NameIndexAssert {
-  final _IndexMixin test;
-  final TestResolvedUnitResult result;
-  final String name;
-
-  _NameIndexAssert(this.test, this.result, this.name);
-
-  void isNotUsed(String search, IndexRelationKind kind) {
-    test._assertUsedName(
-      name,
-      kind,
-      test._expectedLocation(result, search, false, length: name.length),
-      true,
+  void _writeSourceSpanText(StringBuffer buffer, int offset, int length) {
+    var lineInfo = result.resolvedUnit.unit.lineInfo;
+    var location = lineInfo.getLocation(offset);
+    var snippet = result.resolvedUnit.content.substring(
+      offset,
+      offset + length,
     );
-  }
-
-  void isNotUsedQ(String search, IndexRelationKind kind) {
-    test._assertUsedName(
-      name,
-      kind,
-      test._expectedLocation(result, search, true, length: name.length),
-      true,
-    );
-  }
-
-  void isUsed(String search, IndexRelationKind kind) {
-    test._assertUsedName(
-      name,
-      kind,
-      test._expectedLocation(result, search, false, length: name.length),
-      false,
-    );
-  }
-
-  void isUsedQ(String search, IndexRelationKind kind) {
-    test._assertUsedName(
-      name,
-      kind,
-      test._expectedLocation(result, search, true, length: name.length),
-      false,
-    );
-  }
-}
-
-class _Relation {
-  final IndexRelationKind kind;
-  final int offset;
-  final int length;
-  final bool isQualified;
-
-  _Relation({
-    required this.kind,
-    required this.offset,
-    required this.length,
-    required this.isQualified,
-  });
-
-  @override
-  String toString() {
-    return '_Relation{kind: $kind, offset: $offset, length: $length, '
-        'isQualified: $isQualified})';
-  }
-}
-
-extension _SourceExtension on Source {
-  /// Returns the [File] for this source.
-  ///
-  /// This assumes that the source is a [FileSource], which is safe because
-  /// index and search are only supported in DAS, where all sources are file
-  /// based.
-  File get mustBeFile {
-    return (this as FileSource).file;
+    buffer.write(offset);
+    buffer.write(' ');
+    buffer.write(location.lineNumber);
+    buffer.write(':');
+    buffer.write(location.columnNumber);
+    buffer.write(' ');
+    buffer.write('|$snippet|');
   }
 }

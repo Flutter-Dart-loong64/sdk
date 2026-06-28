@@ -61,9 +61,8 @@ class TextExpectationsCollector {
         var invocationTraceLine = traceLines[invocationTraceIndex];
 
         // Parse the invocation stack trace line.
-        var locationMatch = RegExp(
-          r'(file://.+_test.dart):(\d+):',
-        ).firstMatch(invocationTraceLine);
+        var locationMatch = RegExp(r'(file://.+_test.dart):(\d+):')
+            .firstMatch(invocationTraceLine);
         if (locationMatch == null) {
           fail('Cannot parse: $invocationTraceLine');
         }
@@ -130,7 +129,7 @@ sealed class _Argument {
 final class _ArgumentIndex extends _Argument {
   final int index;
 
-  _ArgumentIndex(this.index);
+  new(this.index);
 
   @override
   Expression get(ArgumentList argumentList) {
@@ -146,7 +145,7 @@ class _AssertMethod {
   final String stackTracePattern;
   final _Argument argument;
 
-  const _AssertMethod({
+  const new({
     required String className,
     required this.methodName,
     required this.argument,
@@ -160,7 +159,7 @@ class _File {
   final CompilationUnit unit;
   final List<_Replacement> replacements = [];
 
-  factory _File(String path) {
+  factory(String path) {
     var content = io.File(path).readAsStringSync();
 
     var collection = AnalysisContextCollection(
@@ -180,7 +179,7 @@ class _File {
     );
   }
 
-  _File._({
+  new _({
     required this.path,
     required this.content,
     required this.lineInfo,
@@ -242,7 +241,7 @@ class _InvocationVisitor extends RecursiveAstVisitor<void> {
   final int requestedLine;
   MethodInvocation? result;
 
-  _InvocationVisitor({required this.lineInfo, required this.requestedLine});
+  new({required this.lineInfo, required this.requestedLine});
 
   @override
   void visitMethodInvocation(MethodInvocation node) {
@@ -264,7 +263,7 @@ class _Replacement {
   final int end;
   final String text;
 
-  _Replacement(this.offset, this.end, this.text);
+  new(this.offset, this.end, this.text);
 }
 
 extension on AstNode {

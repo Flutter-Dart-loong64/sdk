@@ -24,7 +24,7 @@ import 'create_constructor.dart';
 /// parameter and declaring the corresponding field. This matches a workflow
 /// with the [CreateConstructor] assist.
 class BindToField extends ResolvedCorrectionProducer {
-  BindToField({required super.context});
+  new({required super.context});
 
   @override
   CorrectionApplicability get applicability =>
@@ -41,6 +41,13 @@ class BindToField extends ResolvedCorrectionProducer {
         if (node.offset >= defaultClause.separator.offset) {
           // Don't propose the assist if the selection is inside the default
           // value.
+          return;
+        }
+      }
+      if (parameter.declaredFragment?.element
+          case FieldFormalParameterElement element) {
+        if (element.isDeclaring) {
+          // A declaring parameter is already bound to a field.
           return;
         }
       }

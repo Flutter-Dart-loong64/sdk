@@ -8,7 +8,6 @@ import 'package:analyzer/source/line_info.dart';
 import 'package:analyzer/src/dart/analysis/file_state.dart';
 import 'package:analyzer/src/dart/micro/resolve_file.dart';
 import 'package:analyzer/src/dart/micro/utils.dart';
-import 'package:analyzer/src/diagnostic/diagnostic.dart' as diag;
 import 'package:test/test.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 
@@ -422,13 +421,14 @@ byteStore
 class A {}
 ''');
 
-    var b = newFile('/workspace/dart/test/lib/b.dart', r'''
+    var b = getFile('/workspace/dart/test/lib/b.dart');
+
+    await resolveFileWithDiagnostics(b, r'''
 import 'a.dart';
 void f(A a, B b) {}
+//          ^
+// [diag.undefinedClass] Undefined class 'B'.
 ''');
-
-    var result = await resolveFile(b);
-    assertErrorsInResolvedUnit(result, [error(diag.undefinedClass, 29, 1)]);
 
     newFile(a.path, r'''
 class A {}
@@ -436,8 +436,10 @@ class B {}
 ''');
     fileResolver.changeFiles([a.path]);
 
-    result = await resolveFile(b);
-    assertErrorsInResolvedUnit(result, []);
+    await resolveFileWithDiagnostics(b, r'''
+import 'a.dart';
+void f(A a, B b) {}
+''');
   }
 
   test_changeFile_resolution_flushInheritanceManager() async {
@@ -447,16 +449,17 @@ class A {
 }
 ''');
 
-    var b = newFile('/workspace/dart/test/lib/b.dart', r'''
+    var b = getFile('/workspace/dart/test/lib/b.dart');
+
+    await resolveFileWithDiagnostics(b, r'''
 import 'a.dart';
 
 void f(A a) {
   a.foo = 1;
+//  ^^^
+// [diag.assignmentToFinal] 'foo' can't be used as a setter because it's final.
 }
 ''');
-
-    var result = await resolveFile(b);
-    assertErrorsInResolvedUnit(result, [error(diag.assignmentToFinal, 36, 3)]);
 
     newFile(a.path, r'''
 class A {
@@ -465,23 +468,31 @@ class A {
 ''');
     fileResolver.changeFiles([a.path]);
 
-    result = await resolveFile(b);
-    assertErrorsInResolvedUnit(result, []);
+    await resolveFileWithDiagnostics(b, r'''
+import 'a.dart';
+
+void f(A a) {
+  a.foo = 1;
+}
+''');
   }
 
   test_changeFile_resolution_missingChangeFileForPart() async {
-    var a = newFile('/workspace/dart/test/lib/a.dart', r'''
+    var a = getFile('/workspace/dart/test/lib/a.dart');
+    var b = getFile('/workspace/dart/test/lib/b.dart');
+
+    await resolveFilesWithDiagnostics({
+      a: r'''
 part 'b.dart';
 
 var b = B(0);
-''');
-
-    var b = newFile('/workspace/dart/test/lib/b.dart', r'''
+//      ^
+// [diag.undefinedFunction] The function 'B' isn't defined.
+''',
+      b: r'''
 part of 'a.dart';
-''');
-
-    var result = await resolveFile(a);
-    assertErrorsInResolvedUnit(result, [error(diag.undefinedFunction, 24, 1)]);
+''',
+    });
 
     // Update a.dart, and notify the resolver. We need this to have at least
     // one change, so that we decided to rebuild the library summary.
@@ -511,8 +522,20 @@ class B {
 
     // Notify the resolver about b.dart, it is OK now.
     fileResolver.changeFiles([b.path]);
-    result = await resolveFile(a);
-    assertErrorsInResolvedUnit(result, []);
+    await resolveFilesWithDiagnostics({
+      a: r'''
+part 'b.dart';
+
+var b = B(1);
+''',
+      b: r'''
+part of 'a.dart';
+
+class B {
+  B(int _);
+}
+''',
+    });
   }
 
   test_changePartFile_refreshedFiles() async {
@@ -881,15 +904,13 @@ analyzer:
     implicit-casts: true
 ''');
 
-    var aPath = convertPath('/workspace/third_party/dart/aaa/lib/a.dart');
-    await assertErrorsInFile(
-      aPath,
-      r'''
+    var a = getFile('/workspace/third_party/dart/aaa/lib/a.dart');
+    await resolveFileWithDiagnostics(a, r'''
 num a = 0;
 int b = a;
-''',
-      [error(diag.invalidAssignment, 19, 1)],
-    );
+//      ^
+// [diag.invalidAssignment] A value of type 'num' can't be assigned to a variable of type 'int'.
+''');
   }
 
   test_analysisOptions_file_inThirdPartyDartLang() async {
@@ -905,15 +926,13 @@ analyzer:
     implicit-casts: true
 ''');
 
-    var aPath = convertPath('/workspace/third_party/dart_lang/aaa/lib/a.dart');
-    await assertErrorsInFile(
-      aPath,
-      r'''
+    var a = getFile('/workspace/third_party/dart_lang/aaa/lib/a.dart');
+    await resolveFileWithDiagnostics(a, r'''
 num a = 0;
 int b = a;
-''',
-      [error(diag.invalidAssignment, 19, 1)],
-    );
+//      ^
+// [diag.invalidAssignment] A value of type 'num' can't be assigned to a variable of type 'int'.
+''');
   }
 
   test_analysisOptions_lints() async {
@@ -1342,41 +1361,35 @@ void f(int? a) {
   }
 
   test_getErrors() async {
-    addTestFile(r'''
+    var result = await getErrorsWithDiagnostics(testFile, r'''
 var a = b;
+//      ^
+// [diag.undefinedIdentifier] Undefined name 'b'.
 var foo = 0;
 ''');
 
-    var result = await getTestErrors();
     expect(result.path, convertPath('/workspace/dart/test/lib/test.dart'));
     expect(result.uri.toString(), 'package:dart.test/test.dart');
-    assertErrorsInList(result.diagnostics, [
-      error(diag.undefinedIdentifier, 8, 1),
-    ]);
     expect(result.lineInfo.lineStarts, [0, 11, 24]);
   }
 
   test_getErrors_docImports() async {
     newFile('$testPackageLibPath/a.dart', '');
 
-    var b = newFile('$testPackageLibPath/b.dart', r'''
+    var b = getFile('$testPackageLibPath/b.dart');
+    await getErrorsWithDiagnostics(b, r'''
 /// @docImport 'a.dart';
 library;
 ''');
-
-    var errorsResult = await fileResolver.getErrors2(path: b.path);
-    assertErrorsInList(errorsResult.diagnostics, []);
   }
 
   test_getErrors_library() async {
-    var a = newFile('$testPackageLibPath/a.dart', r'''
+    var a = getFile('$testPackageLibPath/a.dart');
+    await getErrorsWithDiagnostics(a, r'''
 var a = 42
+//      ^^
+// [diag.expectedToken] Expected to find ';'.
 ''');
-
-    var errorsResult = await fileResolver.getErrors2(path: a.path);
-    assertErrorsInList(errorsResult.diagnostics, [
-      error(diag.expectedToken, 8, 2),
-    ]);
   }
 
   test_getErrors_part_hasLibrary() async {
@@ -1384,35 +1397,45 @@ var a = 42
 part 'b.dart';
 ''');
 
-    var b = newFile('$testPackageLibPath/b.dart', r'''
+    var b = getFile('$testPackageLibPath/b.dart');
+    await getErrorsWithDiagnostics(b, r'''
 part of 'a.dart';
 var a = 42
+//      ^^
+// [diag.expectedToken] Expected to find ';'.
 ''');
-
-    var errorsResult = await fileResolver.getErrors2(path: b.path);
-    assertErrorsInList(errorsResult.diagnostics, [
-      error(diag.expectedToken, 26, 2),
-    ]);
   }
 
   test_getErrors_reuse() async {
-    addTestFile('var a = b;');
+    var unresolvedB = r'''
+var a = b;
+//      ^
+// [diag.undefinedIdentifier] Undefined name 'b'.
+''';
+
+    var unresolvedC = r'''
+var a = c;
+//      ^
+// [diag.undefinedIdentifier] Undefined name 'c'.
+''';
+
+    addTestFileWithDiagnosticExpectations(unresolvedB);
 
     // No resolved files yet.
     _assertResolvedFiles([]);
 
     // No cached, will resolve once.
-    expect((await getTestErrors()).diagnostics, hasLength(1));
+    await assertTestErrorsWithDiagnostics(unresolvedB);
     _assertResolvedFiles([testFile]);
 
     // Has cached, will be not resolved again.
-    expect((await getTestErrors()).diagnostics, hasLength(1));
+    await assertTestErrorsWithDiagnostics(unresolvedB);
     _assertResolvedFiles([]);
 
     // Change the file, will be resolved again.
-    addTestFile('var a = c;');
+    addTestFileWithDiagnosticExpectations(unresolvedC);
     fileResolver.changeFiles([testFile.path]);
-    expect((await getTestErrors()).diagnostics, hasLength(1));
+    await assertTestErrorsWithDiagnostics(unresolvedC);
     _assertResolvedFiles([testFile]);
   }
 
@@ -1421,20 +1444,31 @@ var a = 42
 var a = 0;
 ''');
 
-    addTestFile(r'''
+    var testCodeWhenAIsInt = r'''
 import 'a.dart';
 var b = a.foo;
-''');
+//        ^^^
+// [diag.undefinedGetter] The getter 'foo' isn't defined for the type 'int'.
+''';
+
+    var testCodeWhenAIsDouble = r'''
+import 'a.dart';
+var b = a.foo;
+//        ^^^
+// [diag.undefinedGetter] The getter 'foo' isn't defined for the type 'double'.
+''';
+
+    addTestFileWithDiagnosticExpectations(testCodeWhenAIsInt);
 
     // No resolved files yet.
     _assertResolvedFiles([]);
 
     // No cached, will resolve once.
-    expect((await getTestErrors()).diagnostics, hasLength(1));
+    await assertTestErrorsWithDiagnostics(testCodeWhenAIsInt);
     _assertResolvedFiles([testFile]);
 
     // Has cached, will be not resolved again.
-    expect((await getTestErrors()).diagnostics, hasLength(1));
+    await assertTestErrorsWithDiagnostics(testCodeWhenAIsInt);
     _assertResolvedFiles([]);
 
     // Change the dependency.
@@ -1444,7 +1478,7 @@ var b = a.foo;
 var a = 4.2;
 ''');
     fileResolver.changeFiles([a.path]);
-    expect((await getTestErrors()).diagnostics, hasLength(1));
+    await assertTestErrorsWithDiagnostics(testCodeWhenAIsDouble);
     _assertResolvedFiles([testFile]);
   }
 
@@ -1508,11 +1542,10 @@ part of 'b.dart';
   }
 
   test_hint_in_third_party() async {
-    var a = newFile('/workspace/third_party/dart/aaa/lib/a.dart', r'''
+    var a = getFile('/workspace/third_party/dart/aaa/lib/a.dart');
+    await resolveFileWithDiagnostics(a, r'''
 import 'dart:math';
 ''');
-    var result = await resolveFile(a);
-    assertErrorsInResolvedUnit(result, const []);
   }
 
   test_linkLibraries() async {
@@ -1770,12 +1803,15 @@ byteStore
   1: [k00, k02, k03, k04, k05, k06, k07]
 ''');
 
-    var result = await getTestErrors();
+    var result = await fileResolver.getErrors2(path: testFile.path);
     expect(result.path, testFile.path);
     expect(result.uri.toString(), 'package:dart.test/test.dart');
-    assertErrorsInList(result.diagnostics, [
-      error(diag.undefinedIdentifier, 8, 1),
-    ]);
+    assertDiagnosticsInCode(r'''
+var a = b;
+//      ^
+// [diag.undefinedIdentifier] Undefined name 'b'.
+var foo = 0;
+''', result.diagnostics);
     expect(result.lineInfo.lineStarts, [0, 11, 24]);
 
     // We created the library element for the test file, using the reader.
@@ -2512,11 +2548,11 @@ void func() {
     newFile('/workspace/dart/aaa/BUILD', '');
     newFile('/workspace/dart/bbb/BUILD', '');
 
-    var aPath = '/workspace/dart/aaa/lib/a.dart';
-    var aResult = await assertErrorsInFile(aPath, '', []);
+    var a = getFile('/workspace/dart/aaa/lib/a.dart');
+    var aResult = await resolveFileWithDiagnostics(a, '');
 
-    var bPath = '/workspace/dart/bbb/lib/a.dart';
-    var bResult = await assertErrorsInFile(bPath, '', []);
+    var b = getFile('/workspace/dart/bbb/lib/a.dart');
+    var bResult = await resolveFileWithDiagnostics(b, '');
 
     // Both files use the same (default) analysis options.
     // So, when we resolve 'bbb', we can reuse the context after 'aaa'.

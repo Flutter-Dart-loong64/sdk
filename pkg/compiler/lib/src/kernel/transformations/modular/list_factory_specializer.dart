@@ -101,12 +101,11 @@ class ListFactorySpecializer extends BaseSpecializer {
 
     Expression getLength() {
       if (lengthConstant != null) return IntLiteral(lengthConstant);
-      lengthVariable ??= Variable(
-        '_length',
+      lengthVariable ??= SyntheticVariable(
+        cosmeticName: '_length',
         initializer: length,
         isFinal: true,
         type: intType,
-        isSynthesized: true,
       )..fileOffset = node.fileOffset;
       return VariableGet(lengthVariable!)..fileOffset = node.fileOffset;
     }
@@ -116,28 +115,26 @@ class ListFactorySpecializer extends BaseSpecializer {
       Arguments([getLength()], types: args.types),
     )..fileOffset = node.fileOffset;
 
-    final listVariable = Variable(
-      _listNameFromContext(node),
+    final listVariable = SyntheticVariable(
+      cosmeticName: _listNameFromContext(node),
       initializer: allocation,
       isFinal: true,
       type: InterfaceType(_jsArrayClass, Nullability.nonNullable, [
         ...args.types,
       ]),
-      isSynthesized: true,
     )..fileOffset = node.fileOffset;
 
-    final indexVariable = Variable(
-      _indexNameFromContext(generator),
+    final indexVariable = SyntheticVariable(
+      cosmeticName: _indexNameFromContext(generator),
       initializer: IntLiteral(0),
       type: intType,
-      isSynthesized: true,
     )..fileOffset = node.fileOffset;
     indexVariable.fileOffset =
         generator.function.positionalParameters.first.fileOffset;
 
     final loop = ForStatement(
       // initializers: _i = 0
-      [VariableStatement(indexVariable)],
+      [VariableDeclaration(indexVariable)],
       // condition: _i < _length
       InstanceInvocation(
         InstanceAccessKind.Instance,
@@ -171,8 +168,9 @@ class ListFactorySpecializer extends BaseSpecializer {
 
     return BlockExpression(
       Block([
-        if (lengthVariable != null) VariableStatement(lengthVariable!),
-        VariableStatement(listVariable),
+        if (lengthVariable != null)
+          VariableStatement(VariableDeclaration(lengthVariable!)),
+        VariableStatement(VariableDeclaration(listVariable)),
         loop,
       ]),
       VariableGet(listVariable)..fileOffset = node.fileOffset,
@@ -241,13 +239,13 @@ class ListFactorySpecializer extends BaseSpecializer {
   /// use one JavaScript variable with the source name for 'both' variables.
   String? _listNameFromContext(Expression node) {
     TreeNode? parent = node.parent;
-    if (parent is Variable) return parent.name;
+    if (parent is Variable) return parent.cosmeticName;
     return '_list';
   }
 
   String _indexNameFromContext(FunctionExpression generator) {
     final function = generator.function;
-    String? candidate = function.positionalParameters.first.name;
+    String? candidate = function.positionalParameters.first.cosmeticName;
     if (candidate == null || candidate == '' || candidate == '_') return '_i';
     return candidate;
   }
@@ -308,11 +306,10 @@ class ListGenerateLoopBodyInliner extends CloneVisitorNotMembers {
     // argument to help dart2js allocate both locations to the same JavaScript
     // variable. The argument is usually named after the closure parameter.
     final closureParameter = function.positionalParameters.single;
-    parameter = Variable(
-      argument.name,
+    parameter = SyntheticVariable(
+      cosmeticName: argument.cosmeticName,
       initializer: VariableGet(argument)..fileOffset = argument.fileOffset,
       type: closureParameter.type,
-      isSynthesized: true,
     )..fileOffset = closureParameter.fileOffset;
     this.argument = argument;
     setVariableClone(closureParameter, parameter);
@@ -320,7 +317,7 @@ class ListGenerateLoopBodyInliner extends CloneVisitorNotMembers {
 
   Statement run() {
     Statement body = cloneInContext(function.body!);
-    return Block([VariableStatement(parameter), body]);
+    return Block([VariableStatement(VariableDeclaration(parameter)), body]);
   }
 
   @override

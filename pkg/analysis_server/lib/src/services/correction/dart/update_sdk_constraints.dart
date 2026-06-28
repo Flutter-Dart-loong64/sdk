@@ -18,7 +18,7 @@ class UpdateSdkConstraints extends ResolvedCorrectionProducer {
 
   /// Initializes a newly created instance that will update the SDK constraints
   /// to '2.14.0'.
-  UpdateSdkConstraints.version_2_14_0({required super.context})
+  new version_2_14_0({required super.context})
     : _minimumVersion = Version(2, 14, 0);
 
   @override
@@ -53,7 +53,7 @@ class UpdateSdkConstraints extends ResolvedCorrectionProducer {
   File? _findPubspecFile() {
     var file = resourceProvider.getFile(this.file);
     for (var folder in file.parent.withAncestors) {
-      var pubspecFile = folder.getChildAssumingFile(file_paths.pubspecYaml);
+      var pubspecFile = folder.getFile(file_paths.pubspecYaml);
       if (pubspecFile.exists) {
         return pubspecFile;
       }

@@ -145,7 +145,7 @@ class RelevanceData {
   final Map<String, _PercentageData> _percentageData = {};
 
   /// Initialize a newly created set of relevance data to be empty.
-  RelevanceData();
+  new();
 
   /// Increment the count associated with the given [name] by one.
   void incrementCount(String name) {
@@ -279,7 +279,7 @@ class RelevanceDataCollector extends RecursiveAstVisitor<void> {
 
   /// Initialize a newly created collector to add data points to the given
   /// [data].
-  RelevanceDataCollector(this.data);
+  new(this.data);
 
   @override
   void visitAdjacentStrings(AdjacentStrings node) {
@@ -2118,7 +2118,7 @@ class RelevanceMetricsComputer {
 
   /// Initialize a newly created metrics computer that can compute the metrics
   /// in one or more files and directories.
-  RelevanceMetricsComputer();
+  new();
 
   /// Compute the metrics for the file(s) in the [rootPath].
   /// If [corpus] is true, treat rootPath as a container of packages, creating
@@ -2196,7 +2196,6 @@ class RelevanceMetricsComputer {
     // Create a new collection to avoid consuming large quantities of memory.
     var collection = AnalysisContextCollection(
       includedPaths: root.includedPaths.toList(),
-      excludedPaths: root.excludedPaths.toList(),
       resourceProvider: PhysicalResourceProvider.INSTANCE,
     );
     var context = collection.contexts[0];
@@ -2458,7 +2457,7 @@ class _PercentageData {
   int positive = 0;
 
   /// Initialize a newly created keeper of percentage data.
-  _PercentageData();
+  new();
 
   /// Add a data point to the data being collected. If [wasPositive] is `true`
   /// then the data point is a positive data point.

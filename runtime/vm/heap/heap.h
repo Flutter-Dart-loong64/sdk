@@ -9,6 +9,8 @@
 #error "Should not include runtime"
 #endif
 
+#include <memory>
+
 #include "include/dart_tools_api.h"
 
 #include "platform/assert.h"
@@ -24,6 +26,7 @@
 namespace dart {
 
 // Forward declarations.
+class Cage;
 class Isolate;
 class IsolateGroup;
 class ObjectPointerVisitor;
@@ -73,7 +76,6 @@ class Heap {
   PageSpace* old_space() { return &old_space_; }
 
   uword Allocate(Thread* thread, intptr_t size, Space space) {
-    ASSERT(!read_only_);
     switch (space) {
       case kNew:
         // Do not attempt to allocate very large objects in new space.
@@ -129,7 +131,6 @@ class Heap {
 
   // Protect access to the heap. Note: Code pages are made
   // executable/non-executable when 'read_only' is true/false, respectively.
-  void WriteProtect(bool read_only);
   void WriteProtectCode(bool read_only) {
     old_space_.WriteProtectCode(read_only);
   }
@@ -286,6 +287,11 @@ class Heap {
   intptr_t ReachabilityBarrier() { return old_space_.collections(); }
 
   IsolateGroup* isolate_group() const { return isolate_group_; }
+#if defined(DART_COMPRESSED_POINTERS)
+  Cage* cage() const { return cage_.get(); }
+#else
+  Cage* cage() const { return nullptr; }
+#endif
 
   void SetupImagePage(void* pointer, uword size, bool is_executable) {
     old_space_.SetupImagePage(pointer, size, is_executable);
@@ -360,6 +366,9 @@ class Heap {
   void CollectForDebugging(Thread* thread);
 
   IsolateGroup* const isolate_group_;
+#if defined(DART_COMPRESSED_POINTERS)
+  std::unique_ptr<Cage> cage_;
+#endif
 
   // The different spaces used for allocation.
   Scavenger new_space_;
@@ -372,9 +381,6 @@ class Heap {
   GCStats stats_;
 
   RelaxedAtomic<Dart_PerformanceMode> mode_ = {Dart_PerformanceMode_Default};
-
-  // This heap is in read-only mode: No allocation is allowed.
-  bool read_only_;
 
   bool assume_scavenge_will_fail_;
 

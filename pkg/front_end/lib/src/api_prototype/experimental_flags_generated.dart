@@ -43,7 +43,7 @@ class ExperimentalFlag {
   ///    sdk/lib/_internal/allowed_experiments.json
   final Version experimentReleasedVersion;
 
-  const ExperimentalFlag({
+  const new({
     required this.name,
     required this.isEnabledByDefault,
     required this.isExpired,
@@ -294,7 +294,7 @@ class ExperimentalFlag {
   static const ExperimentalFlag privateNamedParameters = const ExperimentalFlag(
     name: 'private-named-parameters',
     isEnabledByDefault: true,
-    isExpired: false,
+    isExpired: true,
     experimentEnabledVersion: const Version(3, 12),
     experimentReleasedVersion: const Version(3, 12),
   );
@@ -371,6 +371,14 @@ class ExperimentalFlag {
     experimentReleasedVersion: defaultLanguageVersion,
   );
 
+  static const ExperimentalFlag thisPromotion = const ExperimentalFlag(
+    name: 'this-promotion',
+    isEnabledByDefault: false,
+    isExpired: false,
+    experimentEnabledVersion: defaultLanguageVersion,
+    experimentReleasedVersion: defaultLanguageVersion,
+  );
+
   static const ExperimentalFlag tripleShift = const ExperimentalFlag(
     name: 'triple-shift',
     isEnabledByDefault: true,
@@ -420,7 +428,7 @@ class GlobalFeatures {
   final Map<ExperimentalFlag, Version>? experimentEnabledVersionForTesting;
   final Map<ExperimentalFlag, Version>? experimentReleasedVersionForTesting;
 
-  GlobalFeatures(
+  new(
     this.explicitExperimentalFlags, {
     this.allowedExperimentalFlags,
     this.defaultExperimentFlagsForTesting,
@@ -639,6 +647,10 @@ class GlobalFeatures {
     ExperimentalFlag.testExperiment,
   );
 
+  GlobalFeature? _thisPromotion;
+  GlobalFeature get thisPromotion =>
+      _thisPromotion ??= _computeGlobalFeature(ExperimentalFlag.thisPromotion);
+
   GlobalFeature? _tripleShift;
   GlobalFeature get tripleShift =>
       _tripleShift ??= _computeGlobalFeature(ExperimentalFlag.tripleShift);
@@ -667,7 +679,7 @@ class LibraryFeatures {
   final Uri canonicalUri;
   final Version libraryVersion;
 
-  LibraryFeatures(this.globalFeatures, this.canonicalUri, this.libraryVersion);
+  new(this.globalFeatures, this.canonicalUri, this.libraryVersion);
 
   LibraryFeature? _alternativeInvalidationStrategy;
   LibraryFeature get alternativeInvalidationStrategy =>
@@ -990,6 +1002,14 @@ class LibraryFeatures {
         libraryVersion,
       );
 
+  LibraryFeature? _thisPromotion;
+  LibraryFeature get thisPromotion =>
+      _thisPromotion ??= globalFeatures._computeLibraryFeature(
+        ExperimentalFlag.thisPromotion,
+        canonicalUri,
+        libraryVersion,
+      );
+
   LibraryFeature? _tripleShift;
   LibraryFeature get tripleShift =>
       _tripleShift ??= globalFeatures._computeLibraryFeature(
@@ -1113,6 +1133,8 @@ class LibraryFeatures {
         return superParameters;
       case shared.ExperimentalFlag.testExperiment:
         return testExperiment;
+      case shared.ExperimentalFlag.thisPromotion:
+        return thisPromotion;
       case shared.ExperimentalFlag.tripleShift:
         return tripleShift;
       case shared.ExperimentalFlag.unnamedLibraries:
@@ -1209,6 +1231,8 @@ ExperimentalFlag? parseExperimentalFlag(String flag) {
       return ExperimentalFlag.superParameters;
     case "test-experiment":
       return ExperimentalFlag.testExperiment;
+    case "this-promotion":
+      return ExperimentalFlag.thisPromotion;
     case "triple-shift":
       return ExperimentalFlag.tripleShift;
     case "unnamed-libraries":
@@ -1295,6 +1319,8 @@ final Map<ExperimentalFlag, bool> defaultExperimentalFlags = {
       ExperimentalFlag.superParameters.isEnabledByDefault,
   ExperimentalFlag.testExperiment:
       ExperimentalFlag.testExperiment.isEnabledByDefault,
+  ExperimentalFlag.thisPromotion:
+      ExperimentalFlag.thisPromotion.isEnabledByDefault,
   ExperimentalFlag.tripleShift: ExperimentalFlag.tripleShift.isEnabledByDefault,
   ExperimentalFlag.unnamedLibraries:
       ExperimentalFlag.unnamedLibraries.isEnabledByDefault,
@@ -1366,6 +1392,7 @@ ExperimentalFlag fromSharedExperimentalFlag(
   shared.ExperimentalFlag.staticExtensions => ExperimentalFlag.staticExtensions,
   shared.ExperimentalFlag.superParameters => ExperimentalFlag.superParameters,
   shared.ExperimentalFlag.testExperiment => ExperimentalFlag.testExperiment,
+  shared.ExperimentalFlag.thisPromotion => ExperimentalFlag.thisPromotion,
   shared.ExperimentalFlag.tripleShift => ExperimentalFlag.tripleShift,
   shared.ExperimentalFlag.unnamedLibraries => ExperimentalFlag.unnamedLibraries,
   shared.ExperimentalFlag.unquotedImports => ExperimentalFlag.unquotedImports,

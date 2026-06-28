@@ -10,7 +10,6 @@ import 'abi.dart' show kWasmAbiEnumIndex;
 import 'class_info.dart';
 import 'code_generator.dart';
 import 'dynamic_dispatchers.dart';
-import 'js/util.dart';
 import 'translator.dart';
 import 'types.dart';
 import 'util.dart';
@@ -353,6 +352,36 @@ enum StaticIntrinsic {
     'dart:_wasm',
     null,
     'MemoryAccessExtension|storeFloat64',
+  ),
+  wasmF64x2ConstructorFromDoubles(
+    'dart:_wasm',
+    null,
+    'WasmF64x2|constructor#fromDoubles',
+  ),
+  wasmF32x4ConstructorFromDoubles(
+    'dart:_wasm',
+    null,
+    'WasmF32x4|constructor#fromDoubles',
+  ),
+  wasmI64x2ConstructorFromInts(
+    'dart:_wasm',
+    null,
+    'WasmI64x2|constructor#fromInts',
+  ),
+  wasmI32x4ConstructorFromInts(
+    'dart:_wasm',
+    null,
+    'WasmI32x4|constructor#fromInts',
+  ),
+  wasmI16x8ConstructorFromInts(
+    'dart:_wasm',
+    null,
+    'WasmI16x8|constructor#fromInts',
+  ),
+  wasmI8x16ConstructorFromInts(
+    'dart:_wasm',
+    null,
+    'WasmI8x16|constructor#fromInts',
   ),
   wasmMemoryStoreInt8('dart:_wasm', null, 'MemoryAccessExtension|storeInt8'),
   wasmMemoryStoreInt16('dart:_wasm', null, 'MemoryAccessExtension|storeInt16'),
@@ -821,6 +850,26 @@ class Intrinsifier {
               );
               b.i64_div_s();
               return w.NumType.i64;
+            case "minS":
+            case "maxS":
+              w.Local localA = b.addLocal(w.NumType.i64);
+              w.Local localB = b.addLocal(w.NumType.i64);
+              codeGen.translateExpression(receiver, w.NumType.i64);
+              b.local_tee(localA);
+              codeGen.translateExpression(
+                node.arguments.positional[0],
+                w.NumType.i64,
+              );
+              b.local_tee(localB);
+              b.local_get(localA);
+              b.local_get(localB);
+              if (name == "minS") {
+                b.i64_le_s();
+              } else {
+                b.i64_ge_s();
+              }
+              b.select(w.NumType.i64);
+              return w.NumType.i64;
             default:
               throw 'Unknown WasmI64 member $name';
           }
@@ -853,6 +902,22 @@ class Intrinsifier {
                 w.NumType.f64,
               );
               b.f64_copysign();
+              return w.NumType.f64;
+            case "min":
+              codeGen.translateExpression(receiver, w.NumType.f64);
+              codeGen.translateExpression(
+                node.arguments.positional[0],
+                w.NumType.f64,
+              );
+              b.f64_min();
+              return w.NumType.f64;
+            case "max":
+              codeGen.translateExpression(receiver, w.NumType.f64);
+              codeGen.translateExpression(
+                node.arguments.positional[0],
+                w.NumType.f64,
+              );
+              b.f64_max();
               return w.NumType.f64;
             default:
               throw 'Unknown WasmF64 member $name';
@@ -1100,15 +1165,6 @@ class Intrinsifier {
           return type;
       }
     }
-
-    if (target.enclosingLibrary.name == 'dart._js_helper') {
-      if (target.name.text == 'thisModule') {
-        final global = translator.getThisModuleGlobal(b.moduleBuilder);
-        b.global_get(global);
-        return global.type.type;
-      }
-    }
-
     return null;
   }
 
@@ -1504,12 +1560,7 @@ class Intrinsifier {
         final constant = argument.constant;
         if (constant is! StaticTearOffConstant) throw error;
         final target = constant.target;
-        if (!hasWasmWeakExportPragma(codeGen.translator.coreTypes, target) &&
-            !(JsInteropMemberData.fromMember(
-                  target,
-                  codeGen.translator.coreTypes,
-                )?.isWeakExport ??
-                true)) {
+        if (!hasWasmWeakExportPragma(codeGen.translator.coreTypes, target)) {
           throw error;
         }
 
@@ -1574,42 +1625,43 @@ class Intrinsifier {
           b.i32_add();
           offset = 0;
         }
+        final memory = translator.ffiMemory(b.moduleBuilder);
         switch (intrinsic) {
           case StaticIntrinsic.loadInt8:
-            b.i64_load8_s(translator.ffiMemory, offset);
+            b.i64_load8_s(memory, offset);
             return w.NumType.i64;
           case StaticIntrinsic.loadUint8:
-            b.i64_load8_u(translator.ffiMemory, offset);
+            b.i64_load8_u(memory, offset);
             return w.NumType.i64;
           case StaticIntrinsic.loadInt16:
-            b.i64_load16_s(translator.ffiMemory, offset);
+            b.i64_load16_s(memory, offset);
             return w.NumType.i64;
           case StaticIntrinsic.loadUint16:
-            b.i64_load16_u(translator.ffiMemory, offset);
+            b.i64_load16_u(memory, offset);
             return w.NumType.i64;
           case StaticIntrinsic.loadInt32:
-            b.i64_load32_s(translator.ffiMemory, offset);
+            b.i64_load32_s(memory, offset);
             return w.NumType.i64;
           case StaticIntrinsic.loadUint32:
-            b.i64_load32_u(translator.ffiMemory, offset);
+            b.i64_load32_u(memory, offset);
             return w.NumType.i64;
           case StaticIntrinsic.loadInt64:
           case StaticIntrinsic.loadUint64:
-            b.i64_load(translator.ffiMemory, offset);
+            b.i64_load(memory, offset);
             return w.NumType.i64;
           case StaticIntrinsic.loadFloat:
-            b.f32_load(translator.ffiMemory, offset);
+            b.f32_load(memory, offset);
             b.f64_promote_f32();
             return w.NumType.f64;
           case StaticIntrinsic.loadFloatUnaligned:
-            b.f32_load(translator.ffiMemory, offset, 0);
+            b.f32_load(memory, offset, 0);
             b.f64_promote_f32();
             return w.NumType.f64;
           case StaticIntrinsic.loadDouble:
-            b.f64_load(translator.ffiMemory, offset);
+            b.f64_load(memory, offset);
             return w.NumType.f64;
           case StaticIntrinsic.loadDoubleUnaligned:
-            b.f64_load(translator.ffiMemory, offset, 0);
+            b.f64_load(memory, offset, 0);
             return w.NumType.f64;
           case StaticIntrinsic.storeInt8:
           case StaticIntrinsic.storeUint8:
@@ -1617,7 +1669,7 @@ class Intrinsifier {
               node.arguments.positional[2],
               w.NumType.i64,
             );
-            b.i64_store8(translator.ffiMemory, offset);
+            b.i64_store8(memory, offset);
             b.ref_null(w.HeapType.none);
             return translator.topType;
           case StaticIntrinsic.storeInt16:
@@ -1626,7 +1678,7 @@ class Intrinsifier {
               node.arguments.positional[2],
               w.NumType.i64,
             );
-            b.i64_store16(translator.ffiMemory, offset);
+            b.i64_store16(memory, offset);
             b.ref_null(w.HeapType.none);
             return translator.topType;
           case StaticIntrinsic.storeInt32:
@@ -1635,7 +1687,7 @@ class Intrinsifier {
               node.arguments.positional[2],
               w.NumType.i64,
             );
-            b.i64_store32(translator.ffiMemory, offset);
+            b.i64_store32(memory, offset);
             b.ref_null(w.HeapType.none);
             return translator.topType;
           case StaticIntrinsic.storeInt64:
@@ -1644,7 +1696,7 @@ class Intrinsifier {
               node.arguments.positional[2],
               w.NumType.i64,
             );
-            b.i64_store(translator.ffiMemory, offset);
+            b.i64_store(memory, offset);
             b.ref_null(w.HeapType.none);
             return translator.topType;
           case StaticIntrinsic.storeFloat:
@@ -1653,7 +1705,7 @@ class Intrinsifier {
               w.NumType.f64,
             );
             b.f32_demote_f64();
-            b.f32_store(translator.ffiMemory, offset);
+            b.f32_store(memory, offset);
             b.ref_null(w.HeapType.none);
             return translator.topType;
           case StaticIntrinsic.storeFloatUnaligned:
@@ -1662,7 +1714,7 @@ class Intrinsifier {
               w.NumType.f64,
             );
             b.f32_demote_f64();
-            b.f32_store(translator.ffiMemory, offset, 0);
+            b.f32_store(memory, offset, 0);
             b.ref_null(w.HeapType.none);
             return translator.topType;
           case StaticIntrinsic.storeDouble:
@@ -1670,7 +1722,7 @@ class Intrinsifier {
               node.arguments.positional[2],
               w.NumType.f64,
             );
-            b.f64_store(translator.ffiMemory, offset);
+            b.f64_store(memory, offset);
             b.ref_null(w.HeapType.none);
             return translator.topType;
           case StaticIntrinsic.storeDoubleUnaligned:
@@ -1678,7 +1730,7 @@ class Intrinsifier {
               node.arguments.positional[2],
               w.NumType.f64,
             );
-            b.f64_store(translator.ffiMemory, offset, 0);
+            b.f64_store(memory, offset, 0);
             b.ref_null(w.HeapType.none);
             return translator.topType;
           default:
@@ -1720,6 +1772,86 @@ class Intrinsifier {
           w.NumType.v128,
         );
         b.f64x2_pmax();
+        return w.NumType.v128;
+      case StaticIntrinsic.wasmF64x2ConstructorFromDoubles:
+        codeGen.translateExpression(
+          node.arguments.positional[0],
+          w.NumType.f64,
+        );
+        b.f64x2_splat();
+        codeGen.translateExpression(
+          node.arguments.positional[1],
+          w.NumType.f64,
+        );
+        b.f64x2_replace_lane(1);
+        return w.NumType.v128;
+      case StaticIntrinsic.wasmF32x4ConstructorFromDoubles:
+        codeGen.translateExpression(
+          node.arguments.positional[0],
+          w.NumType.f32,
+        );
+        b.f32x4_splat();
+        for (int i = 1; i < 4; i++) {
+          codeGen.translateExpression(
+            node.arguments.positional[i],
+            w.NumType.f32,
+          );
+          b.f32x4_replace_lane(i);
+        }
+        return w.NumType.v128;
+      case StaticIntrinsic.wasmI64x2ConstructorFromInts:
+        codeGen.translateExpression(
+          node.arguments.positional[0],
+          w.NumType.i64,
+        );
+        b.i64x2_splat();
+        codeGen.translateExpression(
+          node.arguments.positional[1],
+          w.NumType.i64,
+        );
+        b.i64x2_replace_lane(1);
+        return w.NumType.v128;
+      case StaticIntrinsic.wasmI32x4ConstructorFromInts:
+        codeGen.translateExpression(
+          node.arguments.positional[0],
+          w.NumType.i32,
+        );
+        b.i32x4_splat();
+        for (int i = 1; i < 4; i++) {
+          codeGen.translateExpression(
+            node.arguments.positional[i],
+            w.NumType.i32,
+          );
+          b.i32x4_replace_lane(i);
+        }
+        return w.NumType.v128;
+      case StaticIntrinsic.wasmI16x8ConstructorFromInts:
+        codeGen.translateExpression(
+          node.arguments.positional[0],
+          w.NumType.i32,
+        );
+        b.i16x8_splat();
+        for (int i = 1; i < 8; i++) {
+          codeGen.translateExpression(
+            node.arguments.positional[i],
+            w.NumType.i32,
+          );
+          b.i16x8_replace_lane(i);
+        }
+        return w.NumType.v128;
+      case StaticIntrinsic.wasmI8x16ConstructorFromInts:
+        codeGen.translateExpression(
+          node.arguments.positional[0],
+          w.NumType.i32,
+        );
+        b.i8x16_splat();
+        for (int i = 1; i < 16; i++) {
+          codeGen.translateExpression(
+            node.arguments.positional[i],
+            w.NumType.i32,
+          );
+          b.i8x16_replace_lane(i);
+        }
         return w.NumType.v128;
       case StaticIntrinsic.wasmF64x2ConstructorFromLaneValues:
         codeGen.translateExpression(
@@ -1852,7 +1984,7 @@ class Intrinsifier {
         StaticTearOffConstant func = f.constant as StaticTearOffConstant;
         w.BaseFunction wasmFunction = translator.functions.getFunction(
           func.targetReference,
-        );
+        )..isJSCalled = true;
         return translator.globals.readGlobal(
           b,
           translator.makeFunctionRef(wasmFunction),

@@ -35,7 +35,8 @@ import '../kernel/body_builder.dart'
         ExpressionOrPatternGuardCase,
         FormalParameters,
         JumpTarget,
-        Label;
+        Label,
+        AnonymousMethodParameters;
 import '../kernel/expression_generator.dart' as type;
 import '../kernel/internal_ast.dart' as type;
 import 'outline_builder.dart' as type;
@@ -46,6 +47,14 @@ class ValueKinds {
       const SingleValueKind<List<type.Expression>>();
   static const ValueKind AnnotationListOrNull =
       const SingleValueKind<List<type.Expression>>(NullValues.Metadata);
+  static const ValueKind AnonymousMethodParameters =
+      const SingleValueKind<type.AnonymousMethodParameters>();
+  static const ValueKind AnonymousMethodParameterBuilder =
+      const SingleValueKind<type.AnonymousMethodParameterBuilder>();
+  static const ValueKind AnonymousMethodParameterListOrNull =
+      const SingleValueKind<List<type.AnonymousMethodParameterBuilder>>(
+        NullValues.FormalParameters,
+      );
   static const ValueKind Argument = const SingleValueKind<type.Argument>();
   static const ValueKind Arguments =
       const SingleValueKind<type.ActualArguments>();
@@ -135,17 +144,21 @@ class ValueKinds {
   static const ValueKind MapLiteralEntry =
       const SingleValueKind<type.MapLiteralEntry>();
   static const ValueKind MapPatternEntry =
-      const SingleValueKind<type.MapPatternEntry>();
+      const SingleValueKind<type.InternalMapPatternEntry>();
   static const ValueKind ParameterList =
       const SingleValueKind<List<type.ParameterVariableBuilder>>();
-  static const ValueKind Pattern = const SingleValueKind<type.Pattern>();
+  static const ValueKind Pattern =
+      const SingleValueKind<type.InternalPattern>();
   static const ValueKind PatternGuard =
       const SingleValueKind<type.PatternGuard>();
-  static const ValueKind PatternOrNull = const SingleValueKind<type.Pattern>(
-    NullValues.Pattern,
-  );
+  static const ValueKind PatternOrNull =
+      const SingleValueKind<type.InternalPattern>(NullValues.Pattern);
   static const ValueKind PatternListOrNull =
-      const SingleValueKind<List<type.Pattern>>(NullValues.PatternList);
+      const SingleValueKind<List<type.InternalPattern>>(NullValues.PatternList);
+  static const ValueKind NamedPatternListOrNull =
+      const SingleValueKind<List<type.InternalNamedPattern>>(
+        NullValues.PatternList,
+      );
   static const ValueKind PrefixOrNull = const SingleValueKind<type.Identifier>(
     NullValues.Prefix,
   );
@@ -197,13 +210,14 @@ class ValueKinds {
         NullValues.RecordTypeFieldList,
       );
   static const ValueKind Selector = const SingleValueKind<type.Selector>();
-  static const ValueKind SwitchCase = const SingleValueKind<type.SwitchCase>();
+  static const ValueKind SwitchCase =
+      const SingleValueKind<type.InternalSwitchCase>();
   static const ValueKind SwitchCaseList =
-      const SingleValueKind<List<type.SwitchCase>>();
+      const SingleValueKind<List<type.InternalSwitchCase>>();
   static const ValueKind SwitchExpressionCase =
-      const SingleValueKind<type.SwitchExpressionCase>();
+      const SingleValueKind<type.InternalSwitchExpressionCase>();
   static const ValueKind SwitchExpressionCaseList =
-      const SingleValueKind<List<type.SwitchExpressionCase>>();
+      const SingleValueKind<List<type.InternalSwitchExpressionCase>>();
   static const ValueKind Statement = const SingleValueKind<type.Statement>();
   static const ValueKind StatementOrNull =
       const SingleValueKind<type.Statement>(NullValues.Block);
@@ -241,8 +255,8 @@ class ValueKinds {
       const SingleValueKind<List<type.NominalParameterBuilder>>(
         NullValues.NominalParameters,
       );
-  static const ValueKind VariableDeclarationListOrNull =
-      const SingleValueKind<List<type.Variable>>(
+  static const ValueKind InternalVariableListOrNull =
+      const SingleValueKind<List<type.InternalVariable>>(
         NullValues.VariableDeclarationList,
       );
 }

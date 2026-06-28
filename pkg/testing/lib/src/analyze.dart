@@ -28,7 +28,7 @@ class Analyze extends Suite {
 
   final List<String>? gitGrepPatterns;
 
-  Analyze(
+  new(
     this.analysisOptions,
     this.uris,
     this.exclude,
@@ -114,7 +114,7 @@ class AnalyzerDiagnostic {
 
   static final Pattern unescapePattern = RegExp(r"\\(.)");
 
-  AnalyzerDiagnostic(
+  new(
     this.kind,
     this.detailedKind,
     this.code,
@@ -125,10 +125,9 @@ class AnalyzerDiagnostic {
     this.message,
   );
 
-  AnalyzerDiagnostic.malformed(String line)
-    : this(null, null, null, null, -1, -1, -1, line);
+  new malformed(String line) : this(null, null, null, null, -1, -1, -1, line);
 
-  factory AnalyzerDiagnostic.fromLine(String line) {
+  factory fromLine(String line) {
     List<String> parts = <String>[];
     int start = 0;
     int index = line.indexOf(potentialSplitPattern);
@@ -245,9 +244,8 @@ Future<void> analyzeUris(
     arguments.add("--");
     arguments.addAll(gitGrepPathspecs!);
     filesToAnalyze.addAll(
-      splitLines(
-        await git("grep", arguments),
-      ).map((String line) => line.trimRight()),
+      splitLines(await git("grep", arguments))
+          .map((String line) => line.trimRight()),
     );
   }
 
@@ -320,9 +318,8 @@ String _findSdkPath() {
   var executableUri = Uri.file(Platform.executable);
   if (File.fromUri(executableUri.resolve('../version')).existsSync()) {
     return executableUri.resolve('..').toFilePath();
-  } else if (File.fromUri(
-    executableUri.resolve('dart-sdk/version'),
-  ).existsSync()) {
+  } else if (File.fromUri(executableUri.resolve('dart-sdk/version'))
+      .existsSync()) {
     return executableUri.resolve('dart-sdk').toFilePath();
   } else {
     throw StateError('Cannot find dart-sdk for $executableUri');

@@ -18,8 +18,9 @@ import 'package:language_server_protocol/protocol_custom_generated.dart';
 import 'package:language_server_protocol/protocol_generated.dart';
 
 /// A function that can be executed to create a refactoring producer.
-typedef RefactoringProducerGenerator =
-    RefactoringProducer Function(RefactoringContext);
+typedef RefactoringProducerGenerator = RefactoringProducer Function(
+  RefactoringContext,
+);
 
 class RefactoringProcessor {
   /// A list of the generators used to produce refactorings.
@@ -44,7 +45,7 @@ class RefactoringProcessor {
 
   final Stopwatch _timer = Stopwatch();
 
-  RefactoringProcessor(this.context, {this._performance});
+  new(this.context, {this._performance});
 
   /// Return a list containing one code action for each of the refactorings that
   /// are available in the current context.
@@ -71,21 +72,33 @@ class RefactoringProcessor {
           return;
         }
 
+        var server = context.server;
+        var interactiveFormsEnabled =
+            // Temporary flag to ensure this is opt-in during development.
+            server.lspClientConfiguration.global.experimentalInteractiveForms &&
+            // Client has shown it has support by providing at least one
+            // input kind that it supports.
+            // It is up to the individual refactors to handle the specific
+            // kinds of input that are supported, this check is just to know if
+            // we will use Interactive Forms instead of the original
+            // Dart-specified self-described refactors.
+            (context
+                    .clientCapabilities
+                    ?.supportedInteractiveFormInputTypes
+                    .isNotEmpty ??
+                false);
+
         var parameters = producer is ParameterizedRefactoringProducer
             ? producer.parameters
             : <CommandParameter>[];
         // In debug mode, throw if we produced a refactoring that has parameters
-        // without default values that are not supported by the client.
+        // without default values. Support for fields without defaults was
+        // removed since this functionality was replaced by Interactive Forms,
+        // the only existing interactive refactor always has one, and we do not
+        // intend to add any more.
         assert(
-          () {
-            return parameters.every(
-              (parameter) =>
-                  parameter.defaultValue != null ||
-                  producer.supportsCommandParameter(parameter.kind),
-            );
-          }(),
-          '${producer.title} refactor returned parameters without defaults '
-          'that are not supported by the client',
+          parameters.every((parameter) => parameter.defaultValue != null),
+          '${producer.title} refactor returned parameters without defaults',
         );
 
         var command = entry.key;
@@ -101,18 +114,18 @@ class RefactoringProcessor {
             command: Command(
               command: command,
               title: producer.title,
-              arguments: [
-                {
-                  'filePath': context.resolvedUnitResult.path,
-                  'selectionOffset': context.selectionOffset,
-                  'selectionLength': context.selectionLength,
-                  'arguments': parameters
-                      .map((param) => param.defaultValue)
-                      .toList(),
-                },
-              ],
+              arguments: buildCommandArguments(
+                context,
+                parameters.map((param) => param.defaultValue).toList(),
+              ),
             ),
-            data: {'parameters': parameters},
+            // Only include the parameters in data if interactive forms are NOT
+            // enabled, because if they are this will be handled by
+            // `command/resolve` and we don't want to trigger the old version
+            // on the client.
+            data: parameters.isNotEmpty && !interactiveFormsEnabled
+                ? {'parameters': parameters}
+                : null,
           ),
         );
         _performance?.producerTimings.add((
@@ -133,5 +146,29 @@ class RefactoringProcessor {
     _timer.stop();
     _performance?.computeTime = _timer.elapsed;
     return refactorings;
+  }
+
+  /// Builds the command arguments that go to the client, which include the
+  /// values required to rebuild the refactoring context, and the arguments
+  /// specific to the refactor.
+  ///
+  /// We always use a single argument that is a map so all values are named,
+  /// with the refactor-specific arguments being in the `arguments` field of
+  /// that map.
+  ///
+  /// This is the opposite of [extractRefactorArguments] which extracts the
+  /// refactor arguments back out of the command.
+  static List<Object?> buildCommandArguments(
+    RefactoringContext context,
+    List<Object?> refactorAguments,
+  ) {
+    return [
+      {
+        'filePath': context.resolvedUnitResult.path,
+        'selectionOffset': context.selectionOffset,
+        'selectionLength': context.selectionLength,
+        'arguments': refactorAguments,
+      },
+    ];
   }
 }

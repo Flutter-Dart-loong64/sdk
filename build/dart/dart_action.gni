@@ -29,6 +29,12 @@ import("../executable_suffix.gni")
 #   Runs the binary built for runtime/bin:gen_snapshot using the host
 #   toolchain. It should only be used when an artifact agreeing exactly
 #   with the version of the Dart VM being built must be produced.
+#
+# - dartaotruntime_action()
+#   Runs the binary built for runtime/bin:dartaotruntime using the host
+#   toolchain. It should only be used to run AOT snapshots produced by
+#   gen_snapshot_action() when an artifact agreeing exactly with the version
+#   of the Dart VM being built must be produced.
 
 # This assigns _dart_root the GN absolute path of the Dart repo. For example,
 # in a Dart checkout, this will be "//". In a client repo it might be
@@ -38,6 +44,10 @@ _is_dart = _dart_root == get_path_info("//", "abspath")
 
 if (_is_dart) {
   import("../toolchain/rbe.gni")
+  _dart_action_pool = "//build/toolchain:local_action_pool($host_toolchain)"
+} else {
+  _dart_action_pool =
+      "$_dart_root/build/dart:dart_action_pool($default_toolchain)"
 }
 
 template("_compiled_action") {
@@ -83,9 +93,7 @@ template("_compiled_action") {
       deps += invoker.deps
     }
 
-    # The "compiled_action" argument to gn_run_binary.py indicates that
-    # it will exit with a non-zero status when the target program does.
-    args = [ "compiled_action" ]
+    args = []
 
     if (_is_dart && use_rbe && host_os == rbe_os && host_cpu == rbe_cpu) {
       args += [
@@ -96,8 +104,9 @@ template("_compiled_action") {
                 "--exec_strategy=" + rbe_expensive_exec_strategy,
                 "--",
               ]
-    } else if (!defined(invoker.pool)) {
-      pool = "$_dart_root/build/dart:dart_action_pool($default_toolchain)"
+    }
+    if (!defined(invoker.pool)) {
+      pool = _dart_action_pool
     }
 
     args += [ rebase_path(host_executable, root_build_dir) ] + invoker.args
@@ -141,7 +150,7 @@ template("_prebuilt_tool_action") {
       inputs += [ invoker.dfe ]
     }
 
-    args = [ "compiled_action" ]
+    args = []
 
     if (_is_dart && use_rbe && host_os == rbe_os && host_cpu == rbe_cpu) {
       args += [
@@ -152,8 +161,9 @@ template("_prebuilt_tool_action") {
                 "--exec_strategy=" + rbe_expensive_exec_strategy,
                 "--",
               ]
-    } else if (!defined(invoker.pool)) {
-      pool = "$_dart_root/build/dart:dart_action_pool($default_toolchain)"
+    }
+    if (!defined(invoker.pool)) {
+      pool = _dart_action_pool
     }
 
     args += [ rebase_path(invoker.binary, root_build_dir) ] + vm_args
@@ -379,6 +389,51 @@ template("dart_action") {
       }
       deps += [ "$_dart_root/utils/kernel-service" ]
     }
+  }
+}
+
+# This template runs the dartaotruntime produced by the in-progress build.
+# It should only be used when an artifact agreeing exactly with the version
+# of the Dart VM being built must be produced.
+#
+# Parameters:
+#  script:
+#    The un-rebased path to the Dart AOT snapshot.
+#
+#  vm_args (optional):
+#    Arguments to pass to the Dart VM.
+#
+#  args (optional):
+#    The arguments to pass to the Dart script.
+#
+#  Forwarded to action() with the usual meaning:
+#    depfile
+#    deps
+#    inputs
+#    metadata
+#    outputs
+#    testonly
+#    visibility
+template("dartaotruntime_action") {
+  assert(defined(invoker.script), "script must be defined for $target_name")
+  _built_tool_action(target_name) {
+    tool = "$_dart_root/runtime/bin:dartaotruntime"
+    forward_variables_from(invoker,
+                           [
+                             "args",
+                             "depfile",
+                             "deps",
+                             "inputs",
+                             "metadata",
+                             "mnemonic",
+                             "outputs",
+                             "pool",
+                             "script",
+                             "testonly",
+                             "tool",
+                             "visibility",
+                             "vm_args",
+                           ])
   }
 }
 

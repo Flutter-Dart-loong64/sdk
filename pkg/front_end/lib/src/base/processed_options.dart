@@ -183,9 +183,6 @@ class ProcessedOptions {
   // Coverage-ignore(suite): Not run.
   bool get emitDeps => _raw.emitDeps;
 
-  // Coverage-ignore(suite): Not run.
-  bool get enableUnscheduledExperiments => _raw.enableUnscheduledExperiments;
-
   bool get hasAdditionalDillModules => _raw.additionalDillModules.isNotEmpty;
 
   /// The entry-points provided to the compiler.
@@ -202,7 +199,7 @@ class ProcessedOptions {
   int fatalDiagnosticCount = 0;
 
   /// Initializes a [ProcessedOptions] object wrapping the given [rawOptions].
-  ProcessedOptions({CompilerOptions? options, List<Uri>? inputs, this.output})
+  new({CompilerOptions? options, List<Uri>? inputs, this.output})
     : this._raw = options ?? new CompilerOptions(),
       this.inputs = inputs ?? <Uri>[],
       // TODO(askesc): Copy the map when kernel_service supports that.
@@ -1022,5 +1019,5 @@ class _PackageConfigAndUri {
 
   final PackageConfig packageConfig;
   final Uri uri;
-  _PackageConfigAndUri(this.packageConfig, this.uri);
+  new(this.packageConfig, this.uri);
 }

@@ -71,9 +71,8 @@ class SearchTest extends PubPackageResolutionTest {
   final OperationPerformanceImpl performance = OperationPerformanceImpl(
     '<root>',
   );
+  late AnalysisDriver driver = driverFor(testFile);
   Set<Uri>? includedLibraryUris;
-
-  AnalysisDriver get driver => driverFor(testFile);
 
   String get testUriStr => 'package:test/test.dart';
 
@@ -85,7 +84,24 @@ class SearchTest extends PubPackageResolutionTest {
     var actual = _getDeclarationsText(symbols, inFiles);
     if (actual != expected) {
       NodeTextExpectationsCollector.add(actual);
-      printPrettyDiff(expected, actual);
+      if (NodeTextExpectationsCollector.shouldPrintFailureDetails) {
+        printPrettyDiff(expected, actual);
+      }
+      fail('See the difference above.');
+    }
+  }
+
+  Future<void> assertDirectSubtypeReferencesText(
+    InterfaceElement element,
+    String expected,
+  ) async {
+    var results = await driver.search.directSubtypeReferences(element);
+    var actual = _getSearchResultsText(results);
+    if (actual != expected) {
+      NodeTextExpectationsCollector.add(actual);
+      if (NodeTextExpectationsCollector.shouldPrintFailureDetails) {
+        printPrettyDiff(expected, actual);
+      }
       fail('See the difference above.');
     }
   }
@@ -98,10 +114,11 @@ class SearchTest extends PubPackageResolutionTest {
     var actual = _getSearchResultsText(results);
     if (actual != expected) {
       NodeTextExpectationsCollector.add(actual);
-      printPrettyDiff(expected, actual);
+      if (NodeTextExpectationsCollector.shouldPrintFailureDetails) {
+        printPrettyDiff(expected, actual);
+      }
       fail('See the difference above.');
     }
-    expect(actual, expected);
   }
 
   Future<void> assertLibraryFragmentReferencesText(
@@ -111,10 +128,12 @@ class SearchTest extends PubPackageResolutionTest {
     var results = await driver.search.referencesLibraryFragment(fragment);
     var actual = _getSearchResultsText2(results);
     if (actual != expected) {
-      print(actual);
       NodeTextExpectationsCollector.add(actual);
+      if (NodeTextExpectationsCollector.shouldPrintFailureDetails) {
+        printPrettyDiff(expected, actual);
+      }
+      fail('See the difference above.');
     }
-    expect(actual, expected);
   }
 
   Future<void> assertLibraryImportReferencesText(
@@ -124,24 +143,12 @@ class SearchTest extends PubPackageResolutionTest {
     var results = await driver.search.referencesLibraryImport(import);
     var actual = _getSearchResultsText2(results);
     if (actual != expected) {
-      print(actual);
       NodeTextExpectationsCollector.add(actual);
-    }
-    expect(actual, expected);
-  }
-
-  Future<void> assertSubTypesText(
-    InterfaceElement element,
-    String expected,
-  ) async {
-    var results = await driver.search.subTypes(element);
-    var actual = _getSearchResultsText(results);
-    if (actual != expected) {
-      NodeTextExpectationsCollector.add(actual);
-      printPrettyDiff(expected, actual);
+      if (NodeTextExpectationsCollector.shouldPrintFailureDetails) {
+        printPrettyDiff(expected, actual);
+      }
       fail('See the difference above.');
     }
-    expect(actual, expected);
   }
 
   Future<void> assertUnresolvedMemberReferencesText(
@@ -151,10 +158,12 @@ class SearchTest extends PubPackageResolutionTest {
     var results = await driver.search.unresolvedMemberReferences(name);
     var actual = _getSearchResultsText(results);
     if (actual != expected) {
-      print(actual);
       NodeTextExpectationsCollector.add(actual);
+      if (NodeTextExpectationsCollector.shouldPrintFailureDetails) {
+        printPrettyDiff(expected, actual);
+      }
+      fail('See the difference above.');
     }
-    expect(actual, expected);
   }
 
   test_classMembers_class() async {
@@ -885,6 +894,359 @@ testFile
     );
   }
 
+  test_directSubtypeReferences_class_discover2() async {
+    var aaaPackageRootPath = '$packagesRootPath/aaa';
+    var bbbPackageRootPath = '$packagesRootPath/bbb';
+    var cccPackageRootPath = '$packagesRootPath/ccc';
+
+    writeTestPackageConfig(
+      PackageConfigFileBuilder()
+        ..add(name: 'aaa', rootFolder: getFolder(aaaPackageRootPath))
+        ..add(name: 'bbb', rootFolder: getFolder(bbbPackageRootPath)),
+    );
+
+    addTestFile('class T implements List {}');
+    newFile('$aaaPackageRootPath/lib/a.dart', r'''
+class A implements List {}
+''');
+
+    newFile('$bbbPackageRootPath/lib/b.dart', r'''
+class B implements List {}
+''');
+
+    newFile('$cccPackageRootPath/lib/c.dart', r'''
+class C implements List {}
+''');
+
+    var coreLibResult =
+        await driver.getLibraryByUri('dart:core') as LibraryElementResult;
+    var listElement = coreLibResult.element.getClass('List')!;
+
+    var results = await driver.search.directSubtypeReferences(listElement);
+
+    void assertHasResult(String uriStr, String name, {bool not = false}) {
+      var matcher = contains(
+        predicate((SearchResult r) {
+          var element = r.enclosingFragment.element;
+          return element.library!.uri.toString() == uriStr &&
+              element.name == name;
+        }),
+      );
+      expect(results, not ? isNot(matcher) : matcher);
+    }
+
+    assertHasResult('package:test/test.dart', 'T');
+    assertHasResult('package:aaa/a.dart', 'A');
+    assertHasResult('package:bbb/b.dart', 'B');
+    assertHasResult('package:ccc/c.dart', 'C', not: true);
+  }
+
+  test_directSubtypesWithMembers_class() async {
+    var result = await resolveTestCode('''
+class A {}
+
+class B extends A {
+  void methodB() {}
+}
+
+class C extends Object with A {
+  void methodC() {}
+}
+
+class D implements A {
+  void methodD() {}
+}
+
+class E extends B {
+  void methodE() {}
+}
+
+class F {}
+''');
+    var a = result.findElement.class_('A');
+
+    // Search by 'type'.
+    var directSubtypes = await driver.search.directSubtypesWithMembersOfType(a);
+    expect(directSubtypes, hasLength(3));
+
+    DirectSubtypeWithMembers b = directSubtypes.singleWhere(
+      (r) => r.name == 'B',
+    );
+    DirectSubtypeWithMembers c = directSubtypes.singleWhere(
+      (r) => r.name == 'C',
+    );
+    DirectSubtypeWithMembers d = directSubtypes.singleWhere(
+      (r) => r.name == 'D',
+    );
+
+    expect(b.library.resource, testFile);
+    expect(b.id, '${testFile.path};${testFile.path};B');
+    expect(b.members, ['methodB']);
+
+    expect(c.library.resource, testFile);
+    expect(c.id, '${testFile.path};${testFile.path};C');
+    expect(c.members, ['methodC']);
+
+    expect(d.library.resource, testFile);
+    expect(d.id, '${testFile.path};${testFile.path};D');
+    expect(d.members, ['methodD']);
+
+    // Search by 'id'.
+    {
+      var directSubtypes = await driver.search
+          .directSubtypesWithMembersOfSubtype(b);
+      expect(directSubtypes, hasLength(1));
+      DirectSubtypeWithMembers e = directSubtypes.singleWhere(
+        (r) => r.name == 'E',
+      );
+      expect(e.members, ['methodE']);
+    }
+  }
+
+  test_directSubtypesWithMembers_class_discover() async {
+    var aaaPackageRootPath = '$packagesRootPath/aaa';
+    var bbbPackageRootPath = '$packagesRootPath/bbb';
+
+    var aaaFilePath = convertPath('$aaaPackageRootPath/lib/a.dart');
+    var bbbFilePath = convertPath('$bbbPackageRootPath/lib/b.dart');
+
+    writeTestPackageConfig(
+      PackageConfigFileBuilder()
+        ..add(name: 'aaa', rootFolder: getFolder(aaaPackageRootPath))
+        ..add(name: 'bbb', rootFolder: getFolder(bbbPackageRootPath)),
+    );
+
+    var aUri = 'package:aaa/a.dart';
+
+    addTestFile(r'''
+import 'package:aaa/a.dart';
+
+class T1 extends A {
+  void method1() {}
+}
+
+class T2 extends A {
+  void method2() {}
+}
+''');
+
+    newFile(bbbFilePath, r'''
+import 'package:aaa/a.dart';
+
+class B extends A {
+  void method1() {}
+}
+''');
+
+    newFile(aaaFilePath, r'''
+class A {
+  void method1() {}
+  void method2() {}
+}
+''');
+
+    var aLibraryResult =
+        await driver.getLibraryByUri(aUri) as LibraryElementResult;
+    var aClass = aLibraryResult.element.getClass('A')!;
+
+    // Search by 'type'.
+    var directSubtypes = await driver.search.directSubtypesWithMembersOfType(
+      aClass,
+    );
+    expect(directSubtypes, hasLength(3));
+
+    DirectSubtypeWithMembers t1 = directSubtypes.singleWhere(
+      (r) => r.name == 'T1',
+    );
+    DirectSubtypeWithMembers t2 = directSubtypes.singleWhere(
+      (r) => r.name == 'T2',
+    );
+    DirectSubtypeWithMembers b = directSubtypes.singleWhere(
+      (r) => r.name == 'B',
+    );
+
+    expect(t1.library.resource, testFile);
+    expect(t1.id, '${testFile.path};${testFile.path};T1');
+    expect(t1.members, ['method1']);
+
+    expect(t2.library.resource, testFile);
+    expect(t2.id, '${testFile.path};${testFile.path};T2');
+    expect(t2.members, ['method2']);
+
+    expect(b.library.resource, getFile(bbbFilePath));
+    expect(b.id, '$bbbFilePath;$bbbFilePath;B');
+    expect(b.members, ['method1']);
+  }
+
+  test_directSubtypesWithMembers_class_files() async {
+    String pathB = convertPath('$testPackageLibPath/b.dart');
+    String pathC = convertPath('$testPackageLibPath/c.dart');
+    newFile(pathB, r'''
+import 'test.dart';
+class B extends A {}
+''');
+    newFile(pathC, r'''
+import 'test.dart';
+class C extends A {}
+class D {}
+''');
+
+    var result = await resolveTestCode('''
+class A {}
+''');
+    var a = result.findElement.class_('A');
+
+    var directSubtypes = await driver.search.directSubtypesWithMembersOfType(a);
+    expect(directSubtypes, hasLength(2));
+
+    DirectSubtypeWithMembers b = directSubtypes.singleWhere(
+      (r) => r.name == 'B',
+    );
+    DirectSubtypeWithMembers c = directSubtypes.singleWhere(
+      (r) => r.name == 'C',
+    );
+
+    expect(b.id, endsWith('b.dart;B'));
+    expect(c.id, endsWith('c.dart;C'));
+  }
+
+  test_directSubtypesWithMembers_class_missingName() async {
+    var result = await resolveTestCode('''
+class {}
+''');
+    var a = result.findElement.libraryElement.classes.single;
+    var directSubtypes = await driver.search.directSubtypesWithMembersOfType(a);
+    expect(directSubtypes, isEmpty);
+  }
+
+  test_directSubtypesWithMembers_enum() async {
+    var result = await resolveTestCode('''
+class A {}
+
+enum E1 implements A {
+  v;
+  void methodE1() {}
+}
+
+enum E2 with A {
+  v;
+  void methodE2() {}
+}
+
+class B {}
+''');
+
+    var directSubtypes = await driver.search.directSubtypesWithMembersOfType(
+      result.findElement.class_('A'),
+    );
+    expect(directSubtypes, hasLength(2));
+
+    var resultE1 = directSubtypes.singleWhere((r) => r.name == 'E1');
+    var resultE2 = directSubtypes.singleWhere((r) => r.name == 'E2');
+
+    expect(resultE1.library.resource, testFile);
+    expect(resultE1.id, '${testFile.path};${testFile.path};E1');
+    expect(resultE1.members, ['methodE1']);
+
+    expect(resultE2.library.resource, testFile);
+    expect(resultE2.id, '${testFile.path};${testFile.path};E2');
+    expect(resultE2.members, ['methodE2']);
+  }
+
+  test_directSubtypesWithMembers_extensionType() async {
+    var result = await resolveTestCode('''
+class A {}
+
+extension type E1(A it) implements A {
+  void methodE1() {}
+}
+
+extension type E2(A it) implements A {
+  void methodE2() {}
+}
+''');
+
+    var directSubtypes = await driver.search.directSubtypesWithMembersOfType(
+      result.findElement.class_('A'),
+    );
+    expect(directSubtypes, hasLength(2));
+
+    var resultE1 = directSubtypes.singleWhere((r) => r.name == 'E1');
+    var resultE2 = directSubtypes.singleWhere((r) => r.name == 'E2');
+
+    expect(resultE1.library.resource, testFile);
+    expect(resultE1.id, '${testFile.path};${testFile.path};E1');
+    expect(resultE1.members, ['methodE1']);
+
+    expect(resultE2.library.resource, testFile);
+    expect(resultE2.id, '${testFile.path};${testFile.path};E2');
+    expect(resultE2.members, ['methodE2']);
+  }
+
+  test_directSubtypesWithMembers_extensionType2() async {
+    var result = await resolveTestCode('''
+extension type A(int it) {}
+
+extension type B(int it) implements A {
+  void methodB() {}
+}
+''');
+
+    var directSubtypes = await driver.search.directSubtypesWithMembersOfType(
+      result.findElement.extensionType('A'),
+    );
+    expect(directSubtypes, hasLength(1));
+
+    var B = directSubtypes.singleWhere((r) => r.name == 'B');
+
+    expect(B.library.resource, testFile);
+    expect(B.id, '${testFile.path};${testFile.path};B');
+    expect(B.members, ['methodB']);
+  }
+
+  test_directSubtypesWithMembers_mixin_superclassConstraints() async {
+    var result = await resolveTestCode('''
+class A {
+  void methodA() {}
+}
+
+class B {
+  void methodB() {}
+}
+
+mixin M on A, B {
+  void methodA() {}
+  void methodM() {}
+}
+''');
+    var a = result.findElement.class_('A');
+    var b = result.findElement.class_('B');
+
+    {
+      var directSubtypes = await driver.search.directSubtypesWithMembersOfType(
+        a,
+      );
+      expect(directSubtypes, hasLength(1));
+
+      var m = directSubtypes.singleWhere((r) => r.name == 'M');
+      expect(m.library.resource, testFile);
+      expect(m.id, '${testFile.path};${testFile.path};M');
+      expect(m.members, ['methodA', 'methodM']);
+    }
+
+    {
+      var directSubtypes = await driver.search.directSubtypesWithMembersOfType(
+        b,
+      );
+      expect(directSubtypes, hasLength(1));
+
+      var m = directSubtypes.singleWhere((r) => r.name == 'M');
+      expect(m.library.resource, testFile);
+      expect(m.id, '${testFile.path};${testFile.path};M');
+      expect(m.members, ['methodA', 'methodM']);
+    }
+  }
+
   test_issue49951_references_dontAddToKnown_unrelated() async {
     var myRoot = newFolder('$workspaceRootPath/packages/my');
 
@@ -990,7 +1352,7 @@ class B_q extends p.A {}
   79 6:21 |A| REFERENCE qualified
 ''');
 
-    await assertSubTypesText(element, r'''
+    await assertDirectSubtypeReferencesText(element, r'''
 <testLibraryFragment> B@44
   54 5:17 |A| REFERENCE_IN_EXTENDS_CLAUSE
 <testLibraryFragment> B_q@65
@@ -1005,7 +1367,7 @@ class A {}
     includedLibraryUris = {Uri.parse(testUriStr)};
     var element = result.typeProvider.objectType.element;
     await assertElementReferencesText(element, r'''''');
-    await assertSubTypesText(element, '');
+    await assertDirectSubtypeReferencesText(element, '');
   }
 
   test_scenario_ClassElement_hierarchy_class_implements() async {
@@ -1026,7 +1388,7 @@ class B_q implements p.A {}
   85 6:24 |A| REFERENCE qualified
 ''');
 
-    await assertSubTypesText(element, r'''
+    await assertDirectSubtypeReferencesText(element, r'''
 <testLibraryFragment> B@44
   57 5:20 |A| REFERENCE_IN_IMPLEMENTS_CLAUSE
 <testLibraryFragment> B_q@68
@@ -1052,7 +1414,7 @@ class D_q extends Object with p.A {}
   103 6:33 |A| REFERENCE qualified
 ''');
 
-    await assertSubTypesText(element, r'''
+    await assertDirectSubtypeReferencesText(element, r'''
 <testLibraryFragment> D@44
   66 5:29 |A| REFERENCE_IN_WITH_CLAUSE
 <testLibraryFragment> D_q@77
@@ -1078,7 +1440,7 @@ class D2_q = Object with p.A;
   91 6:28 |A| REFERENCE qualified
 ''');
 
-    await assertSubTypesText(element, r'''
+    await assertDirectSubtypeReferencesText(element, r'''
 <testLibraryFragment> D2@44
   61 5:24 |A| REFERENCE_IN_WITH_CLAUSE
 <testLibraryFragment> D2_q@70
@@ -1104,7 +1466,7 @@ enum E_q implements p.A { v }
   86 6:23 |A| REFERENCE qualified
 ''');
 
-    await assertSubTypesText(element, r'''
+    await assertDirectSubtypeReferencesText(element, r'''
 <testLibraryFragment> E@43
   56 5:19 |A| REFERENCE_IN_IMPLEMENTS_CLAUSE
 <testLibraryFragment> E_q@69
@@ -1134,7 +1496,7 @@ extension type E_q(A it) implements p.A {}
   115 6:39 |A| REFERENCE qualified
 ''');
 
-    await assertSubTypesText(element, r'''
+    await assertDirectSubtypeReferencesText(element, r'''
 <testLibraryFragment> E@53
   72 5:35 |A| REFERENCE_IN_IMPLEMENTS_CLAUSE
 <testLibraryFragment> E_q@92
@@ -1160,7 +1522,7 @@ mixin M_q implements p.A {}
   85 6:24 |A| REFERENCE qualified
 ''');
 
-    await assertSubTypesText(element, r'''
+    await assertDirectSubtypeReferencesText(element, r'''
 <testLibraryFragment> M@44
   57 5:20 |A| REFERENCE_IN_IMPLEMENTS_CLAUSE
 <testLibraryFragment> M_q@68
@@ -1186,7 +1548,7 @@ mixin M2_q on p.A {}
   71 6:17 |A| REFERENCE qualified
 ''');
 
-    await assertSubTypesText(element, r'''
+    await assertDirectSubtypeReferencesText(element, r'''
 <testLibraryFragment> M2@44
   50 5:13 |A| REFERENCE_IN_ON_CLAUSE
 <testLibraryFragment> M2_q@61
@@ -1211,7 +1573,7 @@ extension type B_q(int it) implements p.A {}
   136 6:41 |A| REFERENCE qualified
 ''');
 
-    await assertSubTypesText(element, r'''
+    await assertDirectSubtypeReferencesText(element, r'''
 <testLibraryFragment> B@70
   91 5:37 |A| REFERENCE_IN_IMPLEMENTS_CLAUSE
 <testLibraryFragment> B_q@111
@@ -1231,7 +1593,7 @@ class B implements A {}
   30 2:20 |A| REFERENCE
 ''');
 
-    await assertSubTypesText(element, r'''
+    await assertDirectSubtypeReferencesText(element, r'''
 <testLibraryFragment> B@17
   30 2:20 |A| REFERENCE_IN_IMPLEMENTS_CLAUSE
 ''');
@@ -1249,7 +1611,7 @@ class B extends Object with A {}
   39 2:29 |A| REFERENCE
 ''');
 
-    await assertSubTypesText(element, r'''
+    await assertDirectSubtypeReferencesText(element, r'''
 <testLibraryFragment> B@17
   39 2:29 |A| REFERENCE_IN_WITH_CLAUSE
 ''');
@@ -1267,7 +1629,7 @@ class B = Object with A;
   33 2:23 |A| REFERENCE
 ''');
 
-    await assertSubTypesText(element, r'''
+    await assertDirectSubtypeReferencesText(element, r'''
 <testLibraryFragment> B@17
   33 2:23 |A| REFERENCE_IN_WITH_CLAUSE
 ''');
@@ -1287,7 +1649,7 @@ enum E implements A {
   29 2:19 |A| REFERENCE
 ''');
 
-    await assertSubTypesText(element, r'''
+    await assertDirectSubtypeReferencesText(element, r'''
 <testLibraryFragment> E@16
   29 2:19 |A| REFERENCE_IN_IMPLEMENTS_CLAUSE
 ''');
@@ -1307,7 +1669,7 @@ enum E with A {
   23 2:13 |A| REFERENCE
 ''');
 
-    await assertSubTypesText(element, r'''
+    await assertDirectSubtypeReferencesText(element, r'''
 <testLibraryFragment> E@16
   23 2:13 |A| REFERENCE_IN_WITH_CLAUSE
 ''');
@@ -1327,7 +1689,7 @@ extension type E(A it) implements A {}
   45 2:35 |A| REFERENCE
 ''');
 
-    await assertSubTypesText(element, r'''
+    await assertDirectSubtypeReferencesText(element, r'''
 <testLibraryFragment> E@26
   45 2:35 |A| REFERENCE_IN_IMPLEMENTS_CLAUSE
 ''');
@@ -1345,7 +1707,7 @@ mixin M implements A {}
   30 2:20 |A| REFERENCE
 ''');
 
-    await assertSubTypesText(element, r'''
+    await assertDirectSubtypeReferencesText(element, r'''
 <testLibraryFragment> M@17
   30 2:20 |A| REFERENCE_IN_IMPLEMENTS_CLAUSE
 ''');
@@ -1363,7 +1725,7 @@ mixin M on A {}
   22 2:12 |A| REFERENCE
 ''');
 
-    await assertSubTypesText(element, r'''
+    await assertDirectSubtypeReferencesText(element, r'''
 <testLibraryFragment> M@17
   22 2:12 |A| REFERENCE_IN_ON_CLAUSE
 ''');
@@ -1384,7 +1746,7 @@ class C extends B {}
 
     var aliasedClass = result.findElement.class_('A');
     // TODO(scheglov): Subtypes for the aliased class should be reported.
-    await assertSubTypesText(aliasedClass, r'''
+    await assertDirectSubtypeReferencesText(aliasedClass, r'''
 ''');
   }
 
@@ -1403,7 +1765,7 @@ class C implements B {}
 
     var aliasedClass = result.findElement.class_('A');
     // TODO(scheglov): Subtypes for the aliased class should be reported.
-    await assertSubTypesText(aliasedClass, r'''
+    await assertDirectSubtypeReferencesText(aliasedClass, r'''
 ''');
   }
 
@@ -1422,7 +1784,7 @@ class C extends Object with B {}
 
     var aliasedClass = result.findElement.class_('A');
     // TODO(scheglov): Subtypes for the aliased class should be reported.
-    await assertSubTypesText(aliasedClass, r'''
+    await assertDirectSubtypeReferencesText(aliasedClass, r'''
 ''');
   }
 
@@ -1499,30 +1861,39 @@ class C {
   }
 
   test_searchReferences_analyzer_diagnosticCode() async {
-    var diagnosticFile = newFile('$testPackageLibPath/diagnostic.dart', r'''
+    var analyzerPackageRootPath = '$workspaceRootPath/pkg/analyzer';
+    writePackageConfig(
+      analyzerPackageRootPath,
+      PackageConfigFileBuilder()
+        ..add(name: 'analyzer', rootFolder: getFolder(analyzerPackageRootPath)),
+    );
+
+    var analyzerPackageLibPath = '$analyzerPackageRootPath/lib';
+    var analyzerPackageTestPath = '$analyzerPackageRootPath/test';
+    var diagnosticFile = newFile(
+      '$analyzerPackageLibPath/src/diagnostic/diagnostic.dart',
+      r'''
 const myDiagnosticCode = 0;
-''');
+''',
+    );
 
     var diagnosticLibrary = await libraryElementForFile(diagnosticFile);
     var element = diagnosticLibrary.topLevelVariables.firstWhere(
       (v) => v.name == 'myDiagnosticCode',
     );
 
-    newFile('$testPackageLibPath/helper.dart', r'''
-import 'diagnostic.dart';
-''');
-
-    await resolveTestCode(r'''
-import 'helper.dart';
-
+    var analyzerTestFile = newFile('$analyzerPackageTestPath/test.dart', r'''
 void f() {
   '// [diag.myDiagnosticCode]';
 }
 ''');
+    driver = driverFor(analyzerTestFile);
+    driver.addFile2(analyzerTestFile);
+    await driver.applyPendingFileChanges();
 
     await assertElementReferencesText(element, r'''
-<testLibraryFragment> f@28
-  46 4:13 |myDiagnosticCode| REFERENCE qualified
+test.dart f@5
+  23 2:13 |myDiagnosticCode| REFERENCE qualified
 ''');
   }
 
@@ -1887,6 +2258,37 @@ var v_p = p.A;
   46 5:9 |A| REFERENCE
 <testLibraryFragment> v_p@53
   61 6:13 |A| REFERENCE qualified
+''');
+  }
+
+  test_searchReferences_ConstructorElement_class_annotation() async {
+    var result = await resolveTestCode(r'''
+import 'test.dart' as p;
+
+class A {
+  const A();
+  const A.named();
+}
+
+@A()
+@p.A()
+@A.named()
+@p.A.named()
+void f() {}
+''');
+
+    var unnamed = result.findElement.unnamedConstructor('A');
+    await assertElementReferencesText(unnamed, r'''
+<testLibraryFragment> f@112
+  73 8:3 || INVOCATION qualified
+  80 9:5 || INVOCATION qualified
+''');
+
+    var named = result.findElement.constructor('named', of: 'A');
+    await assertElementReferencesText(named, r'''
+<testLibraryFragment> f@112
+  85 10:3 |.named| INVOCATION qualified
+  98 11:5 |.named| INVOCATION qualified
 ''');
   }
 
@@ -6944,334 +7346,6 @@ mixin B implements T {}
 <testLibraryFragment> B@33
   46 3:20 |T| REFERENCE
 ''');
-  }
-
-  test_subtypes_class() async {
-    var result = await resolveTestCode('''
-class A {}
-
-class B extends A {
-  void methodB() {}
-}
-
-class C extends Object with A {
-  void methodC() {}
-}
-
-class D implements A {
-  void methodD() {}
-}
-
-class E extends B {
-  void methodE() {}
-}
-
-class F {}
-''');
-    var a = result.findElement.class_('A');
-
-    // Search by 'type'.
-    List<SubtypeResult> subtypes = await driver.search.subtypes(type: a);
-    expect(subtypes, hasLength(3));
-
-    SubtypeResult b = subtypes.singleWhere((r) => r.name == 'B');
-    SubtypeResult c = subtypes.singleWhere((r) => r.name == 'C');
-    SubtypeResult d = subtypes.singleWhere((r) => r.name == 'D');
-
-    expect(b.library.resource, testFile);
-    expect(b.id, '${testFile.path};${testFile.path};B');
-    expect(b.members, ['methodB']);
-
-    expect(c.library.resource, testFile);
-    expect(c.id, '${testFile.path};${testFile.path};C');
-    expect(c.members, ['methodC']);
-
-    expect(d.library.resource, testFile);
-    expect(d.id, '${testFile.path};${testFile.path};D');
-    expect(d.members, ['methodD']);
-
-    // Search by 'id'.
-    {
-      List<SubtypeResult> subtypes = await driver.search.subtypes(subtype: b);
-      expect(subtypes, hasLength(1));
-      SubtypeResult e = subtypes.singleWhere((r) => r.name == 'E');
-      expect(e.members, ['methodE']);
-    }
-  }
-
-  test_subTypes_class_discover() async {
-    var aaaPackageRootPath = '$packagesRootPath/aaa';
-    var bbbPackageRootPath = '$packagesRootPath/bbb';
-
-    var aaaFilePath = convertPath('$aaaPackageRootPath/lib/a.dart');
-    var bbbFilePath = convertPath('$bbbPackageRootPath/lib/b.dart');
-
-    writeTestPackageConfig(
-      PackageConfigFileBuilder()
-        ..add(name: 'aaa', rootFolder: getFolder(aaaPackageRootPath))
-        ..add(name: 'bbb', rootFolder: getFolder(bbbPackageRootPath)),
-    );
-
-    var aUri = 'package:aaa/a.dart';
-
-    addTestFile(r'''
-import 'package:aaa/a.dart';
-
-class T1 extends A {
-  void method1() {}
-}
-
-class T2 extends A {
-  void method2() {}
-}
-''');
-
-    newFile(bbbFilePath, r'''
-import 'package:aaa/a.dart';
-
-class B extends A {
-  void method1() {}
-}
-''');
-
-    newFile(aaaFilePath, r'''
-class A {
-  void method1() {}
-  void method2() {}
-}
-''');
-
-    var aLibraryResult =
-        await driver.getLibraryByUri(aUri) as LibraryElementResult;
-    var aClass = aLibraryResult.element.getClass('A')!;
-
-    // Search by 'type'.
-    List<SubtypeResult> subtypes = await driver.search.subtypes(type: aClass);
-    expect(subtypes, hasLength(3));
-
-    SubtypeResult t1 = subtypes.singleWhere((r) => r.name == 'T1');
-    SubtypeResult t2 = subtypes.singleWhere((r) => r.name == 'T2');
-    SubtypeResult b = subtypes.singleWhere((r) => r.name == 'B');
-
-    expect(t1.library.resource, testFile);
-    expect(t1.id, '${testFile.path};${testFile.path};T1');
-    expect(t1.members, ['method1']);
-
-    expect(t2.library.resource, testFile);
-    expect(t2.id, '${testFile.path};${testFile.path};T2');
-    expect(t2.members, ['method2']);
-
-    expect(b.library.resource, getFile(bbbFilePath));
-    expect(b.id, '$bbbFilePath;$bbbFilePath;B');
-    expect(b.members, ['method1']);
-  }
-
-  test_subTypes_class_discover2() async {
-    var aaaPackageRootPath = '$packagesRootPath/aaa';
-    var bbbPackageRootPath = '$packagesRootPath/bbb';
-    var cccPackageRootPath = '$packagesRootPath/ccc';
-
-    writeTestPackageConfig(
-      PackageConfigFileBuilder()
-        ..add(name: 'aaa', rootFolder: getFolder(aaaPackageRootPath))
-        ..add(name: 'bbb', rootFolder: getFolder(bbbPackageRootPath)),
-    );
-
-    addTestFile('class T implements List {}');
-    newFile('$aaaPackageRootPath/lib/a.dart', r'''
-class A implements List {}
-''');
-
-    newFile('$bbbPackageRootPath/lib/b.dart', r'''
-class B implements List {}
-''');
-
-    newFile('$cccPackageRootPath/lib/c.dart', r'''
-class C implements List {}
-''');
-
-    var coreLibResult =
-        await driver.getLibraryByUri('dart:core') as LibraryElementResult;
-    var listElement = coreLibResult.element.getClass('List')!;
-
-    var results = await driver.search.subTypes(listElement);
-
-    void assertHasResult(String uriStr, String name, {bool not = false}) {
-      var matcher = contains(
-        predicate((SearchResult r) {
-          var element = r.enclosingFragment.element;
-          return element.library!.uri.toString() == uriStr &&
-              element.name == name;
-        }),
-      );
-      expect(results, not ? isNot(matcher) : matcher);
-    }
-
-    assertHasResult('package:test/test.dart', 'T');
-    assertHasResult('package:aaa/a.dart', 'A');
-    assertHasResult('package:bbb/b.dart', 'B');
-    assertHasResult('package:ccc/c.dart', 'C', not: true);
-  }
-
-  test_subtypes_class_files() async {
-    String pathB = convertPath('$testPackageLibPath/b.dart');
-    String pathC = convertPath('$testPackageLibPath/c.dart');
-    newFile(pathB, r'''
-import 'test.dart';
-class B extends A {}
-''');
-    newFile(pathC, r'''
-import 'test.dart';
-class C extends A {}
-class D {}
-''');
-
-    var result = await resolveTestCode('''
-class A {}
-''');
-    var a = result.findElement.class_('A');
-
-    List<SubtypeResult> subtypes = await driver.search.subtypes(type: a);
-    expect(subtypes, hasLength(2));
-
-    SubtypeResult b = subtypes.singleWhere((r) => r.name == 'B');
-    SubtypeResult c = subtypes.singleWhere((r) => r.name == 'C');
-
-    expect(b.id, endsWith('b.dart;B'));
-    expect(c.id, endsWith('c.dart;C'));
-  }
-
-  test_subtypes_class_missingName() async {
-    var result = await resolveTestCode('''
-class {}
-''');
-    var a = result.findElement.libraryElement.classes.single;
-    var subtypes = await driver.search.subtypes(type: a);
-    expect(subtypes, isEmpty);
-  }
-
-  test_subtypes_enum() async {
-    var result = await resolveTestCode('''
-class A {}
-
-enum E1 implements A {
-  v;
-  void methodE1() {}
-}
-
-enum E2 with A {
-  v;
-  void methodE2() {}
-}
-
-class B {}
-''');
-
-    var subtypes = await driver.search.subtypes(
-      type: result.findElement.class_('A'),
-    );
-    expect(subtypes, hasLength(2));
-
-    var resultE1 = subtypes.singleWhere((r) => r.name == 'E1');
-    var resultE2 = subtypes.singleWhere((r) => r.name == 'E2');
-
-    expect(resultE1.library.resource, testFile);
-    expect(resultE1.id, '${testFile.path};${testFile.path};E1');
-    expect(resultE1.members, ['methodE1']);
-
-    expect(resultE2.library.resource, testFile);
-    expect(resultE2.id, '${testFile.path};${testFile.path};E2');
-    expect(resultE2.members, ['methodE2']);
-  }
-
-  test_subtypes_extensionType() async {
-    var result = await resolveTestCode('''
-class A {}
-
-extension type E1(A it) implements A {
-  void methodE1() {}
-}
-
-extension type E2(A it) implements A {
-  void methodE2() {}
-}
-''');
-
-    var subtypes = await driver.search.subtypes(
-      type: result.findElement.class_('A'),
-    );
-    expect(subtypes, hasLength(2));
-
-    var resultE1 = subtypes.singleWhere((r) => r.name == 'E1');
-    var resultE2 = subtypes.singleWhere((r) => r.name == 'E2');
-
-    expect(resultE1.library.resource, testFile);
-    expect(resultE1.id, '${testFile.path};${testFile.path};E1');
-    expect(resultE1.members, ['methodE1']);
-
-    expect(resultE2.library.resource, testFile);
-    expect(resultE2.id, '${testFile.path};${testFile.path};E2');
-    expect(resultE2.members, ['methodE2']);
-  }
-
-  test_subtypes_extensionType2() async {
-    var result = await resolveTestCode('''
-extension type A(int it) {}
-
-extension type B(int it) implements A {
-  void methodB() {}
-}
-''');
-
-    var subtypes = await driver.search.subtypes(
-      type: result.findElement.extensionType('A'),
-    );
-    expect(subtypes, hasLength(1));
-
-    var B = subtypes.singleWhere((r) => r.name == 'B');
-
-    expect(B.library.resource, testFile);
-    expect(B.id, '${testFile.path};${testFile.path};B');
-    expect(B.members, ['methodB']);
-  }
-
-  test_subtypes_mixin_superclassConstraints() async {
-    var result = await resolveTestCode('''
-class A {
-  void methodA() {}
-}
-
-class B {
-  void methodB() {}
-}
-
-mixin M on A, B {
-  void methodA() {}
-  void methodM() {}
-}
-''');
-    var a = result.findElement.class_('A');
-    var b = result.findElement.class_('B');
-
-    {
-      var subtypes = await driver.search.subtypes(type: a);
-      expect(subtypes, hasLength(1));
-
-      var m = subtypes.singleWhere((r) => r.name == 'M');
-      expect(m.library.resource, testFile);
-      expect(m.id, '${testFile.path};${testFile.path};M');
-      expect(m.members, ['methodA', 'methodM']);
-    }
-
-    {
-      var subtypes = await driver.search.subtypes(type: b);
-      expect(subtypes, hasLength(1));
-
-      var m = subtypes.singleWhere((r) => r.name == 'M');
-      expect(m.library.resource, testFile);
-      expect(m.id, '${testFile.path};${testFile.path};M');
-      expect(m.members, ['methodA', 'methodM']);
-    }
   }
 
   test_topLevelElements() async {

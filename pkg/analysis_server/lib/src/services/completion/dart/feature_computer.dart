@@ -169,7 +169,7 @@ class FeatureComputer {
   final TypeProvider typeProvider;
 
   /// Initialize a newly created feature computer.
-  FeatureComputer(this.typeSystem, this.typeProvider);
+  new(this.typeSystem, this.typeProvider);
 
   /// Return the type imposed when completing at the given [offset], where the
   /// offset is within the given [node], or `null` if the context does not
@@ -506,7 +506,7 @@ class _ContextTypeVisitor extends SimpleAstVisitor<DartType> {
 
   int offset;
 
-  _ContextTypeVisitor(this.typeProvider, this.offset);
+  new(this.typeProvider, this.offset);
 
   @override
   DartType? visitAdjacentStrings(AdjacentStrings node) {
@@ -604,7 +604,7 @@ class _ContextTypeVisitor extends SimpleAstVisitor<DartType> {
   DartType? visitAssignmentExpression(AssignmentExpression node) {
     if (node.operator.end <= offset) {
       // RHS
-      if (node.operator.type == TokenType.EQ) {
+      if (node.operator.type case .EQ || .QUESTION_QUESTION_EQ) {
         return node.writeType;
       }
       var method = node.element;
@@ -627,7 +627,8 @@ class _ContextTypeVisitor extends SimpleAstVisitor<DartType> {
   DartType? visitBinaryExpression(BinaryExpression node) {
     if (node.operator.end <= offset) {
       if (node.operator.type == TokenType.EQ_EQ ||
-          node.operator.type == TokenType.BANG_EQ) {
+          node.operator.type == TokenType.BANG_EQ ||
+          node.operator.type == TokenType.QUESTION_QUESTION) {
         var rightOperand = node.rightOperand;
         if (rightOperand is DotShorthandMixin && rightOperand.isDotShorthand) {
           return node.leftOperand.staticType;

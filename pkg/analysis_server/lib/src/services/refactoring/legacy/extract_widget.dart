@@ -72,12 +72,8 @@ class ExtractWidgetRefactoringImpl extends RefactoringImpl
   /// and [_method] parameters.
   final List<_Parameter> _parameters = [];
 
-  ExtractWidgetRefactoringImpl(
-    this.searchEngine,
-    this.resolveResult,
-    this.offset,
-    this.length,
-  ) : sessionHelper = AnalysisSessionHelper(resolveResult.session),
+  new(this.searchEngine, this.resolveResult, this.offset, this.length)
+    : sessionHelper = AnalysisSessionHelper(resolveResult.session),
       utils = CorrectionUtils(resolveResult);
 
   @override
@@ -87,6 +83,29 @@ class ExtractWidgetRefactoringImpl extends RefactoringImpl
 
   FeatureSet get _featureSet {
     return resolveResult.unit.featureSet;
+  }
+
+  Future<void> buildChange({required ChangeBuilder builder}) async {
+    await builder.addDartFileEdit(resolveResult.path, (builder) {
+      var expression = _expression;
+      var statements = _statements;
+      if (expression != null) {
+        builder.addReplacement(range.node(expression), (builder) {
+          _writeWidgetInstantiation(builder);
+        });
+      } else if (statements != null) {
+        builder.addReplacement(_statementsRange!, (builder) {
+          builder.write('return ');
+          _writeWidgetInstantiation(builder);
+          builder.write(';');
+        });
+      } else {
+        _removeMethodDeclaration(builder);
+        _replaceInvocationsWithInstantiations(builder);
+      }
+
+      _writeWidgetDeclaration(builder);
+    });
   }
 
   @override
@@ -142,30 +161,13 @@ class ExtractWidgetRefactoringImpl extends RefactoringImpl
   @override
   Future<SourceChange> createChange({ChangeBuilder? builder}) async {
     builder ??= ChangeBuilder(
-      session: sessionHelper.session,
+      session: resolveResult.session,
       defaultEol: utils.endOfLine,
     );
-    await builder.addDartFileEdit(resolveResult.path, (builder) {
-      var expression = _expression;
-      var statements = _statements;
-      if (expression != null) {
-        builder.addReplacement(range.node(expression), (builder) {
-          _writeWidgetInstantiation(builder);
-        });
-      } else if (statements != null) {
-        builder.addReplacement(_statementsRange!, (builder) {
-          builder.write('return ');
-          _writeWidgetInstantiation(builder);
-          builder.write(';');
-        });
-      } else {
-        _removeMethodDeclaration(builder);
-        _replaceInvocationsWithInstantiations(builder);
-      }
-
-      _writeWidgetDeclaration(builder);
-    });
-    return builder.sourceChange;
+    await buildChange(builder: builder);
+    var sourceChange = builder.sourceChange;
+    sourceChange.message = refactoringName;
+    return sourceChange;
   }
 
   @override
@@ -608,7 +610,7 @@ class _MethodInvocationsCollector extends RecursiveAstVisitor<void> {
   final ExecutableElement methodElement;
   final List<MethodInvocation> invocations = [];
 
-  _MethodInvocationsCollector(this.methodElement);
+  new(this.methodElement);
 
   @override
   void visitMethodInvocation(MethodInvocation node) {
@@ -637,7 +639,7 @@ class _Parameter {
   /// constructor. If the [name] is already public, then the [name].
   late String constructorName;
 
-  _Parameter(
+  new(
     this.name,
     this.type, {
     this.isMethodParameter = false,
@@ -655,7 +657,7 @@ class _ParametersCollector extends RecursiveAstVisitor<void> {
 
   List<InterfaceElement>? enclosingClasses;
 
-  _ParametersCollector(this.enclosingClass, this.expressionRange);
+  new(this.enclosingClass, this.expressionRange);
 
   @override
   void visitSimpleIdentifier(SimpleIdentifier node) {

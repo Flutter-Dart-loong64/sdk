@@ -32,24 +32,7 @@ sealed class Member extends NamedNode implements Annotatable, FileUriNode {
   @override
   Uri fileUri;
 
-  /// Flags summarizing the kinds of AST nodes contained in this member, for
-  /// speeding up transformations that only affect certain types of nodes.
-  ///
-  /// See [TransformerFlag] for the meaning of each bit.
-  ///
-  /// These should not be used for any purpose other than skipping certain
-  /// members if it can be determined that no work is needed in there.
-  ///
-  /// It is valid for these flags to be false positives in rare cases, so
-  /// transformers must tolerate the case where a flag is spuriously set.
-  ///
-  /// This value is not serialized; it is populated by the frontend and the
-  /// deserializer.
-  //
-  // TODO(asgerf): It might be worthwhile to put this on classes as well.
-  int transformerFlags = 0;
-
-  Member(this.name, this.fileUri, Reference? reference) : super(reference);
+  new(this.name, this.fileUri, Reference? reference) : super(reference);
 
   /// The enclosing [TypeDeclaration] if this member a class member or an
   /// abstract extension type member.
@@ -251,9 +234,9 @@ sealed class Member extends NamedNode implements Annotatable, FileUriNode {
   /// of an instance set, it has setter type `int`.
   DartType get superSetterType => setterType;
 
-  bool get containsSuperCalls {
-    return transformerFlags & TransformerFlag.superCalls != 0;
-  }
+  /// Register and if it has been registered that this member contains one or
+  /// more super calls.
+  abstract bool containsSuperCalls;
 
   /// If this member is a member signature, [memberSignatureOrigin] is one of
   /// the non-member signature members from which it was created.
@@ -294,7 +277,9 @@ class Field extends Member implements ScopeProvider {
   @override
   Scope? scope;
 
-  Field.mutable(
+  ThisVariable? thisVariable;
+
+  new mutable(
     Name name, {
     this.type = const DynamicType(),
     this.initializer,
@@ -302,7 +287,7 @@ class Field extends Member implements ScopeProvider {
     bool isFinal = false,
     bool isStatic = false,
     bool isLate = false,
-    int transformerFlags = 0,
+    bool containsSuperCalls = false,
     required Uri fileUri,
     Reference? fieldReference,
     Reference? getterReference,
@@ -317,10 +302,10 @@ class Field extends Member implements ScopeProvider {
     this.isFinal = isFinal;
     this.isStatic = isStatic;
     this.isLate = isLate;
-    this.transformerFlags = transformerFlags;
+    this.containsSuperCalls = containsSuperCalls;
   }
 
-  Field.immutable(
+  new immutable(
     Name name, {
     this.type = const DynamicType(),
     this.initializer,
@@ -329,7 +314,7 @@ class Field extends Member implements ScopeProvider {
     bool isConst = false,
     bool isStatic = false,
     bool isLate = false,
-    int transformerFlags = 0,
+    bool containsSuperCalls = false,
     required Uri fileUri,
     Reference? fieldReference,
     Reference? getterReference,
@@ -345,7 +330,7 @@ class Field extends Member implements ScopeProvider {
     this.isStatic = isStatic;
     this.isLate = isLate;
     this.isEnumElement = isEnumElement;
-    this.transformerFlags = transformerFlags;
+    this.containsSuperCalls = containsSuperCalls;
   }
 
   @override
@@ -377,6 +362,7 @@ class Field extends Member implements ScopeProvider {
   static const int FlagEnumElement = 1 << 8;
   static const int FlagExtensionTypeMember = 1 << 9;
   static const int FlagErroneous = 1 << 10;
+  static const int FlagHasSuperCalls = 1 << 11;
 
   /// Whether the field is declared with the `covariant` keyword.
   bool get isCovariantByDeclaration => flags & FlagCovariant != 0;
@@ -396,6 +382,14 @@ class Field extends Member implements ScopeProvider {
 
   @override
   bool get isErroneous => flags & FlagErroneous != 0;
+
+  @override
+  bool get containsSuperCalls => flags & FlagHasSuperCalls != 0;
+
+  @override
+  void set containsSuperCalls(bool value) {
+    flags = value ? (flags | FlagHasSuperCalls) : (flags & ~FlagHasSuperCalls);
+  }
 
   /// Indicates whether the implicit setter associated with this field needs to
   /// contain a runtime type check to deal with generic covariance.
@@ -582,14 +576,14 @@ class Constructor extends Member {
 
   List<Initializer> initializers;
 
-  Constructor(
+  new(
     this.function, {
     required Name name,
     bool isConst = false,
     bool isExternal = false,
     bool isSynthetic = false,
     List<Initializer>? initializers,
-    int transformerFlags = 0,
+    bool containsSuperCalls = false,
     required Uri fileUri,
     Reference? reference,
   }) : this.initializers = initializers ?? <Initializer>[],
@@ -599,7 +593,7 @@ class Constructor extends Member {
     this.isConst = isConst;
     this.isExternal = isExternal;
     this.isSynthetic = isSynthetic;
-    this.transformerFlags = transformerFlags;
+    this.containsSuperCalls = containsSuperCalls;
   }
 
   @override
@@ -614,6 +608,7 @@ class Constructor extends Member {
   static const int FlagExternal = 1 << 1;
   static const int FlagSynthetic = 1 << 2;
   static const int FlagErroneous = 1 << 3;
+  static const int FlagHasSuperCalls = 1 << 4;
 
   @override
   bool get isConst => flags & FlagConst != 0;
@@ -642,6 +637,14 @@ class Constructor extends Member {
 
   void set isErroneous(bool value) {
     flags = value ? (flags | FlagErroneous) : (flags & ~FlagErroneous);
+  }
+
+  @override
+  bool get containsSuperCalls => flags & FlagHasSuperCalls != 0;
+
+  @override
+  void set containsSuperCalls(bool value) {
+    flags = value ? (flags | FlagHasSuperCalls) : (flags & ~FlagHasSuperCalls);
   }
 
   @override
@@ -974,7 +977,7 @@ class Procedure extends Member implements GenericFunction {
   /// being null.
   FunctionType? signatureType;
 
-  Procedure(
+  new(
     Name name,
     ProcedureKind kind,
     FunctionNode function, {
@@ -985,7 +988,7 @@ class Procedure extends Member implements GenericFunction {
     bool isExtensionMember = false,
     bool isExtensionTypeMember = false,
     bool isSynthetic = false,
-    int transformerFlags = 0,
+    bool containsSuperCalls = false,
     required Uri fileUri,
     Reference? reference,
     ProcedureStubKind stubKind = ProcedureStubKind.Regular,
@@ -1001,7 +1004,7 @@ class Procedure extends Member implements GenericFunction {
          isExtensionMember: isExtensionMember,
          isExtensionTypeMember: isExtensionTypeMember,
          isSynthetic: isSynthetic,
-         transformerFlags: transformerFlags,
+         containsSuperCalls: containsSuperCalls,
          fileUri: fileUri,
          reference: reference,
          stubKind: stubKind,
@@ -1011,7 +1014,7 @@ class Procedure extends Member implements GenericFunction {
          ),
        );
 
-  Procedure._byReferenceRenamed(
+  new _byReferenceRenamed(
     Name name,
     this.kind,
     this.function, {
@@ -1022,7 +1025,7 @@ class Procedure extends Member implements GenericFunction {
     bool isExtensionMember = false,
     bool isExtensionTypeMember = false,
     bool isSynthetic = false,
-    int transformerFlags = 0,
+    bool containsSuperCalls = false,
     required Uri fileUri,
     Reference? reference,
     this.stubKind = ProcedureStubKind.Regular,
@@ -1036,7 +1039,7 @@ class Procedure extends Member implements GenericFunction {
     this.isExtensionMember = isExtensionMember;
     this.isExtensionTypeMember = isExtensionTypeMember;
     this.isSynthetic = isSynthetic;
-    setTransformerFlagsWithoutLazyLoading(transformerFlags);
+    this.containsSuperCalls = containsSuperCalls;
     assert(
       !(isMemberSignature && stubTargetReference == null),
       "No member signature origin for member signature $this.",
@@ -1051,31 +1054,6 @@ class Procedure extends Member implements GenericFunction {
 
   @override
   List<TypeParameter> get typeParameters => function.typeParameters;
-
-  // The function node's body might be lazily loaded, meaning that this value
-  // might not be set correctly yet. Make sure the body is loaded before
-  // returning anything.
-  @override
-  int get transformerFlags {
-    function.body;
-    return super.transformerFlags;
-  }
-
-  // The function node's body might be lazily loaded, meaning that this value
-  // might get overwritten later (when the body is read). To avoid that read the
-  // body now and only set the value afterwards.
-  @override
-  void set transformerFlags(int newValue) {
-    function.body;
-    super.transformerFlags = newValue;
-  }
-
-  // This function will set the transformer flags without loading the body.
-  // Used when reading the binary. For other cases one should probably use
-  // `transformerFlags = value;`.
-  void setTransformerFlagsWithoutLazyLoading(int newValue) {
-    super.transformerFlags = newValue;
-  }
 
   @override
   void bindCanonicalNames(CanonicalName parent) {
@@ -1093,6 +1071,7 @@ class Procedure extends Member implements GenericFunction {
   static const int FlagHasWeakTearoffReferencePragma = 1 << 8;
   static const int FlagErroneous = 1 << 9;
   static const int FlagHasExternalEffectPragma = 1 << 10;
+  static const int FlagHasSuperCalls = 1 << 11;
 
   bool get isStatic => flags & FlagStatic != 0;
 
@@ -1253,6 +1232,14 @@ class Procedure extends Member implements GenericFunction {
   }
 
   @override
+  bool get containsSuperCalls => flags & FlagHasSuperCalls != 0;
+
+  @override
+  void set containsSuperCalls(bool value) {
+    flags = value ? (flags | FlagHasSuperCalls) : (flags & ~FlagHasSuperCalls);
+  }
+
+  @override
   bool get isErroneous => flags & FlagErroneous != 0;
 
   void set isErroneous(bool value) {
@@ -1371,15 +1358,15 @@ class RedirectingFactoryTarget {
   /// otherwise.
   final String? errorMessage;
 
-  RedirectingFactoryTarget(Member target, List<DartType> typeArguments)
+  new(Member target, List<DartType> typeArguments)
     : this.byReference(target.reference, typeArguments);
 
-  RedirectingFactoryTarget.byReference(
+  new byReference(
     Reference this.targetReference,
     List<DartType> this.typeArguments,
   ) : errorMessage = null;
 
-  RedirectingFactoryTarget.error(String this.errorMessage)
+  new error(String this.errorMessage)
     : targetReference = null,
       typeArguments = null;
 

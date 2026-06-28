@@ -19,13 +19,8 @@ import 'members_node.dart';
 class ExtensionTypeMembersNodeBuilder extends MembersNodeBuilder {
   final ExtensionTypeHierarchyNode _hierarchyNode;
   final ClassMembersBuilder _membersBuilder;
-  final bool _isClosureContextLoweringEnabled;
 
-  ExtensionTypeMembersNodeBuilder(
-    this._membersBuilder,
-    this._hierarchyNode, {
-    required bool isClosureContextLoweringEnabled,
-  }) : _isClosureContextLoweringEnabled = isClosureContextLoweringEnabled;
+  new(this._membersBuilder, this._hierarchyNode);
 
   ExtensionTypeDeclarationBuilder get extensionTypeDeclarationBuilder =>
       _hierarchyNode.extensionTypeDeclarationBuilder;
@@ -188,10 +183,7 @@ class ExtensionTypeMembersNodeBuilder extends MembersNodeBuilder {
       ///
       /// Conflicts between the getable and setable are reported afterwards.
       var (_SanitizedMember? getable, _SanitizedMember? setable) = tuple
-          .sanitize(
-            this,
-            isClosureContextLoweringEnabled: _isClosureContextLoweringEnabled,
-          );
+          .sanitize(this);
 
       ClassMember? getableMember;
       if (getable != null) {
@@ -294,7 +286,7 @@ class ExtensionTypeMembersNode {
   /// Similar to [extensionTypeGetableMap] but for setables.
   final Map<Name, ClassMember>? extensionTypeSetableMap;
 
-  ExtensionTypeMembersNode(
+  new(
     this.extensionTypeDeclarationBuilder,
     this.nonExtensionTypeGetableMap,
     this.nonExtensionTypeSetableMap,
@@ -341,43 +333,43 @@ class _Tuple {
   List<ClassMember>? _implementedExtensionTypeGetables;
   List<ClassMember>? _implementedExtensionTypeSetables;
 
-  _Tuple.declareExtensionTypeGetable(ClassMember declaredGetable)
+  new declareExtensionTypeGetable(ClassMember declaredGetable)
     : assert(!declaredGetable.forSetter),
       this._declaredExtensionTypeGetable = declaredGetable,
       this.name = declaredGetable.name;
 
-  _Tuple.declareNonExtensionTypeGetable(ClassMember declaredGetable)
+  new declareNonExtensionTypeGetable(ClassMember declaredGetable)
     : assert(!declaredGetable.forSetter),
       this._declaredNonExtensionTypeGetable = declaredGetable,
       this.name = declaredGetable.name;
 
-  _Tuple.implementNonExtensionTypeGetable(ClassMember implementedGetable)
+  new implementNonExtensionTypeGetable(ClassMember implementedGetable)
     : assert(!implementedGetable.forSetter),
       this.name = implementedGetable.name,
       _implementedNonExtensionTypeGetables = <ClassMember>[implementedGetable];
 
-  _Tuple.implementExtensionTypeGetable(ClassMember implementedGetable)
+  new implementExtensionTypeGetable(ClassMember implementedGetable)
     : assert(!implementedGetable.forSetter),
       this.name = implementedGetable.name,
       _implementedExtensionTypeGetables = <ClassMember>[implementedGetable];
 
-  _Tuple.declareExtensionTypeSetable(ClassMember declaredSetable)
+  new declareExtensionTypeSetable(ClassMember declaredSetable)
     : assert(declaredSetable.forSetter),
       this._declaredExtensionTypeSetable = declaredSetable,
       this.name = declaredSetable.name;
 
   // Coverage-ignore(suite): Not run.
-  _Tuple.declareNonExtensionTypeSetable(ClassMember declaredSetable)
+  new declareNonExtensionTypeSetable(ClassMember declaredSetable)
     : assert(declaredSetable.forSetter),
       this._declaredNonExtensionTypeSetable = declaredSetable,
       this.name = declaredSetable.name;
 
-  _Tuple.implementNonExtensionTypeSetable(ClassMember implementedSetable)
+  new implementNonExtensionTypeSetable(ClassMember implementedSetable)
     : assert(implementedSetable.forSetter),
       this.name = implementedSetable.name,
       _implementedNonExtensionTypeSetables = <ClassMember>[implementedSetable];
 
-  _Tuple.implementExtensionTypeSetable(ClassMember implementedSetable)
+  new implementExtensionTypeSetable(ClassMember implementedSetable)
     : assert(implementedSetable.forSetter),
       this.name = implementedSetable.name,
       _implementedExtensionTypeSetables = <ClassMember>[implementedSetable];
@@ -567,9 +559,8 @@ class _Tuple {
   /// Conflicts between [definingGetable] and [definingSetable] are reported
   /// afterwards.
   (_SanitizedMember?, _SanitizedMember?) sanitize(
-    ExtensionTypeMembersNodeBuilder builder, {
-    required bool isClosureContextLoweringEnabled,
-  }) {
+    ExtensionTypeMembersNodeBuilder builder,
+  ) {
     ClassMember? definingGetable;
     ClassMember? definingSetable;
 
@@ -952,7 +943,6 @@ class _Tuple {
               declaredNonExtensionTypeGetable,
               implementedNonExtensionTypeGetables,
               implementedExtensionTypeGetables,
-              isClosureContextLoweringEnabled: isClosureContextLoweringEnabled,
             )
           : null,
       definingSetable != null
@@ -963,7 +953,6 @@ class _Tuple {
               declaredNonExtensionTypeSetable,
               implementedNonExtensionTypeSetables,
               implementedExtensionTypeSetables,
-              isClosureContextLoweringEnabled: isClosureContextLoweringEnabled,
             )
           : null,
     );
@@ -1001,17 +990,14 @@ class _SanitizedMember {
   /// `null`.
   final List<ClassMember>? _implementedExtensionTypeMembers;
 
-  final bool _isClosureContextLoweringEnabled;
-
-  _SanitizedMember(
+  new(
     this.name,
     this._definingMember,
     this._declaredExtensionTypeMember,
     this._declaredNonExtensionTypeMember,
     this._implementedNonExtensionTypeMembers,
-    this._implementedExtensionTypeMembers, {
-    required bool isClosureContextLoweringEnabled,
-  }) : _isClosureContextLoweringEnabled = isClosureContextLoweringEnabled;
+    this._implementedExtensionTypeMembers,
+  );
 
   /// Computes the class and interface members for this [_SanitizedMember].
   ///
@@ -1100,7 +1086,6 @@ class _SanitizedMember {
           _implementedNonExtensionTypeMembers,
           memberKind: _definingMember.memberKind,
           shouldModifyKernel: builder.shouldModifyKernel,
-          isClosureContextLoweringEnabled: _isClosureContextLoweringEnabled,
         );
         builder._membersBuilder.registerMemberComputation(classMember);
         return nonExtensionTypeMemberMap[name] = classMember;

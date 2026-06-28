@@ -1114,18 +1114,21 @@ class ClosureLayouter extends RecursiveVisitor {
   }
 
   void _visitFunctionNode(FunctionNode functionNode) {
+    final functionType = functionNode.computeFunctionType(
+      Nullability.nonNullable,
+    );
     final representations = _representationsForCounts(
-      functionNode.typeParameters.length,
-      functionNode.positionalParameters.length,
+      functionType.typeParameters.length,
+      functionType.positionalParameters.length,
     );
     representations.registerFunction(functionNode);
-    if (functionNode.typeParameters.isNotEmpty) {
+    if (functionType.typeParameters.isNotEmpty) {
       // Due to generic function instantiations, any generic function present
       // in the program also counts as a presence of the corresponding
       // non-generic function.
       final instantiatedRepresentations = _representationsForCounts(
         0,
-        functionNode.positionalParameters.length,
+        functionType.positionalParameters.length,
       );
       instantiatedRepresentations.registerFunction(functionNode);
     }
@@ -1203,6 +1206,20 @@ class ClosureLayouter extends RecursiveVisitor {
   }
 
   @override
+  void visitConstructorTearOffConstantReference(
+    ConstructorTearOffConstant constant,
+  ) {
+    _visitFunctionNode(constant.function);
+  }
+
+  @override
+  void visitRedirectingFactoryTearOffConstantReference(
+    RedirectingFactoryTearOffConstant constant,
+  ) {
+    _visitFunctionNode(constant.function);
+  }
+
+  @override
   void defaultConstantReference(Constant constant) {
     if (visitedConstants.add(constant)) {
       constant.visitChildren(this);
@@ -1247,8 +1264,8 @@ class ClosureRepresentationsForParameterCount {
 
   void registerFunction(FunctionNode functionNode) {
     int? prevIndex;
-    for (Variable named in functionNode.namedParameters) {
-      String name = named.name!;
+    for (NamedParameter named in functionNode.namedParameters) {
+      String name = named.parameterName;
       int nameIndex = nameIds.putIfAbsent(name, () => nameUnions.add());
       if (prevIndex != null) {
         nameUnions.union(prevIndex, nameIndex);

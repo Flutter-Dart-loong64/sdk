@@ -316,7 +316,7 @@ IsolateGroup::IsolateGroup(std::shared_ptr<IsolateGroupSource> source,
       start_time_micros_(OS::GetCurrentMonotonicMicros()),
       is_system_isolate_group_(source->flags.is_system_isolate),
 #if !defined(PRODUCT) && !defined(DART_PRECOMPILED_RUNTIME)
-      last_reload_timestamp_(OS::GetCurrentTimeMillis()),
+      last_reload_timestamp_(OS::GetCurrentTimeMicros()),
       reload_every_n_stack_overflow_checks_(FLAG_reload_every),
 #endif
       source_(std::move(source)),
@@ -1164,11 +1164,14 @@ class IsolateMessageHandler : public MessageHandler {
   }
 
  private:
-  // A result of false indicates that the isolate should terminate the
-  // processing of further events.
   ErrorPtr HandleLibMessage(const Array& message);
 
   MessageStatus ProcessUnhandledException(const Error& result);
+
+  void set_is_scheduled() override {
+    ASSERT(isolate_ != nullptr);
+    isolate_->set_is_not_acquirable();
+  }
   Isolate* isolate_;
 };
 
@@ -3776,6 +3779,20 @@ void Isolate::WaitForOutstandingSpawns() {
   while (spawn_count_ > 0) {
     ml.WaitWithSafepointCheck(thread);
   }
+}
+
+bool Isolate::TryAcquireOwnership() {
+  ThreadId current_thread_id = OSThread::GetCurrentThreadId();
+  if (SetOwnerThread(OSThread::kInvalidThreadId, current_thread_id)) {
+    return true;
+  }
+  return owner_thread_ == current_thread_id;
+}
+
+void Isolate::ReleaseOwnership() {
+  bool result = SetOwnerThread(OSThread::GetCurrentThreadId(),
+                               OSThread::kInvalidThreadId);
+  ASSERT(result);
 }
 
 FfiCallbackMetadata::Trampoline Isolate::CreateAsyncFfiCallback(

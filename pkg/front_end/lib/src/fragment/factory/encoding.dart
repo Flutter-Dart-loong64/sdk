@@ -61,7 +61,7 @@ class FactoryEncoding implements InferredTypeListener {
 
   final ConstructorReferenceBuilder? _redirectionTarget;
 
-  FactoryEncoding(
+  new(
     this._fragment, {
     required this.typeParameters,
     required this.returnType,
@@ -837,7 +837,7 @@ class FactoryEncoding implements InferredTypeListener {
     required Scope? scope,
     required AsyncModifier asyncModifier,
     required DartType? emittedValueType,
-    required Variable? thisVariable,
+    required ThisVariable? thisVariable,
   }) {
     assert(
       asyncModifier.kind == AsyncMarker.Sync,
@@ -855,7 +855,9 @@ class FactoryEncoding implements InferredTypeListener {
       );
     }
     _procedure.function.scope = scope;
-    _procedure.function.thisVariable = thisVariable;
+    _procedure.function.thisVariable =
+        // Coverage-ignore(suite): Not run.
+        thisVariable?..parent = _procedure.function;
   }
 
   void becomeNative(SourceLoader loader) {
@@ -886,7 +888,7 @@ class FactoryEncoding implements InferredTypeListener {
 }
 
 abstract class FactoryEncodingStrategy {
-  factory FactoryEncodingStrategy(DeclarationBuilder declarationBuilder) {
+  factory(DeclarationBuilder declarationBuilder) {
     switch (declarationBuilder) {
       case ClassBuilder():
       case ExtensionTypeDeclarationBuilder():
@@ -909,7 +911,7 @@ abstract class FactoryEncodingStrategy {
 }
 
 class RegularFactoryEncodingStrategy implements FactoryEncodingStrategy {
-  const RegularFactoryEncodingStrategy();
+  const new();
 
   @override
   (List<SourceNominalParameterBuilder>?, TypeBuilder)
@@ -945,7 +947,7 @@ class RegularFactoryEncodingStrategy implements FactoryEncodingStrategy {
 }
 
 class ExtensionFactoryEncodingStrategy implements FactoryEncodingStrategy {
-  const ExtensionFactoryEncodingStrategy();
+  const new();
 
   @override
   (List<SourceNominalParameterBuilder>?, TypeBuilder)

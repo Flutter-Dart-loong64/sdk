@@ -45,11 +45,7 @@ class ExtensionInstanceSetterEncoding extends SetterEncoding
   @override
   final FormalParameterBuilder _thisFormal;
 
-  ExtensionInstanceSetterEncoding(
-    this._fragment,
-    this._clonedDeclarationTypeParameters,
-    this._thisFormal,
-  );
+  new(this._fragment, this._clonedDeclarationTypeParameters, this._thisFormal);
 
   @override
   BuiltMemberKind get _builtMemberKind => BuiltMemberKind.ExtensionSetter;
@@ -66,7 +62,7 @@ class ExtensionStaticSetterEncoding extends SetterEncoding
   @override
   final SetterFragment _fragment;
 
-  ExtensionStaticSetterEncoding(this._fragment);
+  new(this._fragment);
 
   @override
   BuiltMemberKind get _builtMemberKind => BuiltMemberKind.ExtensionSetter;
@@ -89,11 +85,7 @@ class ExtensionTypeInstanceSetterEncoding extends SetterEncoding
   @override
   final FormalParameterBuilder _thisFormal;
 
-  ExtensionTypeInstanceSetterEncoding(
-    this._fragment,
-    this._clonedDeclarationTypeParameters,
-    this._thisFormal,
-  );
+  new(this._fragment, this._clonedDeclarationTypeParameters, this._thisFormal);
 
   @override
   BuiltMemberKind get _builtMemberKind => BuiltMemberKind.ExtensionTypeSetter;
@@ -110,7 +102,7 @@ class ExtensionTypeStaticSetterEncoding extends SetterEncoding
   @override
   final SetterFragment _fragment;
 
-  ExtensionTypeStaticSetterEncoding(this._fragment);
+  new(this._fragment);
 
   @override
   BuiltMemberKind get _builtMemberKind => BuiltMemberKind.ExtensionTypeSetter;
@@ -127,7 +119,7 @@ class RegularSetterEncoding extends SetterEncoding
   @override
   final SetterFragment _fragment;
 
-  RegularSetterEncoding(this._fragment);
+  new(this._fragment);
 
   @override
   BuiltMemberKind get _builtMemberKind => BuiltMemberKind.Method;
@@ -148,7 +140,7 @@ sealed class SetterEncoding {
 
   List<TypeParameter>? get thisTypeParameters;
 
-  Variable? get thisVariable;
+  InternalVariable? get thisVariable;
 
   Procedure get writeTarget;
 
@@ -200,7 +192,7 @@ sealed class SetterEncoding {
     required Scope? scope,
     required AsyncModifier asyncModifier,
     required DartType? emittedValueType,
-    required Variable? thisVariable,
+    required ThisVariable? thisVariable,
   });
 }
 
@@ -227,7 +219,7 @@ mixin _DirectSetterEncodingMixin implements SetterEncoding {
   List<TypeParameter>? get thisTypeParameters => null;
 
   @override
-  Variable? get thisVariable => null;
+  InternalVariable? get thisVariable => null;
 
   @override
   Procedure get writeTarget => _procedure!;
@@ -333,8 +325,9 @@ mixin _DirectSetterEncodingMixin implements SetterEncoding {
       // Replace illegal parameters by single dummy parameter.
       // Do this after building the parameters, since the diet listener
       // assumes that parameters are built, even if illegal in number.
-      Variable parameter = new VariableDeclarationImpl(
-        "#synthetic",
+      PositionalParameter parameter = extern.createPositionalParameter(
+        cosmeticName: "#synthetic",
+        type: const DynamicType(),
         fileOffset: TreeNode.noOffset,
       );
       function.positionalParameters.clear();
@@ -484,7 +477,7 @@ mixin _DirectSetterEncodingMixin implements SetterEncoding {
     required Scope? scope,
     required AsyncModifier asyncModifier,
     required DartType? emittedValueType,
-    required Variable? thisVariable,
+    required ThisVariable? thisVariable,
   }) {
     if (body != null) {
       function.registerFunctionBody(
@@ -494,7 +487,9 @@ mixin _DirectSetterEncodingMixin implements SetterEncoding {
       );
     }
     function.scope = scope;
-    function.thisVariable = thisVariable;
+    function.thisVariable =
+        // Coverage-ignore(suite): Not run.
+        thisVariable?..parent = function;
   }
 }
 
@@ -531,7 +526,7 @@ mixin _ExtensionInstanceSetterEncodingMixin implements SetterEncoding {
       _clonedDeclarationTypeParameters != null ? function.typeParameters : null;
 
   @override
-  Variable? get thisVariable => _thisFormal.variable;
+  InternalVariable? get thisVariable => _thisFormal.variable;
 
   @override
   Procedure get writeTarget => _procedure!;
@@ -635,7 +630,9 @@ mixin _ExtensionInstanceSetterEncodingMixin implements SetterEncoding {
     FunctionNode function = extern.createFunctionNode(
       isAbstractOrExternal ? null : extern.createEmptyStatement(),
       typeParameters: typeParameters,
-      positionalParameters: [_thisFormal.build(libraryBuilder)],
+      positionalParameters: [
+        _thisFormal.build(libraryBuilder).astVariable as PositionalParameter,
+      ],
       asyncMarker: _fragment.asyncModifier.kind,
       fileOffset: _fragment.formalsOffset,
       fileEndOffset: _fragment.endOffset,
@@ -659,9 +656,10 @@ mixin _ExtensionInstanceSetterEncodingMixin implements SetterEncoding {
       // Replace illegal parameters by single dummy parameter (after #this).
       // Do this after building the parameters, since the diet listener
       // assumes that parameters are built, even if illegal in number.
-      Variable thisParameter = function.positionalParameters[0];
-      Variable parameter = new VariableDeclarationImpl(
-        "#synthetic",
+      PositionalParameter thisParameter = function.positionalParameters[0];
+      PositionalParameter parameter = extern.createPositionalParameter(
+        cosmeticName: "#synthetic",
+        type: const DynamicType(),
         fileOffset: TreeNode.noOffset,
       );
       function.positionalParameters.clear();
@@ -856,7 +854,7 @@ mixin _ExtensionInstanceSetterEncodingMixin implements SetterEncoding {
     required Scope? scope,
     required AsyncModifier asyncModifier,
     required DartType? emittedValueType,
-    required Variable? thisVariable,
+    required ThisVariable? thisVariable,
   }) {
     if (body != null) {
       function.registerFunctionBody(
@@ -866,6 +864,8 @@ mixin _ExtensionInstanceSetterEncodingMixin implements SetterEncoding {
       );
     }
     function.scope = scope;
-    function.thisVariable = thisVariable;
+    function.thisVariable =
+        // Coverage-ignore(suite): Not run.
+        thisVariable?..parent = function;
   }
 }

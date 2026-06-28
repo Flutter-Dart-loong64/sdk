@@ -75,7 +75,6 @@ import 'convert_into_is_not_test.dart' as convert_into_is_not;
 import 'convert_null_check_to_null_aware_element_or_entry_test.dart'
     as convert_null_check_to_null_aware_element_or_entry;
 import 'convert_quotes_test.dart' as convert_quotes;
-import 'convert_related_to_cascade_test.dart' as convert_related_to_cascade;
 import 'convert_to_block_function_body_test.dart'
     as convert_to_block_function_body;
 import 'convert_to_boolean_expression_test.dart'
@@ -233,6 +232,8 @@ import 'remove_parameters_in_getter_declaration_test.dart'
     as remove_parameters_in_getter_declaration;
 import 'remove_parentheses_in_getter_invocation_test.dart'
     as remove_parentheses_in_getter_invocation;
+import 'remove_primary_constructor_body_test.dart'
+    as remove_primary_constructor_body;
 import 'remove_print_test.dart' as remove_print;
 import 'remove_question_mark_test.dart' as remove_question_mark;
 import 'remove_required_test.dart' as remove_required;
@@ -400,7 +401,6 @@ void main() {
     convert_into_is_not.main();
     convert_null_check_to_null_aware_element_or_entry.main();
     convert_quotes.main();
-    convert_related_to_cascade.main();
     convert_to_block_function_body.main();
     convert_to_boolean_expression.main();
     convert_to_cascade.main();
@@ -534,6 +534,7 @@ void main() {
     remove_operator.main();
     remove_parameters_in_getter_declaration.main();
     remove_parentheses_in_getter_invocation.main();
+    remove_primary_constructor_body.main();
     remove_print.main();
     remove_question_mark.main();
     remove_required.main();

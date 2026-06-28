@@ -19,6 +19,7 @@ import '../../builder/type_builder.dart';
 import '../../kernel/body_builder_context.dart';
 import '../../kernel/hierarchy/class_member.dart';
 import '../../kernel/hierarchy/members_builder.dart';
+import '../../kernel/internal_ast.dart';
 import '../../kernel/type_algorithms.dart';
 import '../../source/name_scheme.dart';
 import '../../source/source_class_builder.dart';
@@ -102,7 +103,7 @@ class RegularGetterDeclaration
   final GetterFragment _fragment;
   late final GetterEncoding _encoding;
 
-  RegularGetterDeclaration(this._fragment) {
+  new(this._fragment) {
     _fragment.declaration = this;
   }
 
@@ -153,7 +154,7 @@ class RegularGetterDeclaration
   List<TypeParameter>? get thisTypeParameters => _encoding.thisTypeParameters;
 
   @override
-  Variable? get thisVariable => _encoding.thisVariable;
+  InternalVariable? get thisVariable => _encoding.thisVariable;
 
   @override
   void becomeNative(SourceLoader loader) {
@@ -289,8 +290,6 @@ class RegularGetterDeclaration
         fileUri: _fragment.fileUri,
         nameOffset: _fragment.nameOffset,
         nameLength: _fragment.name.length,
-        isClosureContextLoweringEnabled:
-            libraryBuilder.loader.isClosureContextLoweringEnabled,
       );
     }
     _encoding.ensureTypes(libraryBuilder, membersBuilder.hierarchyBuilder);
@@ -312,7 +311,7 @@ class RegularGetterDeclaration
     required Scope? scope,
     required AsyncModifier asyncModifier,
     required DartType? emittedValueType,
-    required Variable? thisVariable,
+    required ThisVariable? thisVariable,
   }) {
     assert(
       asyncModifier.kind == this.asyncModifier.kind,
@@ -357,7 +356,7 @@ abstract class GetterFragmentDeclaration {
 
   List<TypeParameter>? get thisTypeParameters;
 
-  Variable? get thisVariable;
+  InternalVariable? get thisVariable;
 
   void becomeNative(SourceLoader loader);
 
@@ -372,7 +371,7 @@ abstract class GetterFragmentDeclaration {
     required Scope? scope,
     required AsyncModifier asyncModifier,
     required DartType? emittedValueType,
-    required Variable? thisVariable,
+    required ThisVariable? thisVariable,
   });
 
   DartType get returnTypeContext;

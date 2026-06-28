@@ -348,7 +348,7 @@ class Parser {
   bool get allowedToShortcutParseExpression => true;
 
   /// `true` if the 'augmentations' feature is enabled.
-  final bool _isAugmentationsFeatureEnabled;
+  final bool isAugmentationsFeatureEnabled;
 
   Parser(
     this.listener, {
@@ -363,8 +363,9 @@ class Parser {
            .isExperimentEnabled(ExperimentalFlag.primaryConstructors),
        _isAnonymousMethodsFeatureEnabled = experimentalFeatures
            .isExperimentEnabled(ExperimentalFlag.anonymousMethods),
-       _isAugmentationsFeatureEnabled = experimentalFeatures
-           .isExperimentEnabled(ExperimentalFlag.augmentations);
+       isAugmentationsFeatureEnabled = experimentalFeatures.isExperimentEnabled(
+         ExperimentalFlag.augmentations,
+       );
 
   /// Executes [callback]; however if `this` is the `TestParser` (from
   /// `pkg/front_end/test/parser_test_parser.dart`) then no output is printed
@@ -3791,8 +3792,12 @@ class Parser {
       if (token.next!.isA(TokenType.OPEN_PAREN)) {
         token = parseFormalParameters(token, MemberKind.PrimaryConstructor);
       } else {
-        if (kind == DeclarationKind.ExtensionType &&
-            allowExtensionTypeRepresentation) {
+        bool reportMissingParameters = switch (kind) {
+          DeclarationKind.Class || DeclarationKind.Enum => true,
+          DeclarationKind.ExtensionType => allowExtensionTypeRepresentation,
+          _ => false,
+        };
+        if (reportMissingParameters) {
           reportRecoverableError(
             token,
             diag.missingPrimaryConstructorParameters,
@@ -3852,6 +3857,7 @@ class Parser {
 
     Token? beforeInitializers = token;
     token = parseInitializersOpt(beforeInitializers);
+    if (token == beforeInitializers) beforeInitializers = null;
 
     Token next = token.next!;
     if (next.isA(Keyword.ASYNC) || next.isA(Keyword.SYNC)) {
@@ -3874,7 +3880,11 @@ class Parser {
       /* allowAbstract = */ inPlainSync,
     );
 
-    listener.endPrimaryConstructorBody(beginToken, beforeInitializers, token);
+    listener.endPrimaryConstructorBody(
+      beginToken,
+      beforeInitializers?.next,
+      token,
+    );
     return token;
   }
 
@@ -4344,7 +4354,7 @@ class Parser {
     if (getOrSet != null) {
       reportRecoverableErrorWithToken(getOrSet, diag.extraneousModifier);
     }
-    if (!_isAugmentationsFeatureEnabled && abstractToken != null) {
+    if (!isAugmentationsFeatureEnabled && abstractToken != null) {
       reportRecoverableErrorWithToken(abstractToken, diag.extraneousModifier);
     }
     return parseFields(
@@ -4580,7 +4590,7 @@ class Parser {
     token = parseFunctionBody(
       token,
       /* ofFunctionExpression = */ false,
-      isExternal || _isAugmentationsFeatureEnabled,
+      isExternal || isAugmentationsFeatureEnabled,
     );
     asyncState = savedAsyncModifier;
     listener.endTopLevelMethod(beforeStart.next!, getOrSet, token);
@@ -5247,7 +5257,7 @@ class Parser {
         next = token.next!;
       }
       if (isModifier(next)) {
-        if (next.isA(Keyword.STATIC)) {
+        if (next.isA(Keyword.STATIC) && abstractToken == null) {
           staticToken = token = next;
           next = token.next!;
         } else if (next.isA(Keyword.COVARIANT)) {
@@ -6004,7 +6014,7 @@ class Parser {
         /* ofFunctionExpression = */ false,
         /* allowAbstract = */ (staticToken == null ||
                 externalToken != null ||
-                _isAugmentationsFeatureEnabled) &&
+                isAugmentationsFeatureEnabled) &&
             inPlainSync,
       );
     }
@@ -6206,7 +6216,7 @@ class Parser {
       token = parseFunctionBody(
         token,
         /* ofFunctionExpression = */ false,
-        /* allowAbstract = */ _isAugmentationsFeatureEnabled,
+        /* allowAbstract = */ isAugmentationsFeatureEnabled,
       );
     }
     switch (kind) {
@@ -6918,30 +6928,29 @@ class Parser {
         listener.handleIdentifier(token, IdentifierContext.expression);
       }
     } else {
-      if (isPatternsFeatureEnabled && looksLikeOuterPatternEquals(token)) {
-        token = parsePatternAssignment(token);
-      } else {
-        token = token.next!.isA(Keyword.THROW)
-            ? parseThrowExpression(token, /* allowCascades = */ true)
-            : parsePrecedenceExpression(
-                token,
-                ASSIGNMENT_PRECEDENCE,
-                /* allowCascades = */ true,
-                ConstantPatternContext.none,
-              );
-      }
+      token = _parseExpression(token, /* allowCascades = */ true);
     }
     expressionDepth--;
     return token;
   }
 
   Token parseExpressionWithoutCascade(Token token) {
+    return _parseExpression(token, /* allowCascades = */ false);
+  }
+
+  @pragma("vm:prefer-inline")
+  Token _parseExpression(Token token, bool allowCascades) {
+    if (isPatternsFeatureEnabled && looksLikeOuterPatternEquals(token)) {
+      return allowCascades
+          ? parsePatternAssignment(token)
+          : _parsePatternAssignment(token, /* allowCascades = */ false);
+    }
     return token.next!.isA(Keyword.THROW)
-        ? parseThrowExpression(token, /* allowCascades = */ false)
+        ? parseThrowExpression(token, allowCascades)
         : parsePrecedenceExpression(
             token,
             ASSIGNMENT_PRECEDENCE,
-            /* allowCascades = */ false,
+            allowCascades,
             ConstantPatternContext.none,
           );
   }
@@ -7166,6 +7175,7 @@ class Parser {
     Token next = token.next!;
     TokenType type = next.type;
     int tokenLevel = _computePrecedence(next, forPattern: false);
+
     if (constantPatternContext != ConstantPatternContext.none) {
       // For error recovery we allow too much when parsing constant patterns,
       // so for the cases that shouldn't be parsed as expressions in this
@@ -7184,32 +7194,14 @@ class Parser {
         return token;
       }
     }
-    if (constantPatternContext != ConstantPatternContext.none &&
-        precedence <= tokenLevel &&
-        tokenLevel < SELECTOR_PRECEDENCE) {
-      // If we are parsing a constant pattern, only [SELECTOR_PRECEDENCE] is
-      // supported but we allow for parsing [EQUALITY_PRECEDENCE] and higher for
-      // better error recovery.
-      if (constantPatternContext == ConstantPatternContext.explicit) {
-        reportRecoverableError(token, diag.invalidConstantPatternConstPrefix);
-      } else if (tokenLevel <= MULTIPLICATIVE_PRECEDENCE) {
-        reportRecoverableError(
-          next,
-          diag.invalidConstantPatternBinary.withArguments(
-            operatorName: type.lexeme,
-          ),
-        );
-      } else {
-        // These are prefix or postfix ++/-- and will not be constant
-        // expressions, anyway.
-        assert(
-          tokenLevel == POSTFIX_PRECEDENCE || tokenLevel == PREFIX_PRECEDENCE,
-          "Unexpected precedence level for $type: $tokenLevel",
-        );
-      }
-      // Avoid additional constant pattern errors.
-      constantPatternContext = ConstantPatternContext.none;
-    }
+    constantPatternContext = _checkForInvalidConstantPatternOperator(
+      constantPatternContext,
+      precedence,
+      token,
+      next,
+      type,
+      tokenLevel,
+    );
     if (tokenLevel < precedence) {
       if (_recoverAtPrecedenceLevel && !_currentlyRecovering) {
         // Attempt recovery
@@ -7265,14 +7257,7 @@ class Parser {
           );
           operator = next;
         }
-        token = next.next!.isA(Keyword.THROW)
-            ? parseThrowExpression(next, allowCascades)
-            : parsePrecedenceExpression(
-                next,
-                level,
-                allowCascades,
-                ConstantPatternContext.none,
-              );
+        token = _parseExpression(next, allowCascades);
         listener.handleAssignmentExpression(operator, token);
       } else if (tokenLevel == POSTFIX_PRECEDENCE) {
         if ((identical(type, TokenType.PLUS_PLUS)) ||
@@ -7436,6 +7421,15 @@ class Parser {
         }
       }
 
+      constantPatternContext = _checkForInvalidConstantPatternOperator(
+        constantPatternContext,
+        precedence,
+        token,
+        next,
+        type,
+        tokenLevel,
+      );
+
       if (_recoverAtPrecedenceLevel && !_currentlyRecovering) {
         // Attempt recovery
         if (_attemptPrecedenceLevelRecovery(
@@ -7463,6 +7457,44 @@ class Parser {
     }
 
     return token;
+  }
+
+  @pragma("vm:prefer-inline")
+  ConstantPatternContext _checkForInvalidConstantPatternOperator(
+    ConstantPatternContext constantPatternContext,
+    int precedence,
+    Token token,
+    Token next,
+    TokenType type,
+    int tokenLevel,
+  ) {
+    if (constantPatternContext != ConstantPatternContext.none &&
+        precedence <= tokenLevel &&
+        tokenLevel < SELECTOR_PRECEDENCE) {
+      // If we are parsing a constant pattern, only [SELECTOR_PRECEDENCE] is
+      // supported but we allow for parsing [EQUALITY_PRECEDENCE] and higher
+      // for better error recovery.
+      if (constantPatternContext == ConstantPatternContext.explicit) {
+        reportRecoverableError(token, diag.invalidConstantPatternConstPrefix);
+      } else if (tokenLevel <= MULTIPLICATIVE_PRECEDENCE) {
+        reportRecoverableError(
+          next,
+          diag.invalidConstantPatternBinary.withArguments(
+            operatorName: type.lexeme,
+          ),
+        );
+      } else {
+        // These are prefix or postfix ++/-- and will not be constant
+        // expressions, anyway.
+        assert(
+          tokenLevel == POSTFIX_PRECEDENCE || tokenLevel == PREFIX_PRECEDENCE,
+          "Unexpected precedence level for $type: $tokenLevel",
+        );
+      }
+      // Avoid additional constant pattern errors.
+      return ConstantPatternContext.none;
+    }
+    return constantPatternContext;
   }
 
   /// Can the next input be an anonymous method?
@@ -12324,11 +12356,17 @@ class Parser {
 
   /// patternAssignment ::= outerPattern '=' expression
   Token parsePatternAssignment(Token token) {
+    return _parsePatternAssignment(token, /* allowCascades = */ true);
+  }
+
+  Token _parsePatternAssignment(Token token, bool allowCascades) {
     token = parsePattern(token, PatternContext.assignment);
     Token equals = token.next!;
     // Caller should have assured that the pattern was followed by an `=`.
     assert(equals.isA(TokenType.EQ));
-    token = parseExpression(equals);
+    token = allowCascades
+        ? parseExpression(equals)
+        : parseExpressionWithoutCascade(equals);
     listener.handlePatternAssignment(equals);
     return token;
   }

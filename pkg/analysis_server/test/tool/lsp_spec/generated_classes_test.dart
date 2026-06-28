@@ -120,32 +120,33 @@ class GeneratedClassesTest {
   }
 
   void test_generatedClasses_flagsEnum_combined() {
-    var combined = FileExistence.combine([
-      FileExistence.New,
-      FileExistence.Existing,
-    ]);
+    var combined = FileExistence.combine([.New, .Existing]);
 
     expect(combined.toJson(), 3);
-    expect(combined.hasFlag(FileExistence.New), isTrue);
-    expect(combined.hasFlag(FileExistence.Existing), isTrue);
+    expect(combined.hasFlag(.New), isTrue);
+    expect(combined.hasFlag(.Existing), isTrue);
     expect(combined.hasFlag(FileExistence(64)), isFalse);
   }
 
   void test_generatedClasses_flagsEnum_notCombined() {
-    expect(FileExistence.New.hasFlag(FileExistence.New), isTrue);
-    expect(FileExistence.New.hasFlag(FileExistence.Existing), isFalse);
+    expect(FileExistence.New.hasFlag(.New), isTrue);
+    expect(FileExistence.New.hasFlag(.Existing), isFalse);
   }
 
   void test_interactiveForms_deserialize_formFieldsIntoSubclasses() {
     var stringField = FormField.fromJson({
+      'id': 'a',
       'type': {'kind': 'string'},
       'description': '',
+      'required': true,
     });
     expect(stringField.type, isA<FormFieldTypeString>());
 
     var boolField = FormField.fromJson({
+      'id': 'b',
       'type': {'kind': 'bool'},
       'description': '',
+      'required': false,
     });
     expect(boolField.type, isA<FormFieldTypeBool>());
   }

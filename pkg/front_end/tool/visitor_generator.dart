@@ -75,16 +75,15 @@ String generateVisitor(
 
   String result = sb.toString();
   if (format) {
-    result = new DartFormatter(
-      languageVersion: getPackageVersionFor("kernel"),
-    ).format(result);
+    result = new DartFormatter(languageVersion: getPackageVersionFor("kernel"))
+        .format(result);
   }
   return result;
 }
 
 /// Strategy for generating a visitor in its own library based on an [AstModel].
 abstract class VisitorStrategy {
-  const VisitorStrategy();
+  const new();
 
   /// Preamble comment used in the generated file.
   String get preamble =>
@@ -128,7 +127,7 @@ abstract class VisitorStrategy {
 
 /// Base strategy for creating a [Visitor] implementation.
 abstract class Visitor0Strategy extends VisitorStrategy {
-  const Visitor0Strategy();
+  const new();
 
   /// The name of the generated visitor class.
   String get visitorName;
@@ -195,7 +194,7 @@ class $visitorName$visitorTypeParameters implements Visitor<$returnType> {''');
 
 /// Strategy for creating an empty `Visitor<void>` implementation.
 abstract class VoidVisitor0Strategy extends Visitor0Strategy {
-  const VoidVisitor0Strategy();
+  const new();
 
   @override
   String get visitorName => 'VoidVisitor';
@@ -206,7 +205,7 @@ abstract class VoidVisitor0Strategy extends Visitor0Strategy {
 
 /// Base strategy for creating a [Visitor1] implementation.
 abstract class Visitor1Strategy extends VisitorStrategy {
-  const Visitor1Strategy();
+  const new();
 
   /// The name of the generated visitor class.
   String get visitorName;
@@ -284,7 +283,7 @@ class $visitorName$visitorTypeParameters
 
 /// Strategy for creating an empty `Visitor1<void,Null>` implementation.
 abstract class VoidVisitor1Strategy extends Visitor1Strategy {
-  const VoidVisitor1Strategy();
+  const new();
 
   @override
   String get visitorName => 'VoidVisitor';

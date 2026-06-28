@@ -417,7 +417,7 @@ bool HierarchyInfo::InstanceOfHasClassRange(const AbstractType& type,
                                             intptr_t* lower_limit,
                                             intptr_t* upper_limit) {
   ASSERT(CompilerState::Current().is_aot());
-  if (type.IsNullable()) {
+  if (Instance::NullIsAssignableTo(type)) {
     // 'is' test for nullable types should accept null cid in addition to the
     // class range. In most cases it is not possible to extend class range to
     // include kNullCid.
@@ -2263,6 +2263,34 @@ Definition* DoubleTestOpInstr::Canonicalize(FlowGraph* flow_graph) {
   return HasUses() ? this : nullptr;
 }
 
+bool UnaryInt64OpInstr::IsSupported(Token::Kind op_kind) {
+  switch (op_kind) {
+    case Token::kPOPCNT:
+#if defined(TARGET_ARCH_ARM64)
+      return true;
+#elif defined(TARGET_ARCH_ARM)
+      return TargetCPUFeatures::neon_supported();
+#elif defined(TARGET_ARCH_X64)
+      return TargetCPUFeatures::popcnt_supported();
+#elif defined(TARGET_ARCH_RISCV64)
+      return RV_baseline.Includes(RV_Zbb);
+#else
+      return false;
+#endif
+    case Token::kCTZ:
+#if defined(TARGET_ARCH_ARM64) || defined(TARGET_ARCH_X64) ||                  \
+    defined(TARGET_ARCH_ARM)
+      return true;
+#elif defined(TARGET_ARCH_RISCV64)
+      return RV_baseline.Includes(RV_Zbb);
+#else
+      return false;
+#endif
+    default:
+      return false;
+  }
+}
+
 UnaryIntegerOpInstr* UnaryIntegerOpInstr::Make(Representation representation,
                                                Token::Kind op_kind,
                                                Value* value,
@@ -3047,7 +3075,7 @@ Definition* AssertAssignableInstr::Canonicalize(FlowGraph* flow_graph) {
   if (!dst_type()->BindsToConstant()) return this;
   const auto& abs_type = AbstractType::Cast(dst_type()->BoundConstant());
 
-  if (abs_type.IsTopTypeForSubtyping() ||
+  if (abs_type.IsTopType() ||
       (FLAG_eliminate_type_checks && value()->Type()->IsSubtypeOf(abs_type))) {
     return value()->definition();
   }
@@ -3131,7 +3159,7 @@ Definition* AssertAssignableInstr::Canonicalize(FlowGraph* flow_graph) {
     instantiator_type_arguments()->BindTo(flow_graph->constant_null());
     function_type_arguments()->BindTo(flow_graph->constant_null());
 
-    if (new_dst_type.IsTopTypeForSubtyping() ||
+    if (new_dst_type.IsTopType() ||
         (FLAG_eliminate_type_checks &&
          value()->Type()->IsSubtypeOf(new_dst_type))) {
       return value()->definition();
@@ -3159,7 +3187,8 @@ Instruction* DebugStepCheckInstr::Canonicalize(FlowGraph* flow_graph) {
 
 Instruction* RecordCoverageInstr::Canonicalize(FlowGraph* flow_graph) {
   ASSERT(!coverage_array_.IsNull());
-  return coverage_array_.At(coverage_index_) != Smi::New(0) ? nullptr : this;
+  return coverage_array_.GetUint32(coverage_index_ * kInt32Size) != 0 ? nullptr
+                                                                      : this;
 }
 
 Definition* BoxInstr::Canonicalize(FlowGraph* flow_graph) {
@@ -3516,8 +3545,8 @@ static bool MayBeNumber(CompileType* type) {
   const AbstractType& unwrapped_type =
       AbstractType::Handle(type->ToAbstractType()->UnwrapFutureOr());
   // Note that type 'Number' is a subtype of itself.
-  return unwrapped_type.IsTopTypeForSubtyping() ||
-         unwrapped_type.IsObjectType() || unwrapped_type.IsTypeParameter() ||
+  return unwrapped_type.IsTopType() || unwrapped_type.IsObjectType() ||
+         unwrapped_type.IsTypeParameter() ||
          unwrapped_type.IsSubtypeOf(Type::Handle(Type::NullableNumber()),
                                     Heap::kOld);
 }
@@ -8436,10 +8465,10 @@ void RecordCoverageInstr::EmitNativeCode(FlowGraphCompiler* compiler) {
 
   __ LoadObject(array_temp, coverage_array_);
   __ LoadImmediate(value_temp, Smi::RawValue(1));
-  __ StoreFieldToOffset(
-      value_temp, array_temp,
-      compiler::target::Array::element_offset(coverage_index_),
-      compiler::kObjectBytes);
+  __ StoreFieldToOffset(value_temp, array_temp,
+                        compiler::target::TypedData::payload_offset() +
+                            (coverage_index_ * kInt32Size),
+                        compiler::kFourBytes);
 }
 
 #undef Z

@@ -16,10 +16,11 @@ import '../diagnostic.dart' as diag;
 const _desc = "Don't use an explicit `const` in a generative enum constructor.";
 
 class UnnecessaryConstInEnumConstructor extends AnalysisRule {
-  UnnecessaryConstInEnumConstructor()
+  new()
     : super(
         name: LintNames.unnecessary_const_in_enum_constructor,
         description: _desc,
+        state: .stable(since: .new(3, 13, 0)),
       );
 
   @override
@@ -44,7 +45,7 @@ class UnnecessaryConstInEnumConstructor extends AnalysisRule {
 
 class _Visitor extends SimpleAstVisitor<void> {
   final AnalysisRule rule;
-  _Visitor(this.rule);
+  new(this.rule);
 
   @override
   void visitConstructorDeclaration(ConstructorDeclaration node) {

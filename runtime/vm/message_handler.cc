@@ -100,6 +100,7 @@ bool MessageHandler::Run(ThreadPool* pool,
   }
   ASSERT(pool_ == nullptr);
   pool_ = pool;
+  set_is_scheduled();
   end_callback_ = end_callback;
   callback_data_ = data;
   task_running_ = true;
@@ -111,6 +112,12 @@ bool MessageHandler::Run(ThreadPool* pool,
     task_running_ = false;
   }
   return result;
+}
+
+void MessageHandler::RunSync() {
+  task_running_ = true;
+  TaskCallback();
+  task_running_ = false;
 }
 
 void MessageHandler::PostMessage(std::unique_ptr<Message> message,

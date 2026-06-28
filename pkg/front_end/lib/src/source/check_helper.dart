@@ -159,7 +159,7 @@ extension CheckHelper on ProblemReporting {
     Set<String> argumentNames = {};
     if (arguments.namedCount > 0) {
       Set<String?> parameterNames = new Set.of(
-        function.namedParameters.map((a) => a.name),
+        function.namedParameters.map((a) => a.parameterName),
       );
       for (Argument argument in arguments.argumentList) {
         switch (argument) {
@@ -183,10 +183,11 @@ extension CheckHelper on ProblemReporting {
     }
     if (function.namedParameters.isNotEmpty) {
       for (int i = 0; i < function.namedParameters.length; i++) {
-        Variable parameter = function.namedParameters[i];
-        if (parameter.isRequired && !argumentNames.contains(parameter.name!)) {
+        NamedParameter parameter = function.namedParameters[i];
+        if (parameter.isRequired &&
+            !argumentNames.contains(parameter.parameterName)) {
           return diag.valueForRequiredParameterNotProvidedError
-              .withArguments(parameterName: parameter.name!)
+              .withArguments(parameterName: parameter.parameterName)
               .withLocation(fileUri, arguments.fileOffset, noLength);
         }
       }
@@ -285,10 +286,14 @@ extension CheckHelper on ProblemReporting {
     required SourceLibraryBuilder libraryBuilder,
     required TypeEnvironment typeEnvironment,
     required AsyncModifier asyncModifier,
-    required DartType returnType,
+    required DartType? returnType,
     required TypeBuilder returnTypeBuilder,
     required Uri fileUri,
   }) {
+    if (returnType == null) {
+      return;
+    }
+
     // For async, async*, and sync* functions with declared return types, we
     // need to determine whether those types are valid.
     // We use the same trick in each case below. For example to decide whether

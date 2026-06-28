@@ -40,6 +40,7 @@ import 'compiler_options.dart' as compiler;
 import 'constant_evaluator.dart';
 import 'deferred_loading.dart';
 import 'dry_run.dart';
+import 'generate_wasm.dart';
 import 'io_util.dart';
 import 'js/runtime_generator.dart' as js;
 import 'modules.dart';
@@ -165,15 +166,17 @@ const List<String> _binaryenFlags = [
   '--enable-bulk-memory',
   '--enable-threads',
   '--enable-simd',
-  '--no-inline=*<noInline>*',
   '--closed-world',
   '--traps-never-happen',
+  '--string-lifting',
+  '--pass-arg=string-constants-module@',
   '--type-unfinalizing',
   '-Os',
   '--type-ssa',
   '--gufa',
   '-Os',
   '--type-merging',
+  '--string-lowering-magic-imports-assert',
   '-Os',
   '--type-finalizing',
   '--minimize-rec-groups',
@@ -189,9 +192,13 @@ const List<String> _binaryenFlagsMultiModule = [
   '--enable-bulk-memory',
   '--enable-threads',
   '--enable-simd',
-  '--no-inline=*<noInline>*',
   '--traps-never-happen',
+  '--string-lifting',
+  '--pass-arg=string-constants-module@',
   '-Os',
+  '--gufa',
+  '-Os',
+  '--string-lowering-magic-imports-assert',
   '-Os',
 ];
 
@@ -666,7 +673,7 @@ Future<CompilationResult> _runCodegenPhase(
   final wasmOutputFilename = path.basename(options.outputFile);
   final moduleIds = modules.keys
       .map<int>(
-        (moduleMetadata) => options.idForModuleName(
+        (moduleMetadata) => WasmCompilerOptions.idForModuleName(
           wasmOutputFilename,
           moduleMetadata.moduleName,
         )!,
@@ -717,15 +724,19 @@ Future<CompilationResult> _runOptPhase(
         : options.maxActiveWasmOptProcesses,
   );
 
+  final wasmOptFlags = <String>[
+    ...(options.useMultiModuleOpt ? _binaryenFlagsMultiModule : _binaryenFlags),
+    if (options.stripToolchainAnnotations) '--strip-toolchain-annotations',
+    '--emit-module-names',
+  ];
+
   await Future.wait([
     for (final moduleId in moduleIdsToOptimize)
       optPool.withResource(() async {
         await ioManager.runWasmOpt(
           codegenResult.mainWasmFile,
           moduleId,
-          options.useMultiModuleOpt
-              ? _binaryenFlagsMultiModule
-              : _binaryenFlags,
+          wasmOptFlags,
         );
       }),
   ]);

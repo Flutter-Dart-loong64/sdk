@@ -77,7 +77,7 @@ abstract class Generator {
 
   final int fileOffset;
 
-  Generator(this._helper, this.token) : fileOffset = offsetForToken(token);
+  new(this._helper, this.token) : fileOffset = offsetForToken(token);
 
   // TODO(johnniwinther): Improve the semantic precision of this property or
   // remove it. It's unclear if the semantics is inconsistent. It's for instance
@@ -391,7 +391,7 @@ abstract class Generator {
   ///
   /// If this generator is not for an assignable variable, an error is reported
   /// and an invalid pattern is returned.
-  Pattern buildPatternAssignment(Token token) {
+  InternalPattern buildPatternAssignment(Token token) {
     return intern.createInvalidPattern(
       problemReporting.buildProblem(
         compilerContext: compilerContext,
@@ -434,13 +434,10 @@ abstract class Generator {
 /// If the variable is final or read-only (like a parameter in a catch clause) a
 /// [ReadOnlyAccessGenerator] is created instead.
 class VariableUseGenerator extends Generator {
-  final Variable variable;
+  final InternalVariable variable;
 
-  VariableUseGenerator(
-    ExpressionGeneratorHelper helper,
-    Token nameToken,
-    this.variable,
-  ) : assert(variable.isAssignable, 'Variable $variable is not assignable'),
+  new(ExpressionGeneratorHelper helper, Token nameToken, this.variable)
+    : assert(variable.isAssignable, 'Variable $variable is not assignable'),
       super(helper, nameToken);
 
   @override
@@ -535,7 +532,7 @@ class VariableUseGenerator extends Generator {
     _helper.registerVariableRead(variable);
     _helper.registerVariableAssignment(variable);
     return new LocalIncDec(
-      variable: variable as InternalVariable,
+      variable: variable,
       forEffect: forEffect,
       isPost: isPost,
       isInc: binaryOperator == plusName,
@@ -604,8 +601,8 @@ class VariableUseGenerator extends Generator {
   }
 
   @override
-  Pattern buildPatternAssignment(Token token) {
-    Pattern pattern = intern.createAssignedVariablePattern(
+  InternalPattern buildPatternAssignment(Token token) {
+    InternalPattern pattern = intern.createAssignedVariablePattern(
       token.charOffset,
       variable,
     );
@@ -638,11 +635,8 @@ class VariableUseGenerator extends Generator {
 /// but reports an error on assignment, similarly to
 /// [AbstractReadOnlyAccessGenerator].
 class ForInLateFinalVariableUseGenerator extends VariableUseGenerator {
-  ForInLateFinalVariableUseGenerator(
-    ExpressionGeneratorHelper helper,
-    Token token,
-    Variable variable,
-  ) : super(helper, token, variable);
+  new(ExpressionGeneratorHelper helper, Token token, InternalVariable variable)
+    : super(helper, token, variable);
 
   @override
   // Coverage-ignore(suite): Not run.
@@ -709,7 +703,7 @@ class PropertyAccessGenerator extends Generator {
   /// documentation.
   final Name name;
 
-  PropertyAccessGenerator(
+  new(
     ExpressionGeneratorHelper helper,
     Token nameToken,
     this.receiver,
@@ -959,9 +953,9 @@ class ThisPropertyAccessGenerator extends Generator {
 
   /// The synthetic variable used for 'this' in instance extension members
   /// and instance extension type members/constructor bodies.
-  Variable? thisVariable;
+  InternalVariable? thisVariable;
 
-  ThisPropertyAccessGenerator(
+  new(
     ExpressionGeneratorHelper helper,
     Token nameToken,
     this.name, {
@@ -1171,7 +1165,7 @@ class NullAwarePropertyAccessGenerator extends Generator {
 
   final Name name;
 
-  NullAwarePropertyAccessGenerator(
+  new(
     ExpressionGeneratorHelper helper,
     Token nameToken,
     this.receiver,
@@ -1355,7 +1349,7 @@ class SuperPropertyAccessGenerator extends Generator {
 
   final Member? setter;
 
-  SuperPropertyAccessGenerator(
+  new(
     ExpressionGeneratorHelper helper,
     Token nameToken,
     this.name,
@@ -1612,7 +1606,7 @@ class IndexedAccessGenerator extends Generator {
 
   final bool isNullAware;
 
-  IndexedAccessGenerator(
+  new(
     ExpressionGeneratorHelper helper,
     Token token,
     this.receiver,
@@ -1802,7 +1796,7 @@ class ThisIndexedAccessGenerator extends Generator {
   final int? thisOffset;
   final bool isNullAware;
 
-  ThisIndexedAccessGenerator(
+  new(
     ExpressionGeneratorHelper helper,
     Token token,
     this.index, {
@@ -1968,7 +1962,7 @@ class SuperIndexedAccessGenerator extends Generator {
 
   final Procedure? setter;
 
-  SuperIndexedAccessGenerator(
+  new(
     ExpressionGeneratorHelper helper,
     Token token,
     this.index,
@@ -2239,7 +2233,7 @@ class StaticAccessGenerator extends Generator {
 
   final bool isQualifiedAccess;
 
-  StaticAccessGenerator(
+  new(
     ExpressionGeneratorHelper helper,
     Token nameToken,
     this.targetName,
@@ -2255,7 +2249,7 @@ class StaticAccessGenerator extends Generator {
        ),
        super(helper, nameToken);
 
-  factory StaticAccessGenerator.fromBuilder(
+  factory fromBuilder(
     ExpressionGeneratorHelper helper,
     Name targetName,
     Token nameToken,
@@ -2560,13 +2554,13 @@ class ExtensionInstanceAccessGenerator extends Generator {
   /// instance method.
   // TODO(johnniwinther): Handle static access to extension instance members,
   // in which case the access is erroneous and [extensionThis] is `null`.
-  final Variable extensionThis;
+  final InternalVariable extensionThis;
 
   /// The type parameters synthetically added to  the current extension
   /// instance method.
   final List<TypeParameter>? extensionTypeParameters;
 
-  ExtensionInstanceAccessGenerator(
+  new(
     ExpressionGeneratorHelper helper,
     Token token,
     this.extension,
@@ -2579,12 +2573,12 @@ class ExtensionInstanceAccessGenerator extends Generator {
   ) : assert(readTarget != null || invokeTarget != null || writeTarget != null),
       super(helper, token);
 
-  factory ExtensionInstanceAccessGenerator.fromBuilder(
+  factory fromBuilder(
     ExpressionGeneratorHelper helper,
     Token token,
     Extension extension,
     Name targetName,
-    Variable extensionThis,
+    InternalVariable extensionThis,
     List<TypeParameter>? extensionTypeParameters,
     MemberBuilder? getterBuilder,
     MemberBuilder? setterBuilder,
@@ -3023,7 +3017,7 @@ class ExplicitExtensionInstanceAccessGenerator extends Generator {
   /// If `true` the access is null-aware, like `Extension(c)?.foo`.
   final bool isNullAware;
 
-  ExplicitExtensionInstanceAccessGenerator(
+  new(
     ExpressionGeneratorHelper helper,
     Token token,
     this.extensionTypeArgumentOffset,
@@ -3041,7 +3035,7 @@ class ExplicitExtensionInstanceAccessGenerator extends Generator {
        ),
        super(helper, token);
 
-  factory ExplicitExtensionInstanceAccessGenerator.fromBuilder({
+  factory fromBuilder({
     required ExpressionGeneratorHelper helper,
     required Token token,
     required int? extensionTypeArgumentOffset,
@@ -3449,7 +3443,7 @@ class ExplicitExtensionIndexedAccessGenerator extends Generator {
 
   final bool isNullAware;
 
-  ExplicitExtensionIndexedAccessGenerator(
+  new(
     ExpressionGeneratorHelper helper,
     Token token,
     this.extensionTypeArgumentOffset,
@@ -3464,7 +3458,7 @@ class ExplicitExtensionIndexedAccessGenerator extends Generator {
   }) : assert(readTarget != null || writeTarget != null),
        super(helper, token);
 
-  factory ExplicitExtensionIndexedAccessGenerator.fromBuilder(
+  factory fromBuilder(
     ExpressionGeneratorHelper helper,
     Token token,
     int? extensionTypeArgumentOffset,
@@ -3713,7 +3707,7 @@ class ExplicitExtensionAccessGenerator extends Generator {
   final TypeArguments? explicitTypeArguments;
   final int? extensionTypeArgumentOffset;
 
-  ExplicitExtensionAccessGenerator({
+  new({
     required ExpressionGeneratorHelper helper,
     required Token token,
     required this.extensionBuilder,
@@ -4002,11 +3996,8 @@ class ExplicitExtensionAccessGenerator extends Generator {
 class LoadLibraryGenerator extends Generator {
   final LoadLibraryBuilder builder;
 
-  LoadLibraryGenerator(
-    ExpressionGeneratorHelper helper,
-    Token token,
-    this.builder,
-  ) : super(helper, token);
+  new(ExpressionGeneratorHelper helper, Token token, this.builder)
+    : super(helper, token);
 
   @override
   // Coverage-ignore(suite): Not run.
@@ -4132,7 +4123,7 @@ class DeferredAccessGenerator extends Generator {
 
   final Generator suffixGenerator;
 
-  DeferredAccessGenerator(
+  new(
     ExpressionGeneratorHelper helper,
     Token token,
     this.prefixGenerator,
@@ -4438,7 +4429,7 @@ class TypeUseGenerator extends AbstractReadOnlyAccessGenerator {
 
   Expression? _expression;
 
-  TypeUseGenerator(
+  new(
     ExpressionGeneratorHelper helper,
     Token token,
     this.declaration,
@@ -5151,7 +5142,7 @@ class ReadOnlyAccessGenerator extends AbstractReadOnlyAccessGenerator {
   @override
   Expression expression;
 
-  ReadOnlyAccessGenerator(
+  new(
     ExpressionGeneratorHelper helper,
     Token token,
     this.expression,
@@ -5163,11 +5154,8 @@ class ReadOnlyAccessGenerator extends AbstractReadOnlyAccessGenerator {
 abstract class AbstractReadOnlyAccessGenerator extends Generator {
   final ReadOnlyAccessKind kind;
 
-  AbstractReadOnlyAccessGenerator(
-    ExpressionGeneratorHelper helper,
-    Token token,
-    this.kind,
-  ) : super(helper, token);
+  new(ExpressionGeneratorHelper helper, Token token, this.kind)
+    : super(helper, token);
 
   String get targetName;
 
@@ -5335,7 +5323,7 @@ abstract class AbstractReadOnlyAccessGenerator extends Generator {
   }
 
   @override
-  Pattern buildPatternAssignment(Token token) {
+  InternalPattern buildPatternAssignment(Token token) {
     return intern.createInvalidPattern(
       _makeInvalidWrite(),
       declaredVariables: [],
@@ -5355,8 +5343,7 @@ abstract class AbstractReadOnlyAccessGenerator extends Generator {
 }
 
 abstract class ErroneousExpressionGenerator extends Generator {
-  ErroneousExpressionGenerator(ExpressionGeneratorHelper helper, Token token)
-    : super(helper, token);
+  new(ExpressionGeneratorHelper helper, Token token) : super(helper, token);
 
   InvalidExpression buildError({
     required UnresolvedKind kind,
@@ -5519,7 +5506,7 @@ class DuplicateDeclarationGenerator extends ErroneousExpressionGenerator {
   final Name name;
   final int _nameLength;
 
-  DuplicateDeclarationGenerator(
+  new(
     super.helper,
     super.token,
     this._lookupResult,
@@ -5638,7 +5625,7 @@ class UnresolvedNameGenerator extends ErroneousExpressionGenerator {
 
   final bool errorHasBeenReported;
 
-  factory UnresolvedNameGenerator(
+  factory(
     ExpressionGeneratorHelper helper,
     Token token,
     Name name, {
@@ -5657,7 +5644,7 @@ class UnresolvedNameGenerator extends ErroneousExpressionGenerator {
     );
   }
 
-  UnresolvedNameGenerator.internal(
+  new internal(
     ExpressionGeneratorHelper helper,
     Token token,
     this.name,
@@ -5777,11 +5764,8 @@ class UnresolvedNameGenerator extends ErroneousExpressionGenerator {
 abstract class ContextAwareGenerator extends Generator {
   final Generator generator;
 
-  ContextAwareGenerator(
-    ExpressionGeneratorHelper helper,
-    Token token,
-    this.generator,
-  ) : super(helper, token);
+  new(ExpressionGeneratorHelper helper, Token token, this.generator)
+    : super(helper, token);
 
   @override
   // Coverage-ignore(suite): Not run.
@@ -5903,7 +5887,7 @@ class DelayedAssignment extends ContextAwareGenerator {
 
   String assignmentOperator;
 
-  DelayedAssignment(
+  new(
     ExpressionGeneratorHelper helper,
     Token token,
     Generator generator,
@@ -6069,7 +6053,7 @@ class DelayedAssignment extends ContextAwareGenerator {
 class DelayedPostfixIncrement extends ContextAwareGenerator {
   final Name binaryOperator;
 
-  DelayedPostfixIncrement(
+  new(
     ExpressionGeneratorHelper helper,
     Token token,
     Generator generator,
@@ -6109,7 +6093,7 @@ class DelayedPostfixIncrement extends ContextAwareGenerator {
 class PrefixUseGenerator extends Generator {
   final PrefixBuilder prefix;
 
-  PrefixUseGenerator(ExpressionGeneratorHelper helper, Token token, this.prefix)
+  new(ExpressionGeneratorHelper helper, Token token, this.prefix)
     : super(helper, token);
 
   @override
@@ -6307,7 +6291,7 @@ class UnexpectedQualifiedUseGenerator extends Generator {
   /// If `true` an error has already been reported.
   final bool errorHasBeenReported;
 
-  UnexpectedQualifiedUseGenerator(
+  new(
     ExpressionGeneratorHelper helper,
     Token token,
     this.prefixGenerator, {
@@ -6486,11 +6470,8 @@ class UnexpectedQualifiedUseGenerator extends Generator {
 class ParserErrorGenerator extends Generator {
   final Message message;
 
-  ParserErrorGenerator(
-    ExpressionGeneratorHelper helper,
-    Token token,
-    this.message,
-  ) : super(helper, token);
+  new(ExpressionGeneratorHelper helper, Token token, this.message)
+    : super(helper, token);
 
   @override
   // Coverage-ignore(suite): Not run.
@@ -6738,7 +6719,7 @@ class ThisAccessGenerator extends Generator {
   /// `true` if this subexpression represents a `super` prefix.
   final bool isSuper;
 
-  ThisAccessGenerator(
+  new(
     ExpressionGeneratorHelper helper,
     Token token,
     this.isInitializer,
@@ -7157,11 +7138,8 @@ class ThisAccessGenerator extends Generator {
 class IncompleteErrorGenerator extends ErroneousExpressionGenerator {
   final Message message;
 
-  IncompleteErrorGenerator(
-    ExpressionGeneratorHelper helper,
-    Token token,
-    this.message,
-  ) : super(helper, token);
+  new(ExpressionGeneratorHelper helper, Token token, this.message)
+    : super(helper, token);
 
   @override
   // Coverage-ignore(suite): Not run.
@@ -7234,11 +7212,8 @@ class ParenthesizedExpressionGenerator extends AbstractReadOnlyAccessGenerator {
   @override
   final Expression expression;
 
-  ParenthesizedExpressionGenerator(
-    ExpressionGeneratorHelper helper,
-    Token token,
-    this.expression,
-  ) : super(helper, token, ReadOnlyAccessKind.ParenthesizedExpression);
+  new(ExpressionGeneratorHelper helper, Token token, this.expression)
+    : super(helper, token, ReadOnlyAccessKind.ParenthesizedExpression);
 
   @override
   String get targetName => '';
@@ -7322,12 +7297,10 @@ bool isFieldOrGetter(Member? member) {
 ///    a?.b;
 ///    a?.b = c;
 ///
-abstract class Selector {
-  final ExpressionGeneratorHelper _helper;
-  final Token token;
-
-  Selector(this._helper, this.token);
-
+abstract class Selector(
+  final ExpressionGeneratorHelper _helper,
+  final Token token,
+) {
   int get fileOffset => offsetForToken(token);
 
   Name get name;
@@ -7389,35 +7362,16 @@ abstract class Selector {
 ///    a..b();
 ///    a?.b();
 ///
-class InvocationSelector extends Selector {
-  @override
-  final Name name;
-
-  @override
-  final List<TypeBuilder>? typeArgumentBuilders;
-
-  @override
-  final TypeArguments? typeArguments;
-
-  @override
-  final bool isTypeArgumentsInForest;
-
-  @override
-  final ActualArguments arguments;
-
-  final bool isPotentiallyConstant;
-
-  InvocationSelector(
-    ExpressionGeneratorHelper helper,
-    Token token,
-    this.name,
-    this.typeArgumentBuilders,
-    this.typeArguments,
-    this.arguments, {
-    this.isPotentiallyConstant = false,
-    this.isTypeArgumentsInForest = true,
-  }) : super(helper, token);
-
+class InvocationSelector(
+  super.helper,
+  super.token,
+  @override final Name name,
+  @override final List<TypeBuilder>? typeArgumentBuilders,
+  @override final TypeArguments? typeArguments,
+  @override final ActualArguments arguments, {
+  final bool isPotentiallyConstant = false,
+  @override final bool isTypeArgumentsInForest = true,
+}) extends Selector {
   @override
   // Coverage-ignore(suite): Not run.
   String get _debugName => 'InvocationSelector';
@@ -7464,13 +7418,8 @@ class InvocationSelector extends Selector {
 ///    a?.b;
 ///    a?.b = c;
 ///
-class PropertySelector extends Selector {
-  @override
-  final Name name;
-
-  PropertySelector(ExpressionGeneratorHelper helper, Token token, this.name)
-    : super(helper, token);
-
+class PropertySelector(super.helper, super.token, @override final Name name)
+    extends Selector {
   @override
   // Coverage-ignore(suite): Not run.
   String get _debugName => 'PropertySelector';

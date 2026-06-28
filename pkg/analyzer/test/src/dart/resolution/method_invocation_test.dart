@@ -1390,69 +1390,30 @@ MethodInvocation
 ''');
   }
 
-  @SkippedTest() // TODO(scheglov): implement augmentation
   test_class_explicitThis_inAugmentation_augmentationDeclares() async {
-    var a = newFile('$testPackageLibPath/a.dart', r'''
-part of 'test.dart'
-
-augment class A {
-  void foo() {}
-
-  void f() {
-    this.foo();
-  }
-}
-''');
-    await resolveTestCodeWithDiagnostics(r'''
+    var a = getFile('$testPackageLibPath/a.dart');
+    var results = await resolveFilesWithDiagnostics({
+      testFile: r'''
 part 'a.dart';
 
 void foo() {}
 
 class A {}
-''');
-
-    var result = await resolveFile2(a);
-
-    var node = result.findNode.singleMethodInvocation;
-    assertResolvedNodeText(node, r'''
-MethodInvocation
-  target: ThisExpression
-    thisKeyword: this
-    staticType: A
-  operator: .
-  methodName: SimpleIdentifier
-    token: foo
-    staticElement: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@method::foo
-    element: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@method::foo#element
-    staticType: void Function()
-  argumentList: ArgumentList
-    leftParenthesis: (
-    rightParenthesis: )
-  staticInvokeType: void Function()
-  staticType: void
-''');
-  }
-
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_class_explicitThis_inDeclaration_augmentationDeclares() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part of 'test.dart'
+''',
+      a: r'''
+part of 'test.dart';
 
 augment class A {
   void foo() {}
-}
-''');
-    var result = await resolveTestCodeWithDiagnostics(r'''
-part 'a.dart';
 
-void foo() {}
-
-class A {
   void f() {
     this.foo();
   }
 }
-''');
+''',
+    });
+
+    var result = results[a]!;
 
     var node = result.findNode.singleMethodInvocation;
     assertResolvedNodeText(node, r'''
@@ -1463,119 +1424,7 @@ MethodInvocation
   operator: .
   methodName: SimpleIdentifier
     token: foo
-    staticElement: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@method::foo
-    element: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@method::foo#element
-    staticType: void Function()
-  argumentList: ArgumentList
-    leftParenthesis: (
-    rightParenthesis: )
-  staticInvokeType: void Function()
-  staticType: void
-''');
-  }
-
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_class_implicitStatic_inDeclaration_augmentationDeclares() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part of 'test.dart'
-
-augment class A {
-  static void foo() {}
-}
-''');
-    var result = await resolveTestCodeWithDiagnostics(r'''
-part 'a.dart';
-
-void foo() {}
-
-class A {
-  void f() {
-    foo();
-  }
-}
-''');
-
-    var node = result.findNode.singleMethodInvocation;
-    assertResolvedNodeText(node, r'''
-MethodInvocation
-  methodName: SimpleIdentifier
-    token: foo
-    staticElement: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@method::foo
-    element: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@method::foo#element
-    staticType: void Function()
-  argumentList: ArgumentList
-    leftParenthesis: (
-    rightParenthesis: )
-  staticInvokeType: void Function()
-  staticType: void
-''');
-  }
-
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_class_implicitThis_inDeclaration_augmentationAugments() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part of 'test.dart'
-
-augment class A {
-  augment void foo() {}
-}
-''');
-    var result = await resolveTestCodeWithDiagnostics(r'''
-part 'a.dart';
-
-class A {
-  void foo() {}
-
-  void f() {
-    foo();
-  }
-}
-''');
-
-    var node = result.findNode.singleMethodInvocation;
-    assertResolvedNodeText(node, r'''
-MethodInvocation
-  methodName: SimpleIdentifier
-    token: foo
-    staticElement: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@methodAugmentation::foo
-    element: <testLibraryFragment>::@class::A::@method::foo#element
-    staticType: void Function()
-  argumentList: ArgumentList
-    leftParenthesis: (
-    rightParenthesis: )
-  staticInvokeType: void Function()
-  staticType: void
-''');
-  }
-
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_class_implicitThis_inDeclaration_augmentationDeclares() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part of 'test.dart'
-
-augment class A {
-  void foo() {}
-}
-''');
-    var result = await resolveTestCodeWithDiagnostics(r'''
-part 'a.dart';
-
-void foo() {}
-
-class A {
-  void f() {
-    foo();
-  }
-}
-''');
-
-    var node = result.findNode.singleMethodInvocation;
-    assertResolvedNodeText(node, r'''
-MethodInvocation
-  methodName: SimpleIdentifier
-    token: foo
-    staticElement: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@method::foo
-    element: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@method::foo#element
+    element: <testLibrary>::@class::A::@method::foo
     staticType: void Function()
   argumentList: ArgumentList
     leftParenthesis: (
@@ -1609,7 +1458,7 @@ MethodInvocation
     arguments
       SimpleIdentifier
         token: s
-        correspondingParameter: ParameterMember
+        correspondingParameter: SubstitutedFormalParameterElementImpl
           baseElement: <testLibrary>::@function::test::@formalParameter::t
           substitution: {T: S}
         element: <testLibrary>::@function::f::@formalParameter::s
@@ -1917,7 +1766,7 @@ class C<T extends MyFunction> {
 FunctionExpressionInvocation
   function: SimpleIdentifier
     token: foo
-    element: GetterMember
+    element: SubstitutedGetterElementImpl
       baseElement: <testLibrary>::@class::C::@getter::foo
       substitution: {T: T}
     staticType: T
@@ -2830,7 +2679,7 @@ FunctionExpressionInvocation
     operator: .
     propertyName: SimpleIdentifier
       token: foo
-      element: GetterMember
+      element: SubstitutedGetterElementImpl
         baseElement: <testLibrary>::@class::C::@getter::foo
         substitution: {T: void}
       staticType: void
@@ -3279,90 +3128,6 @@ MethodInvocation
 ''');
   }
 
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_hasReceiver_className_augmentationAugments() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part of 'test.dart'
-
-augment class A {
-  augment static void foo() {}
-}
-''');
-    var result = await resolveTestCodeWithDiagnostics(r'''
-part 'a.dart';
-
-class A {
-  static void foo() {}
-}
-
-void f() {
-  A.foo();
-}
-''');
-
-    var node = result.findNode.singleMethodInvocation;
-    assertResolvedNodeText(node, r'''
-MethodInvocation
-  target: SimpleIdentifier
-    token: A
-    staticElement: <testLibraryFragment>::@class::A
-    element: <testLibrary>::@class::A
-    staticType: null
-  operator: .
-  methodName: SimpleIdentifier
-    token: foo
-    staticElement: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@methodAugmentation::foo
-    element: <testLibraryFragment>::@class::A::@method::foo#element
-    staticType: void Function()
-  argumentList: ArgumentList
-    leftParenthesis: (
-    rightParenthesis: )
-  staticInvokeType: void Function()
-  staticType: void
-''');
-  }
-
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_hasReceiver_className_augmentationDeclares() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part of 'test.dart'
-
-augment class A {
-  static void foo() {}
-}
-''');
-    var result = await resolveTestCodeWithDiagnostics(r'''
-part 'a.dart';
-
-class A {}
-
-void f() {
-  A.foo();
-}
-''');
-
-    var node = result.findNode.singleMethodInvocation;
-    assertResolvedNodeText(node, r'''
-MethodInvocation
-  target: SimpleIdentifier
-    token: A
-    staticElement: <testLibraryFragment>::@class::A
-    element: <testLibrary>::@class::A
-    staticType: null
-  operator: .
-  methodName: SimpleIdentifier
-    token: foo
-    staticElement: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@method::foo
-    element: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@method::foo#element
-    staticType: void Function()
-  argumentList: ArgumentList
-    leftParenthesis: (
-    rightParenthesis: )
-  staticInvokeType: void Function()
-  staticType: void
-''');
-  }
-
   test_hasReceiver_deferredImportPrefix_loadLibrary() async {
     var result = await resolveTestCodeWithDiagnostics(r'''
 import 'dart:math' deferred as math;
@@ -3516,51 +3281,6 @@ FunctionExpressionInvocation
 ''');
   }
 
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_hasReceiver_extension_staticGetter_inAugmentation() async {
-    var result = await resolveTestCodeWithDiagnostics(r'''
-extension A on int {}
-
-augment extension A {
-  static double Function(int) get foo => throw Error();
-}
-
-void f() {
-  A.foo(0);
-}
-''');
-
-    var node = result.findNode.singleFunctionExpressionInvocation;
-    assertResolvedNodeText(node, r'''
-FunctionExpressionInvocation
-  function: PropertyAccess
-    target: SimpleIdentifier
-      token: A
-      staticElement: <testLibraryFragment>::@extension::A
-      element: <testLibrary>::@extension::A
-      staticType: null
-    operator: .
-    propertyName: SimpleIdentifier
-      token: foo
-      staticElement: <testLibraryFragment>::@extensionAugmentation::A::@getter::foo
-      element: <testLibraryFragment>::@extensionAugmentation::A::@getter::foo#element
-      staticType: double Function(int)
-    staticType: double Function(int)
-  argumentList: ArgumentList
-    leftParenthesis: (
-    arguments
-      IntegerLiteral
-        literal: 0
-        parameter: root::@parameter::
-        staticType: int
-    rightParenthesis: )
-  staticElement: <null>
-  element: <null>
-  staticInvokeType: double Function(int)
-  staticType: double
-''');
-  }
-
   test_hasReceiver_extension_staticMethod() async {
     var result = await resolveTestCodeWithDiagnostics(r'''
 extension A on int {
@@ -3590,47 +3310,6 @@ MethodInvocation
       IntegerLiteral
         literal: 0
         correspondingParameter: <testLibrary>::@extension::A::@method::foo::@formalParameter::_
-        staticType: int
-    rightParenthesis: )
-  staticInvokeType: void Function(int)
-  staticType: void
-''');
-  }
-
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_hasReceiver_extension_staticMethod_inAugmentation() async {
-    var result = await resolveTestCodeWithDiagnostics(r'''
-extension A on int {}
-
-augment extension A {
-  static void foo(int _) {}
-}
-
-void f() {
-  A.foo(0);
-}
-''');
-
-    var node = result.findNode.singleMethodInvocation;
-    assertResolvedNodeText(node, r'''
-MethodInvocation
-  target: SimpleIdentifier
-    token: A
-    staticElement: <testLibraryFragment>::@extension::A
-    element: <testLibrary>::@extension::A
-    staticType: null
-  operator: .
-  methodName: SimpleIdentifier
-    token: foo
-    staticElement: <testLibraryFragment>::@extensionAugmentation::A::@method::foo
-    element: <testLibraryFragment>::@extensionAugmentation::A::@method::foo#element
-    staticType: void Function(int)
-  argumentList: ArgumentList
-    leftParenthesis: (
-    arguments
-      IntegerLiteral
-        literal: 0
-        parameter: <testLibraryFragment>::@extensionAugmentation::A::@method::foo::@parameter::_
         staticType: int
     rightParenthesis: )
   staticInvokeType: void Function(int)
@@ -3729,7 +3408,7 @@ MethodInvocation
     arguments
       IntegerLiteral
         literal: 0
-        correspondingParameter: ParameterMember
+        correspondingParameter: SubstitutedFormalParameterElementImpl
           baseElement: <testLibrary>::@function::foo::@formalParameter::_
           substitution: {T: int}
         staticType: int
@@ -3771,13 +3450,13 @@ MethodInvocation
     arguments
       IntegerLiteral
         literal: 1
-        correspondingParameter: ParameterMember
+        correspondingParameter: SubstitutedFormalParameterElementImpl
           baseElement: package:test/a.dart::@function::foo::@formalParameter::a
           substitution: {T: int}
         staticType: int
       IntegerLiteral
         literal: 2
-        correspondingParameter: ParameterMember
+        correspondingParameter: SubstitutedFormalParameterElementImpl
           baseElement: package:test/a.dart::@function::foo::@formalParameter::b
           substitution: {T: int}
         staticType: int
@@ -3822,13 +3501,13 @@ FunctionExpressionInvocation
     arguments
       IntegerLiteral
         literal: 1
-        correspondingParameter: ParameterMember
+        correspondingParameter: SubstitutedFormalParameterElementImpl
           baseElement: a@null
           substitution: {T: int}
         staticType: int
       IntegerLiteral
         literal: 2
-        correspondingParameter: ParameterMember
+        correspondingParameter: SubstitutedFormalParameterElementImpl
           baseElement: b@null
           substitution: {T: int}
         staticType: int
@@ -4093,7 +3772,7 @@ MethodInvocation
     arguments
       IntegerLiteral
         literal: 0
-        correspondingParameter: ParameterMember
+        correspondingParameter: SubstitutedFormalParameterElementImpl
           baseElement: <testLibrary>::@class::C::@method::foo::@formalParameter::a
           substitution: {T: int}
         staticType: int
@@ -4170,7 +3849,7 @@ class C<T extends A> {
 MethodInvocation
   target: SimpleIdentifier
     token: a
-    element: GetterMember
+    element: SubstitutedGetterElementImpl
       baseElement: <testLibrary>::@class::C::@getter::a
       substitution: {T: T}
     staticType: T
@@ -4327,90 +4006,6 @@ FunctionExpressionInvocation
     rightParenthesis: )
   element: <null>
   staticInvokeType: void Function(C)
-  staticType: void
-''');
-  }
-
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_hasReceiver_interfaceType_class_augmentationAugments() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part of 'test.dart'
-
-augment class A {
-  augment void foo() {}
-}
-''');
-    var result = await resolveTestCodeWithDiagnostics(r'''
-part 'a.dart';
-
-class A {
-  void foo() {}
-}
-
-void f(A a) {
-  a.foo();
-}
-''');
-
-    var node = result.findNode.singleMethodInvocation;
-    assertResolvedNodeText(node, r'''
-MethodInvocation
-  target: SimpleIdentifier
-    token: a
-    staticElement: <testLibraryFragment>::@function::f::@parameter::a
-    element: <testLibraryFragment>::@function::f::@parameter::a#element
-    staticType: A
-  operator: .
-  methodName: SimpleIdentifier
-    token: foo
-    staticElement: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@methodAugmentation::foo
-    element: <testLibraryFragment>::@class::A::@method::foo#element
-    staticType: void Function()
-  argumentList: ArgumentList
-    leftParenthesis: (
-    rightParenthesis: )
-  staticInvokeType: void Function()
-  staticType: void
-''');
-  }
-
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_hasReceiver_interfaceType_class_augmentationDeclares() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part of 'test.dart'
-
-augment class A {
-  void foo() {}
-}
-''');
-    var result = await resolveTestCodeWithDiagnostics(r'''
-part 'a.dart';
-
-class A {}
-
-void f(A a) {
-  a.foo();
-}
-''');
-
-    var node = result.findNode.singleMethodInvocation;
-    assertResolvedNodeText(node, r'''
-MethodInvocation
-  target: SimpleIdentifier
-    token: a
-    staticElement: <testLibraryFragment>::@function::f::@parameter::a
-    element: <testLibraryFragment>::@function::f::@parameter::a#element
-    staticType: A
-  operator: .
-  methodName: SimpleIdentifier
-    token: foo
-    staticElement: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@method::foo
-    element: <testLibrary>::@fragment::package:test/a.dart::@classAugmentation::A::@method::foo#element
-    staticType: void Function()
-  argumentList: ArgumentList
-    leftParenthesis: (
-    rightParenthesis: )
-  staticInvokeType: void Function()
   staticType: void
 ''');
   }
@@ -4738,7 +4333,7 @@ MethodInvocation
   operator: .
   methodName: SimpleIdentifier
     token: foo
-    element: MethodMember
+    element: SubstitutedMethodElementImpl
       baseElement: <testLibrary>::@class::A::@method::foo
       substitution: {T: int}
     staticType: int Function()
@@ -4783,90 +4378,6 @@ MethodInvocation
 ''');
   }
 
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_hasReceiver_interfaceType_mixin_augmentationAugments() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part of 'test.dart'
-
-augment mixin A {
-  augment void foo() {}
-}
-''');
-    var result = await resolveTestCodeWithDiagnostics(r'''
-part 'a.dart';
-
-mixin A {
-  void foo() {}
-}
-
-void f(A a) {
-  a.foo();
-}
-''');
-
-    var node = result.findNode.singleMethodInvocation;
-    assertResolvedNodeText(node, r'''
-MethodInvocation
-  target: SimpleIdentifier
-    token: a
-    staticElement: <testLibraryFragment>::@function::f::@parameter::a
-    element: <testLibraryFragment>::@function::f::@parameter::a#element
-    staticType: A
-  operator: .
-  methodName: SimpleIdentifier
-    token: foo
-    staticElement: <testLibrary>::@fragment::package:test/a.dart::@mixinAugmentation::A::@methodAugmentation::foo
-    element: <testLibraryFragment>::@mixin::A::@method::foo#element
-    staticType: void Function()
-  argumentList: ArgumentList
-    leftParenthesis: (
-    rightParenthesis: )
-  staticInvokeType: void Function()
-  staticType: void
-''');
-  }
-
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_hasReceiver_interfaceType_mixin_augmentationDeclares() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part of 'test.dart'
-
-augment mixin A {
-  void foo() {}
-}
-''');
-    var result = await resolveTestCodeWithDiagnostics(r'''
-part 'a.dart';
-
-mixin A {}
-
-void f(A a) {
-  a.foo();
-}
-''');
-
-    var node = result.findNode.singleMethodInvocation;
-    assertResolvedNodeText(node, r'''
-MethodInvocation
-  target: SimpleIdentifier
-    token: a
-    staticElement: <testLibraryFragment>::@function::f::@parameter::a
-    element: <testLibraryFragment>::@function::f::@parameter::a#element
-    staticType: A
-  operator: .
-  methodName: SimpleIdentifier
-    token: foo
-    staticElement: <testLibrary>::@fragment::package:test/a.dart::@mixinAugmentation::A::@method::foo
-    element: <testLibrary>::@fragment::package:test/a.dart::@mixinAugmentation::A::@method::foo#element
-    staticType: void Function()
-  argumentList: ArgumentList
-    leftParenthesis: (
-    rightParenthesis: )
-  staticInvokeType: void Function()
-  staticType: void
-''');
-  }
-
   test_hasReceiver_interfaceType_ofExtension() async {
     var result = await resolveTestCodeWithDiagnostics(r'''
 extension E on int {
@@ -4894,46 +4405,6 @@ MethodInvocation
     rightParenthesis: )
   staticInvokeType: void Function()
   staticType: void
-''');
-  }
-
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_hasReceiver_interfaceType_ofExtension_augmentation() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part of 'test.dart';
-
-augment extension E {
-  vois foo() {}
-}
-''');
-
-    var result = await resolveTestCodeWithDiagnostics(r'''
-part 'a.dart';
-
-extension E on int {}
-
-void f() {
-  0.foo();
-}
-''');
-
-    var node = result.findNode.singleMethodInvocation;
-    assertResolvedNodeText(node, r'''
-MethodInvocation
-  target: IntegerLiteral
-    literal: 0
-    staticType: int
-  operator: .
-  methodName: SimpleIdentifier
-    token: foo
-    staticElement: <testLibrary>::@fragment::package:test/a.dart::@extensionAugmentation::E::@method::foo
-    element: <testLibrary>::@fragment::package:test/a.dart::@extensionAugmentation::E::@method::foo#element
-    staticType: InvalidType Function()
-  argumentList: ArgumentList
-    leftParenthesis: (
-    rightParenthesis: )
-  staticInvokeType: InvalidType Function()
-  staticType: InvalidType
 ''');
   }
 
@@ -5109,7 +4580,7 @@ MethodInvocation
   operator: .
   methodName: SimpleIdentifier
     token: foo
-    element: MethodMember
+    element: SubstitutedMethodElementImpl
       baseElement: <testLibrary>::@extension::E::@method::foo
       substitution: {T: int}
     staticType: int Function()
@@ -5520,9 +4991,11 @@ MethodInvocation
 ''');
   }
 
-  @SkippedTest() // TODO(scheglov): implement augmentation
   test_hasReceiver_super_classAugmentation() async {
-    newFile('$testPackageLibPath/a.dart', r'''
+    var a = getFile('$testPackageLibPath/a.dart');
+    var b = getFile('$testPackageLibPath/b.dart');
+    var results = await resolveFilesWithDiagnostics({
+      a: r'''
 part 'b.dart';
 
 class A {
@@ -5530,9 +5003,8 @@ class A {
 }
 
 class B extends A {}
-''');
-
-    var b = newFile('$testPackageLibPath/b.dart', r'''
+''',
+      b: r'''
 part of 'a.dart';
 
 augment class B {
@@ -5540,9 +5012,10 @@ augment class B {
     super.foo();
   }
 }
-''');
+''',
+    });
 
-    var result = await resolveFile2(b);
+    var result = results[b]!;
 
     var node = result.findNode.singleMethodInvocation;
     assertResolvedNodeText(node, r'''
@@ -5553,8 +5026,7 @@ MethodInvocation
   operator: .
   methodName: SimpleIdentifier
     token: foo
-    staticElement: package:test/a.dart::<fragment>::@class::A::@method::foo
-    element: package:test/a.dart::<fragment>::@class::A::@method::foo#element
+    element: package:test/a.dart::@class::A::@method::foo
     staticType: void Function()
   argumentList: ArgumentList
     leftParenthesis: (
@@ -5564,27 +5036,32 @@ MethodInvocation
 ''');
   }
 
-  @SkippedTest() // TODO(scheglov): implement augmentation
   test_hasReceiver_super_classAugmentation_noDeclaration() async {
-    newFile('$testPackageLibPath/a.dart', r'''
+    var a = getFile('$testPackageLibPath/a.dart');
+    var b = getFile('$testPackageLibPath/b.dart');
+    var results = await resolveFilesWithDiagnostics({
+      a: r'''
 part 'b.dart';
 
 class A {
   void foo() {}
 }
-''');
-
-    var b = newFile('$testPackageLibPath/b.dart', r'''
+''',
+      b: r'''
 part of 'a.dart';
 
 augment class B {
+// [diag.augmentationWithoutDeclaration][column 1][length 7] The declaration being augmented doesn't exist.
   void bar() {
     super.foo(0);
+//        ^^^
+// [diag.undefinedSuperMethod] The method 'foo' isn't defined in a superclass of 'B'.
   }
 }
-''');
+''',
+    });
 
-    var result = await resolveFile2(b);
+    var result = results[b]!;
 
     var node = result.findNode.singleMethodInvocation;
     assertResolvedNodeText(node, r'''
@@ -5595,7 +5072,6 @@ MethodInvocation
   operator: .
   methodName: SimpleIdentifier
     token: foo
-    staticElement: <null>
     element: <null>
     staticType: InvalidType
   argumentList: ArgumentList
@@ -5603,7 +5079,7 @@ MethodInvocation
     arguments
       IntegerLiteral
         literal: 0
-        parameter: <null>
+        correspondingParameter: <null>
         staticType: int
     rightParenthesis: )
   staticInvokeType: InvalidType
@@ -6176,7 +5652,7 @@ MethodInvocation
     arguments
       ThisExpression
         thisKeyword: this
-        correspondingParameter: ParameterMember
+        correspondingParameter: SubstitutedFormalParameterElementImpl
           baseElement: <testLibrary>::@class::A::@method::foo::@formalParameter::p
           substitution: {E: T}
         staticType: A<T>
@@ -6238,7 +5714,7 @@ MethodInvocation
     arguments
       IntegerLiteral
         literal: 0
-        correspondingParameter: ParameterMember
+        correspondingParameter: SubstitutedFormalParameterElementImpl
           baseElement: <testLibrary>::@function::foo::@formalParameter::a
           substitution: {T: int}
         staticType: int
@@ -6251,8 +5727,10 @@ MethodInvocation
   }
 
   test_invalid_inDefaultValue_nullAware() async {
-    var result = await assertInvalidTestCode('''
+    var result = await resolveTestCodeWithDiagnostics('''
 void f({a = b?.foo()}) {}
+//          ^
+// [diag.undefinedIdentifier] Undefined name 'b'.
 ''');
 
     var node = result.findNode.methodInvocation('?.foo()');
@@ -6276,8 +5754,12 @@ MethodInvocation
   }
 
   test_invalid_inDefaultValue_nullAware2() async {
-    var result = await assertInvalidTestCode('''
+    var result = await resolveTestCodeWithDiagnostics('''
 typedef void F({a = b?.foo()});
+//                ^
+// [diag.defaultValueInFunctionType] Parameters in a function type can't have default values.
+//                  ^
+// [diag.undefinedIdentifier] Undefined name 'b'.
 ''');
 
     var node = result.findNode.methodInvocation('?.foo()');
@@ -6420,7 +5902,7 @@ MethodInvocation
     arguments
       IntegerLiteral
         literal: 1
-        correspondingParameter: ParameterMember
+        correspondingParameter: SubstitutedFormalParameterElementImpl
           baseElement: a@25
           substitution: {T: int, U: String}
         staticType: int
@@ -6455,7 +5937,7 @@ MethodInvocation
     arguments
       IntegerLiteral
         literal: 0
-        correspondingParameter: ParameterMember
+        correspondingParameter: SubstitutedFormalParameterElementImpl
           baseElement: a@24
           substitution: {T: int}
         staticType: int
@@ -6491,7 +5973,7 @@ MethodInvocation
         argumentExpression: IntegerLiteral
           literal: 0
           staticType: int
-        correspondingParameter: ParameterMember
+        correspondingParameter: SubstitutedFormalParameterElementImpl
           baseElement: a@32
           substitution: {T: int}
     rightParenthesis: )
@@ -6499,84 +5981,6 @@ MethodInvocation
   staticType: int
   typeArgumentTypes
     int
-''');
-  }
-
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_mixin_explicitThis_inDeclaration_augmentationDeclares() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part of 'test.dart'
-
-augment mixin A {
-  void foo() {}
-}
-''');
-    var result = await resolveTestCodeWithDiagnostics(r'''
-part 'a.dart';
-
-void foo() {}
-
-mixin A {
-  void f() {
-    this.foo();
-  }
-}
-''');
-
-    var node = result.findNode.singleMethodInvocation;
-    assertResolvedNodeText(node, r'''
-MethodInvocation
-  target: ThisExpression
-    thisKeyword: this
-    staticType: A
-  operator: .
-  methodName: SimpleIdentifier
-    token: foo
-    staticElement: <testLibrary>::@fragment::package:test/a.dart::@mixinAugmentation::A::@method::foo
-    element: <testLibrary>::@fragment::package:test/a.dart::@mixinAugmentation::A::@method::foo#element
-    staticType: void Function()
-  argumentList: ArgumentList
-    leftParenthesis: (
-    rightParenthesis: )
-  staticInvokeType: void Function()
-  staticType: void
-''');
-  }
-
-  @SkippedTest() // TODO(scheglov): implement augmentation
-  test_mixin_implicitThis_inDeclaration_augmentationDeclares() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part of 'test.dart'
-
-augment mixin A {
-  void foo() {}
-}
-''');
-    var result = await resolveTestCodeWithDiagnostics(r'''
-part 'a.dart';
-
-void foo() {}
-
-mixin A {
-  void f() {
-    foo();
-  }
-}
-''');
-
-    var node = result.findNode.singleMethodInvocation;
-    assertResolvedNodeText(node, r'''
-MethodInvocation
-  methodName: SimpleIdentifier
-    token: foo
-    staticElement: <testLibrary>::@fragment::package:test/a.dart::@mixinAugmentation::A::@method::foo
-    element: <testLibrary>::@fragment::package:test/a.dart::@mixinAugmentation::A::@method::foo#element
-    staticType: void Function()
-  argumentList: ArgumentList
-    leftParenthesis: (
-    rightParenthesis: )
-  staticInvokeType: void Function()
-  staticType: void
 ''');
   }
 
@@ -7819,7 +7223,7 @@ FunctionExpressionInvocation
     operator: .
     propertyName: SimpleIdentifier
       token: first
-      element: GetterMember
+      element: SubstitutedGetterElementImpl
         baseElement: dart:core::@class::Iterable::@getter::first
         substitution: {E: T}
       staticType: T
@@ -7847,7 +7251,7 @@ extension E<T extends Function> on List<T> {
 FunctionExpressionInvocation
   function: SimpleIdentifier
     token: first
-    element: GetterMember
+    element: SubstitutedGetterElementImpl
       baseElement: dart:core::@class::Iterable::@getter::first
       substitution: {E: T}
     staticType: T
@@ -8117,7 +7521,7 @@ MethodInvocation
     arguments
       IntegerLiteral
         literal: 0
-        correspondingParameter: ParameterMember
+        correspondingParameter: SubstitutedFormalParameterElementImpl
           baseElement: <testLibrary>::@function::foo::@formalParameter::a
           substitution: {T: int, U: bool}
         staticType: int
@@ -8151,7 +7555,7 @@ MethodInvocation
     arguments
       SimpleIdentifier
         token: o
-        correspondingParameter: ParameterMember
+        correspondingParameter: SubstitutedFormalParameterElementImpl
           baseElement: <testLibrary>::@function::foo::@formalParameter::value
           substitution: {T: Object}
         element: <testLibrary>::@function::f::@formalParameter::o
@@ -8185,7 +7589,7 @@ MethodInvocation
     arguments
       SimpleIdentifier
         token: o
-        correspondingParameter: ParameterMember
+        correspondingParameter: SubstitutedFormalParameterElementImpl
           baseElement: <testLibrary>::@function::foo::@formalParameter::value
           substitution: {T: Object}
         element: <testLibrary>::@function::f::@formalParameter::o

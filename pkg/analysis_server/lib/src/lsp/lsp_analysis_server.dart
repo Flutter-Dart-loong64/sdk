@@ -132,7 +132,7 @@ class LspAnalysisServer extends AnalysisServer {
 
   /// Initialize a newly created server to send and receive messages to the
   /// given [channel].
-  LspAnalysisServer(
+  new(
     this.channel,
     ResourceProvider baseResourceProvider,
     AnalysisServerOptions options,
@@ -1133,9 +1133,8 @@ class LspAnalysisServer extends AnalysisServer {
   /// Returns whether [filePath] is in a project that can resolve
   /// 'package:flutter' libraries.
   bool _isInFlutterProject(String filePath) =>
-      getAnalysisDriver(
-        filePath,
-      )?.currentSession.uriConverter.uriToPath(Uri.parse(widgetsUri)) !=
+      getAnalysisDriver(filePath)?.currentSession.uriConverter
+          .uriToPath(Uri.parse(widgetsUri)) !=
       null;
 
   void _notifyPluginsOverlayChanged(
@@ -1158,8 +1157,8 @@ class LspAnalysisServer extends AnalysisServer {
     // open workspace folders, then we use the open (priority) files to compute
     // roots.
     var includedPaths = _workspaceFolders.isNotEmpty
-        ? _workspaceFolders.toSet()
-        : _getRootsForOpenFiles();
+        ? _workspaceFolders.toList()
+        : _getRootsForOpenFiles().toList();
 
     var excludedPaths = lspClientConfiguration.global.analysisExcludedFolders
         .expand(
@@ -1175,25 +1174,28 @@ class LspAnalysisServer extends AnalysisServer {
                 ),
         )
         .map(pathContext.normalize)
-        .toSet();
+        .toSet()
+        .toList();
 
-    var includedPathsList = includedPaths.toList();
-    var excludedPathsList = excludedPaths.toList();
-    notificationManager.setAnalysisRoots(includedPathsList, excludedPathsList);
+    notificationManager.setAnalysisRoots(includedPaths, excludedPaths);
     if (detachableFileSystemManager != null) {
       detachableFileSystemManager?.setAnalysisRoots(
         null,
-        includedPathsList,
-        excludedPathsList,
+        includedPaths,
+        excludedPaths,
       );
     } else {
       var completer = analysisContextRebuildCompleter = Completer();
       try {
-        await contextManager.setRoots(includedPathsList, excludedPathsList);
+        await contextManager.setRoots(includedPaths, excludedPaths);
       } finally {
         completer.complete();
       }
     }
+
+    pluginManager.setAnalysisSetAnalysisRootsParams(
+      plugin.AnalysisSetAnalysisRootsParams(includedPaths, excludedPaths),
+    );
   }
 
   void _updateDriversAndPluginsPriorityFiles() {
@@ -1249,12 +1251,11 @@ class LspInitializationOptions {
   /// Dart-Code, this flag can also be removed here for future SDKs.
   final bool useInEditorDartFixPrompt;
 
-  factory LspInitializationOptions(Object? options) =>
-      LspInitializationOptions._(
-        options is Map<String, Object?> ? options : const {},
-      );
+  factory(Object? options) => LspInitializationOptions._(
+    options is Map<String, Object?> ? options : const {},
+  );
 
-  LspInitializationOptions._(Map<String, Object?> options)
+  new _(Map<String, Object?> options)
     : raw = options,
       appHost = options['appHost'] as String?,
       remoteName = options['remoteName'] as String?,
@@ -1279,7 +1280,7 @@ class LspServerContextManagerCallbacks
   @override
   final LspAnalysisServer analysisServer;
 
-  LspServerContextManagerCallbacks(this.analysisServer, super.resourceProvider);
+  new(this.analysisServer, super.resourceProvider);
 
   @override
   void afterContextsCreated() {

@@ -13,19 +13,18 @@ class AddAwait extends ResolvedCorrectionProducer {
   /// The kind of correction to be made.
   final _CorrectionKind _correctionKind;
 
-  AddAwait.argumentType({required super.context})
-    : _correctionKind = .argumentType;
+  new argumentType({required super.context}) : _correctionKind = .argumentType;
 
-  AddAwait.assignment({required super.context})
+  new assignment({required super.context})
     : _correctionKind = .invalidAssignment;
 
-  AddAwait.forIn({required super.context}) : _correctionKind = .forIn;
+  new forIn({required super.context}) : _correctionKind = .forIn;
 
-  AddAwait.nonBool({required super.context}) : _correctionKind = .nonBool;
+  new nonBool({required super.context}) : _correctionKind = .nonBool;
 
-  AddAwait.return_({required super.context}) : _correctionKind = .return_;
+  new return_({required super.context}) : _correctionKind = .return_;
 
-  AddAwait.unawaited({required super.context}) : _correctionKind = .unawaited;
+  new unawaited({required super.context}) : _correctionKind = .unawaited;
 
   @override
   CorrectionApplicability get applicability =>
@@ -80,17 +79,14 @@ class AddAwait extends ResolvedCorrectionProducer {
         // If this is ever broken we must fix here and at:
         // - DartFixKind.ADD_ASYNC
         // - DartFixKind.WRAP_IN_UNAWAITED
-        if (node.parent case AstNode(
-          :var offset,
-          :var parent,
-        ) when parent is! CascadeExpression) {
+        if (node.parent case AstNode(:var offset, :var parent)
+            when parent is! CascadeExpression) {
           await _addAwait(builder, offset: offset);
         }
       case .forIn:
-        if (node.parent case ForEachPartsWithDeclaration(
-          :var iterable,
-          :var parent,
-        ) when iterable == node) {
+        if (node.parent
+            case ForEachPartsWithDeclaration(:var iterable, :var parent)
+            when iterable == node) {
           var type = iterable.staticType;
           var isStream =
               type != null &&

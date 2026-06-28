@@ -111,7 +111,15 @@ class FlowGraphBuilder {
   TargetBlock newTargetBlock() => TargetBlock(graph, currentSourcePosition);
 
   /// Create a new [CatchBlock].
-  CatchBlock newCatchBlock() => CatchBlock(graph, currentSourcePosition);
+  CatchBlock newCatchBlock(
+    List<ast.DartType> guardTypes, {
+    required bool isSynthetic,
+  }) => CatchBlock(
+    graph,
+    currentSourcePosition,
+    guardTypes,
+    isSynthetic: isSynthetic,
+  );
 
   /// Append [Goto] to the graph. Ends current block.
   void addGoto(Block target) {
@@ -418,10 +426,15 @@ class FlowGraphBuilder {
     return instr;
   }
 
-  /// Append [TypeParameters] taking a parameter as input to the graph.
-  TypeParameters addTypeParameters(TypeParametersKind kind) {
-    final parameter = pop();
-    final instr = TypeParameters(graph, currentSourcePosition, kind, parameter);
+  /// Append [TypeParameters] to the graph.
+  TypeParameters addTypeParameters(TypeParametersKind kind, int inputCount) {
+    final instr = TypeParameters(
+      graph,
+      currentSourcePosition,
+      kind,
+      inputCount: inputCount,
+    );
+    popInputs(instr, 0, inputCount);
     appendInstruction(instr);
     return instr;
   }
@@ -623,6 +636,22 @@ class FlowGraphBuilder {
       inputCount: inputCount,
     );
     popInputs(instr, 0, inputCount);
+    push(instr);
+    appendInstruction(instr);
+    return instr;
+  }
+
+  /// Append [InstantiateClosure] to the graph.
+  InstantiateClosure addInstantiateClosure(CType type) {
+    final closure = pop();
+    final typeArguments = pop();
+    final instr = InstantiateClosure(
+      graph,
+      currentSourcePosition,
+      typeArguments,
+      closure,
+      type,
+    );
     push(instr);
     appendInstruction(instr);
     return instr;

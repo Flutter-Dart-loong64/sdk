@@ -517,10 +517,27 @@ class JsInteropChecks extends RecursiveVisitor {
   }
 
   @override
-  void visitStaticTearOffConstantReference(StaticTearOffConstant node) {
+  void visitStaticTearOffConstantReference(StaticTearOffConstant node) =>
+      handleTearOffConstant(node);
+
+  @override
+  void visitRedirectingFactoryTearOffConstantReference(
+    RedirectingFactoryTearOffConstant node,
+  ) => handleTearOffConstant(node);
+
+  @override
+  void visitConstructorTearOffConstantReference(
+    ConstructorTearOffConstant node,
+  ) => handleTearOffConstant(node);
+
+  void handleTearOffConstant(TearOffConstant node) {
     if (_constantCache.contains(node)) return;
+
+    final target = node.target;
     if (_checkDisallowedTearoff(
-      _getTornOffFromGeneratedTearOff(node.target) ?? node.target,
+      target is Procedure
+          ? _getTornOffFromGeneratedTearOff(target) ?? target
+          : target,
       _lastConstantExpression,
     )) {
       return;
@@ -856,7 +873,7 @@ class JsInteropChecks extends RecursiveVisitor {
                   : 'Object literal constructors',
             ),
         firstPositionalParam.fileOffset,
-        firstPositionalParam.name!.length,
+        firstPositionalParam.cosmeticName!.length,
         firstPositionalParam.location!.file,
       );
     }
@@ -869,7 +886,7 @@ class JsInteropChecks extends RecursiveVisitor {
       _reporter.report(
         diag.jsInteropNamedParameters,
         firstNamedParam.fileOffset,
-        firstNamedParam.name!.length,
+        firstNamedParam.parameterName.length,
         firstNamedParam.location!.file,
       );
     }
@@ -886,7 +903,7 @@ class JsInteropChecks extends RecursiveVisitor {
         _reporter.report(
           diag.jsInteropStaticInteropParameterInitializersAreIgnored,
           param.fileOffset,
-          param.name!.length,
+          param.cosmeticName!.length,
           param.location!.file,
         );
       }

@@ -31,7 +31,7 @@ class CloneVisitorNotMembers
   /// The boolean value of [cloneAnnotations] tells if the annotations on the
   /// outline elements in the source AST should be cloned to the target AST. The
   /// annotations in procedure bodies are cloned unconditionally.
-  CloneVisitorNotMembers({
+  new({
     Map<TypeParameter, DartType>? typeSubstitution,
     Map<TypeParameter, TypeParameter>? typeParams,
     Map<StructuralParameter, StructuralParameter>? structuralParameters,
@@ -520,7 +520,7 @@ class CloneVisitorNotMembers
 
   @override
   TreeNode visitLet(Let node) {
-    Variable newVariable = clone(node.variable);
+    SyntheticVariable newVariable = clone(node.variable);
     return new Let(newVariable, clone(node.body));
   }
 
@@ -603,7 +603,7 @@ class CloneVisitorNotMembers
 
   @override
   TreeNode visitForStatement(ForStatement node) {
-    List<VariableStatement> variables = node.variables.map(clone).toList();
+    List<VariableDeclaration> variables = node.variables.map(clone).toList();
     return new ForStatement(
       variables,
       cloneOptional(node.condition),
@@ -677,8 +677,8 @@ class CloneVisitorNotMembers
 
   @override
   TreeNode visitCatch(Catch node) {
-    Variable? newException = cloneOptional(node.exception);
-    Variable? newStackTrace = cloneOptional(node.stackTrace);
+    CatchVariable? newException = cloneOptional(node.exception);
+    CatchVariable? newStackTrace = cloneOptional(node.stackTrace);
     return new Catch(
       newException,
       clone(node.body),
@@ -753,7 +753,22 @@ class CloneVisitorNotMembers
     return setVariableClone(
       node,
       new LocalVariable(
-          cosmeticName: node.cosmeticName,
+          name: node.cosmeticName!,
+          type: visitOptionalType(node.type),
+          initializer: cloneOptional(node.initializer),
+        )
+        ..flags = node.flags
+        ..annotations = _cloneAnnotations(node)
+        ..fileEqualsOffset = _cloneFileOffset(node.fileEqualsOffset),
+    );
+  }
+
+  @override
+  TreeNode visitLateVariable(LateVariable node) {
+    return setVariableClone(
+      node,
+      new LateVariable(
+          name: node.cosmeticName!,
           type: visitOptionalType(node.type),
           initializer: cloneOptional(node.initializer),
         )
@@ -790,36 +805,21 @@ class CloneVisitorNotMembers
   }
 
   @override
-  TreeNode visitLegacyVariableStatement(VariableStatement node) {
-    return new LegacyVariableStatement(clone(node.variable))
+  TreeNode visitVariableStatement(VariableStatement node) {
+    return new VariableStatement(clone(node.declaration))
       ..fileOffset = _cloneFileOffset(node.fileOffset);
   }
 
   @override
-  TreeNode visitLegacyVariable(LegacyVariable node) {
-    return setVariableClone(
-      node,
-      new LegacyVariable(
-          node.name,
-          initializer: cloneOptional(node.initializer),
-          type: visitType(node.type),
-          flags: node.flags,
-        )
-        ..annotations = _cloneAnnotations(node)
-        ..fileEqualsOffset = _cloneFileOffset(node.fileEqualsOffset),
-    );
+  TreeNode visitVariableDeclaration(VariableDeclaration node) {
+    return new VariableDeclaration(clone(node.variable))
+      ..fileOffset = _cloneFileOffset(node.fileOffset);
   }
 
   List<Expression> _cloneAnnotations(Annotatable node) {
     return cloneAnnotations && !node.annotations.isEmpty
         ? node.annotations.map(clone).toList()
         : const <Expression>[];
-  }
-
-  @override
-  TreeNode visitVariableInitialization(VariableInitialization node) {
-    return new VariableInitialization(variable: clone(node.variable))
-      ..flags = node.flags;
   }
 
   @override
@@ -879,9 +879,11 @@ class CloneVisitorNotMembers
     List<TypeParameter> typeParameters = node.typeParameters
         .map(clone)
         .toList();
-    List<Variable> positional = node.positionalParameters.map(clone).toList();
-    List<Variable> named = node.namedParameters.map(clone).toList();
-    Variable? thisVariable = cloneOptional(node.thisVariable);
+    List<PositionalParameter> positional = node.positionalParameters
+        .map(clone)
+        .toList();
+    List<NamedParameter> named = node.namedParameters.map(clone).toList();
+    ThisVariable? thisVariable = cloneOptional(node.thisVariable);
     final DartType? futureValueType = node.emittedValueType != null
         ? visitType(node.emittedValueType!)
         : null;
@@ -1359,6 +1361,13 @@ class CloneVisitorNotMembers
       "Unsupported auxiliary initializer ${node} (${node.runtimeType}).",
     );
   }
+
+  @override
+  TreeNode visitAuxiliaryPattern(AuxiliaryPattern node) {
+    throw new UnsupportedError(
+      "Unsupported auxiliary pattern ${node} (${node.runtimeType}).",
+    );
+  }
 }
 
 /// Visitor that return a clone of a tree, maintaining references to cloned
@@ -1367,7 +1376,7 @@ class CloneVisitorNotMembers
 /// It is safe to clone members, but cloning a class or library is not
 /// supported.
 class CloneVisitorWithMembers extends CloneVisitorNotMembers {
-  CloneVisitorWithMembers({
+  new({
     Map<TypeParameter, DartType>? typeSubstitution,
     Map<TypeParameter, TypeParameter>? typeParams,
     bool cloneAnnotations = true,
@@ -1395,7 +1404,7 @@ class CloneVisitorWithMembers extends CloneVisitorNotMembers {
             isExternal: node.isExternal,
             isSynthetic: node.isSynthetic,
             initializers: node.initializers.map(super.clone).toList(),
-            transformerFlags: node.transformerFlags,
+            containsSuperCalls: node.containsSuperCalls,
             fileUri: node.fileUri,
             reference: reference,
           )
@@ -1421,7 +1430,7 @@ class CloneVisitorWithMembers extends CloneVisitorNotMembers {
             node.kind,
             super.clone(node.function),
             reference: reference,
-            transformerFlags: node.transformerFlags,
+            containsSuperCalls: node.containsSuperCalls,
             fileUri: node.fileUri,
             stubKind: node.stubKind,
             stubTarget: node.stubTarget,
@@ -1456,7 +1465,7 @@ class CloneVisitorWithMembers extends CloneVisitorNotMembers {
         node.name,
         type: visitType(node.type),
         initializer: cloneOptional(node.initializer),
-        transformerFlags: node.transformerFlags,
+        containsSuperCalls: node.containsSuperCalls,
         fileUri: node.fileUri,
         fieldReference: fieldReference,
         getterReference: getterReference,
@@ -1472,7 +1481,7 @@ class CloneVisitorWithMembers extends CloneVisitorNotMembers {
         node.name,
         type: visitType(node.type),
         initializer: cloneOptional(node.initializer),
-        transformerFlags: node.transformerFlags,
+        containsSuperCalls: node.containsSuperCalls,
         fileUri: node.fileUri,
         fieldReference: fieldReference,
         getterReference: getterReference,
@@ -1500,7 +1509,7 @@ class MixinApplicationCloner extends CloneVisitorWithMembers {
   Map<Name, Member>? _getterMap;
   Map<Name, Member>? _setterMap;
 
-  MixinApplicationCloner(
+  new(
     this.mixinApplicationClass, {
     Map<TypeParameter, DartType>? typeSubstitution,
     Map<TypeParameter, TypeParameter>? typeParams,
@@ -1595,7 +1604,7 @@ class MixinApplicationCloner extends CloneVisitorWithMembers {
 }
 
 class CloneProcedureWithoutBody extends CloneVisitorWithMembers {
-  CloneProcedureWithoutBody({
+  new({
     Map<TypeParameter, DartType>? typeSubstitution,
     bool cloneAnnotations = true,
   }) : super(
@@ -1616,8 +1625,8 @@ class CloneProcedureWithoutBody extends CloneVisitorWithMembers {
   Procedure cloneProcedureWith(
     Procedure node,
     Reference? reference, {
-    List<Variable>? positionalParameters,
-    List<Variable>? namedParameters,
+    List<PositionalParameter>? positionalParameters,
+    List<NamedParameter>? namedParameters,
   }) {
     Procedure cloned = cloneProcedure(node, reference);
     if (positionalParameters != null) {

@@ -37,7 +37,7 @@ class CompletionRunner {
   bool deleteBeforeCompletion = false;
 
   /// Initialize a newly created completion runner.
-  CompletionRunner({
+  new({
     StringSink? output,
     bool? printMissing,
     bool? printQuality,
@@ -82,9 +82,9 @@ class CompletionRunner {
         }
         fileCount++;
         output.write('.');
-        var result =
-            await context.currentSession.getResolvedUnit(path)
-                as ResolvedUnitResult;
+        var result = await context.currentSession.getResolvedUnit(
+          path,
+        ) as ResolvedUnitResult;
         var content = result.content;
         var lineInfo = result.lineInfo;
         var identifiers = _identifiersIn(result.unit);
@@ -101,9 +101,9 @@ class CompletionRunner {
               content: modifiedContent,
               modificationStamp: stamp++,
             );
-            result =
-                await context.currentSession.getResolvedUnit(path)
-                    as ResolvedUnitResult;
+            result = await context.currentSession.getResolvedUnit(
+              path,
+            ) as ResolvedUnitResult;
           }
 
           timer.start();

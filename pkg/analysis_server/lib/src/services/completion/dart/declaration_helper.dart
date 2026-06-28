@@ -121,7 +121,7 @@ class DeclarationHelper {
   ///
   /// The flag [skipImports] is a temporary measure that will be removed after
   /// all of the suggestions are being produced by the various passes.
-  DeclarationHelper({
+  new({
     required this.request,
     required this.collector,
     required this.state,
@@ -1397,7 +1397,9 @@ class DeclarationHelper {
     }
 
     for (var field in element.fields) {
-      if (field.isOriginDeclaration && (!mustBeStatic || field.isStatic)) {
+      if ((field.isOriginDeclaration ||
+              field.isOriginDeclaringFormalParameter) &&
+          (!mustBeStatic || field.isStatic)) {
         _suggestField(
           field: field,
           referencingInterface: referencingInterface,

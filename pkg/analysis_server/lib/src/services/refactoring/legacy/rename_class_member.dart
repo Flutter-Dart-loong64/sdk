@@ -46,7 +46,7 @@ class RenameClassMemberRefactoringImpl extends RenameRefactoringImpl {
 
   late _RenameClassMemberValidator _validator;
 
-  RenameClassMemberRefactoringImpl(
+  new(
     RefactoringWorkspace workspace,
     AnalysisSessionHelper sessionHelper,
     this.interfaceElement,
@@ -172,9 +172,8 @@ class RenameClassMemberRefactoringImpl extends RenameRefactoringImpl {
 
   Future<void> _updateReferences() async {
     var references = getSourceReferences(_validator.references);
-    var unshadowed = getSourceReferences(
-      _validator.unshadowed,
-    ).map((r) => r.element);
+    var unshadowed = getSourceReferences(_validator.unshadowed)
+        .map((r) => r.element);
 
     for (var reference in references) {
       var element = reference.element;
@@ -226,7 +225,7 @@ class _BaseClassMemberValidator {
 
   final RefactoringStatus result = RefactoringStatus();
 
-  _BaseClassMemberValidator(
+  new(
     this.searchEngine,
     this.sessionHelper,
     this.interfaceElement,
@@ -296,7 +295,7 @@ class _BaseClassMemberValidator {
 
 /// Helper to check if the created element will cause any conflicts.
 class _CreateClassMemberValidator extends _BaseClassMemberValidator {
-  _CreateClassMemberValidator(
+  new(
     SearchEngine searchEngine,
     AnalysisSessionHelper sessionHelper,
     InterfaceElement interfaceElement,
@@ -337,7 +336,7 @@ class _LocalElementsCollector extends GeneralizingAstVisitor<void> {
   final String name;
   final List<Element> elements = [];
 
-  _LocalElementsCollector(this.name);
+  new(this.name);
 
   @override
   void visitFormalParameter(FormalParameter node) {
@@ -366,10 +365,9 @@ class _LocalElementsCollector extends GeneralizingAstVisitor<void> {
   @override
   void visitSimpleIdentifier(SimpleIdentifier node) {
     var element = node.element;
-    if (node.parent case AssignmentExpression(
-      :var writeElement,
-      :var leftHandSide,
-    ) when node == leftHandSide) {
+    if (node.parent
+        case AssignmentExpression(:var writeElement, :var leftHandSide)
+        when node == leftHandSide) {
       element = writeElement;
     }
     if (element is! PropertyAccessorElement) {
@@ -404,7 +402,7 @@ class _MatchShadowedBy {
   final SearchMatch match;
   final Element element;
 
-  _MatchShadowedBy(this.match, this.element);
+  new(this.match, this.element);
 }
 
 /// Helper to check if the renamed [element] will cause any conflicts.
@@ -415,7 +413,7 @@ class _RenameClassMemberValidator extends _BaseClassMemberValidator {
   List<SearchMatch> references = [];
   List<SearchMatch> unshadowed = [];
 
-  _RenameClassMemberValidator(
+  new(
     SearchEngine searchEngine,
     AnalysisSessionHelper sessionHelper,
     InterfaceElement elementInterface,
@@ -574,6 +572,11 @@ class _RenameClassMemberValidator extends _BaseClassMemberValidator {
       return;
     }
     for (var reference in references) {
+      // If the reference is a named argument, we can allow this because it
+      // will become a private named parameter.
+      if (reference.kind == MatchKind.REFERENCE_BY_NAMED_ARGUMENT) {
+        continue;
+      }
       var refElement = reference.element;
       var refLibrary = refElement.library!;
       if (refLibrary != library) {

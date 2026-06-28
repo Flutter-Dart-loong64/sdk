@@ -16,16 +16,11 @@ import 'package:analyzer/src/dartdoc/dartdoc_directive_info.dart';
 class DartUnitSignatureComputer {
   final AstNode? _node;
   final int _offset;
-  final DocumentationPreference documentationPreference;
   final DartDocumentationComputer _documentationComputer;
 
-  DartUnitSignatureComputer(
-    DartdocDirectiveInfo dartdocInfo,
-    CompilationUnit unit,
-    this._offset, {
-    this.documentationPreference = DocumentationPreference.full,
-  }) : _documentationComputer = DartDocumentationComputer(dartdocInfo),
-       _node = unit.nodeCovering(offset: _offset);
+  new(DartdocDirectiveInfo dartdocInfo, CompilationUnit unit, this._offset)
+    : _documentationComputer = DartDocumentationComputer(dartdocInfo),
+      _node = unit.nodeCovering(offset: _offset);
 
   bool get offsetIsValid => _node != null;
 
@@ -102,10 +97,7 @@ class DartUnitSignatureComputer {
       }
     }
 
-    var dartdoc = _documentationComputer.computePreferred(
-      element,
-      documentationPreference,
-    );
+    var dartdoc = _documentationComputer.compute(element)?.full;
 
     return SignatureInformation(
       name: name,
@@ -162,7 +154,7 @@ class SignatureInformation {
   /// name will not be returned.
   final int? activeParameterIndex;
 
-  SignatureInformation({
+  new({
     required this.name,
     required this.parameters,
     required this.argumentList,

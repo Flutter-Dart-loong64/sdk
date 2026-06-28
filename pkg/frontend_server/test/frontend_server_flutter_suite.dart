@@ -23,7 +23,7 @@ class Options {
   final String flutterDir;
   final String flutterPlatformDir;
 
-  Options(
+  new(
     this.configurationName,
     this.verbose,
     this.printFailureLog,
@@ -86,7 +86,7 @@ class ResultLogger extends Logger {
   final Map<String, Stopwatch> stopwatches = {};
   final List<String> _log = <String>[];
 
-  ResultLogger(this.suiteConfiguration);
+  new(this.suiteConfiguration);
 
   void handleTestResult(String testName, bool matchedExpectations) {
     String fullTestName = "$suiteNamePrefix/$testName";
@@ -172,7 +172,7 @@ class SuiteConfiguration {
   final String flutterDir;
   final String flutterPlatformDir;
 
-  const SuiteConfiguration(
+  const new(
     this.resultsPort,
     this.logsPort,
     this.verbose,
@@ -203,9 +203,8 @@ Future<void> runSuite(SuiteConfiguration configuration) async {
 }
 
 void writeLinesToFile(Uri uri, List<String> lines) {
-  new File.fromUri(
-    uri,
-  ).writeAsStringSync(lines.map((line) => "$line\n").join());
+  new File.fromUri(uri)
+      .writeAsStringSync(lines.map((line) => "$line\n").join());
 }
 
 Future<void> main([List<String> arguments = const <String>[]]) async {

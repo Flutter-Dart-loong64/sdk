@@ -42,7 +42,7 @@ class ExpressionStatement extends Statement {
   @override
   int get fileOffset => expression.fileOffset;
 
-  ExpressionStatement(this.expression) {
+  new(this.expression) {
     expression.parent = this;
   }
 
@@ -96,7 +96,7 @@ class Block extends Statement implements ScopeProvider {
   @override
   Scope? scope;
 
-  Block(this.statements) {
+  new(this.statements) {
     // Ensure statements is mutable.
     assert(checkListIsMutable(statements, dummyStatement));
     setParents(statements, this);
@@ -147,7 +147,7 @@ class Block extends Statement implements ScopeProvider {
 class AssertBlock extends Statement {
   final List<Statement> statements;
 
-  AssertBlock(this.statements) {
+  new(this.statements) {
     // Ensure statements is mutable.
     assert(checkListIsMutable(statements, dummyStatement));
     setParents(statements, this);
@@ -236,7 +236,7 @@ class AssertStatement extends Statement {
     conditionEndOffset,
   ];
 
-  AssertStatement(
+  new(
     this.condition, {
     this.message,
     required this.conditionStartOffset,
@@ -304,7 +304,7 @@ class AssertStatement extends Statement {
 class LabeledStatement extends Statement {
   late Statement body;
 
-  LabeledStatement(Statement? body) {
+  new(Statement? body) {
     if (body != null) {
       this.body = body..parent = this;
     }
@@ -389,7 +389,7 @@ class LabeledStatement extends Statement {
 class BreakStatement extends Statement {
   LabeledStatement target;
 
-  BreakStatement(this.target);
+  new(this.target);
 
   @override
   R accept<R>(StatementVisitor<R> v) => v.visitBreakStatement(this);
@@ -434,7 +434,7 @@ class WhileStatement extends Statement implements LoopStatement, ScopeProvider {
   @override
   Scope? scope;
 
-  WhileStatement(this.condition, this.body) {
+  new(this.condition, this.body) {
     condition.parent = this;
     body.parent = this;
   }
@@ -488,7 +488,7 @@ class DoStatement extends Statement implements LoopStatement {
 
   Expression condition;
 
-  DoStatement(this.body, this.condition) {
+  new(this.body, this.condition) {
     body.parent = this;
     condition.parent = this;
   }
@@ -539,10 +539,10 @@ class DoStatement extends Statement implements LoopStatement {
 
 class ForStatement extends Statement implements LoopStatement, ScopeProvider {
   // May be empty, but not null.
-  final List<VariableStatement> variables;
+  final List<VariableDeclaration> variables;
 
   // TODO(61572): Remove this.
-  List<VariableStatement> get variableInitializations => variables;
+  List<VariableDeclaration> get variableInitializations => variables;
 
   Expression? condition; // May be null.
   final List<Expression> updates; // May be empty, but not null.
@@ -553,7 +553,7 @@ class ForStatement extends Statement implements LoopStatement, ScopeProvider {
   @override
   Scope? scope;
 
-  ForStatement(this.variables, this.condition, this.updates, this.body) {
+  new(this.variables, this.condition, this.updates, this.body) {
     setParents(variables, this);
     condition?.parent = this;
     setParents(updates, this);
@@ -589,7 +589,7 @@ class ForStatement extends Statement implements LoopStatement, ScopeProvider {
 
   @override
   void transformOrRemoveChildren(RemovingTransformer v) {
-    v.transformStatementList(variables, this);
+    v.transformVariableDeclarationList(variables, this);
     if (condition != null) {
       condition = v.transformOrRemoveExpression(condition!);
       condition?.parent = this;
@@ -650,12 +650,7 @@ class ForInStatement extends Statement implements LoopStatement, ScopeProvider {
   @override
   Scope? scope;
 
-  ForInStatement(
-    this.variable,
-    this.iterable,
-    this.body, {
-    this.isAsync = false,
-  }) {
+  new(this.variable, this.iterable, this.body, {this.isAsync = false}) {
     variable.parent = this;
     iterable.parent = this;
     body.parent = this;
@@ -729,9 +724,8 @@ class ForInStatement extends Statement implements LoopStatement, ScopeProvider {
         new Name('iterator'),
       );
       if (member != null) {
-        iteratorType = Substitution.fromInterfaceType(
-          iterableType,
-        ).substituteType(member.getterType);
+        iteratorType = Substitution.fromInterfaceType(iterableType)
+            .substituteType(member.getterType);
       }
     }
     return iteratorType ?? const DynamicType();
@@ -823,11 +817,7 @@ class SwitchStatement extends Statement {
   /// This is set during inference.
   DartType? expressionTypeInternal;
 
-  SwitchStatement(
-    this.expression,
-    this.cases, {
-    this.isExplicitlyExhaustive = false,
-  }) {
+  new(this.expression, this.cases, {this.isExplicitlyExhaustive = false}) {
     expression.parent = this;
     setParents(cases, this);
   }
@@ -924,7 +914,7 @@ class SwitchCase extends TreeNode {
   late Statement body;
   bool isDefault;
 
-  SwitchCase(
+  new(
     this.expressions,
     this.expressionOffsets,
     Statement? body, {
@@ -936,7 +926,7 @@ class SwitchCase extends TreeNode {
     }
   }
 
-  SwitchCase.defaultCase(Statement? body)
+  new defaultCase(Statement? body)
     : isDefault = true,
       expressions = <Expression>[],
       expressionOffsets = <int>[] {
@@ -1021,7 +1011,7 @@ class SwitchCase extends TreeNode {
 class ContinueSwitchStatement extends Statement {
   SwitchCase target;
 
-  ContinueSwitchStatement(this.target);
+  new(this.target);
 
   @override
   R accept<R>(StatementVisitor<R> v) => v.visitContinueSwitchStatement(this);
@@ -1057,7 +1047,7 @@ class IfStatement extends Statement {
   Statement then;
   Statement? otherwise;
 
-  IfStatement(this.condition, this.then, this.otherwise) {
+  new(this.condition, this.then, this.otherwise) {
     condition.parent = this;
     then.parent = this;
     otherwise?.parent = this;
@@ -1122,7 +1112,7 @@ class IfStatement extends Statement {
 class ReturnStatement extends Statement {
   Expression? expression; // May be null.
 
-  ReturnStatement([this.expression]) {
+  new([this.expression]) {
     expression?.parent = this;
   }
 
@@ -1175,7 +1165,7 @@ class TryCatch extends Statement {
   List<Catch> catches;
   bool isSynthetic;
 
-  TryCatch(this.body, this.catches, {this.isSynthetic = false}) {
+  new(this.body, this.catches, {this.isSynthetic = false}) {
     body.parent = this;
     setParents(catches, this);
   }
@@ -1225,14 +1215,14 @@ class TryCatch extends Statement {
 
 class Catch extends TreeNode implements ScopeProvider {
   DartType guard; // Not null, defaults to dynamic.
-  Variable? exception;
-  Variable? stackTrace;
+  CatchVariable? exception;
+  CatchVariable? stackTrace;
   Statement body;
 
   @override
   Scope? scope;
 
-  Catch(
+  new(
     this.exception,
     this.body, {
     this.guard = const DynamicType(),
@@ -1276,11 +1266,11 @@ class Catch extends TreeNode implements ScopeProvider {
   void transformOrRemoveChildren(RemovingTransformer v) {
     guard = v.visitDartType(guard, cannotRemoveSentinel);
     if (exception != null) {
-      exception = v.transformOrRemoveVariableDeclaration(exception!);
+      exception = v.transformOrRemoveVariable(exception!) as CatchVariable;
       exception?.parent = this;
     }
     if (stackTrace != null) {
-      stackTrace = v.transformOrRemoveVariableDeclaration(stackTrace!);
+      stackTrace = v.transformOrRemoveVariable(stackTrace!) as CatchVariable;
       stackTrace?.parent = this;
     }
     body = v.transform(body);
@@ -1349,7 +1339,7 @@ class TryFinally extends Statement {
   Statement body;
   Statement finalizer;
 
-  TryFinally(this.body, this.finalizer) {
+  new(this.body, this.finalizer) {
     body.parent = this;
     finalizer.parent = this;
   }
@@ -1405,7 +1395,7 @@ class YieldStatement extends Statement {
   Expression expression;
   int flags = 0;
 
-  YieldStatement(this.expression, {bool isYieldStar = false}) {
+  new(this.expression, {bool isYieldStar = false}) {
     expression.parent = this;
     this.isYieldStar = isYieldStar;
   }
@@ -1460,48 +1450,37 @@ class YieldStatement extends Statement {
 }
 
 /// Declaration of a local variable.
-abstract class VariableStatement extends Statement {
+class VariableStatement extends Statement {
   /// The declared variable.
-  abstract final Variable variable;
+  VariableDeclaration declaration;
 
-  factory VariableStatement(Variable variable) = LegacyVariableStatement;
-}
-
-/// Declaration of a local variable.
-class LegacyVariableStatement extends Statement implements VariableStatement {
-  /// The declared variable.
-  @override
-  Variable variable;
-
-  LegacyVariableStatement(this.variable) {
-    variable.parent = this;
+  new(this.declaration) {
+    declaration.parent = this;
   }
 
   @override
-  R accept<R>(StatementVisitor<R> v) => v.visitLegacyVariableStatement(this);
+  R accept<R>(StatementVisitor<R> v) => v.visitVariableStatement(this);
 
   @override
   R accept1<R, A>(StatementVisitor1<R, A> v, A arg) =>
-      v.visitLegacyVariableStatement(this, arg);
+      v.visitVariableStatement(this, arg);
 
   @override
   void visitChildren(Visitor v) {
-    variable.accept(v);
+    declaration.accept(v);
   }
 
   @override
   void transformChildren(Transformer v) {
-    variable = v.transform(variable)..parent = this;
+    declaration = v.transform(declaration)..parent = this;
   }
 
   @override
   void transformOrRemoveChildren(RemovingTransformer v) {
-    variable = v.transformOrRemove(variable, cannotRemoveSentinel)!
+    declaration = v.transformOrRemove(declaration, cannotRemoveSentinel)!
       ..parent = this;
   }
 
-  /// Returns a possibly synthesized name for this variable, consistent with
-  /// the names used across all [toString] calls.
   @override
   String toString() {
     return "VariableStatement(${toStringInternal()})";
@@ -1509,7 +1488,7 @@ class LegacyVariableStatement extends Statement implements VariableStatement {
 
   @override
   void toTextInternal(AstPrinter printer) {
-    printer.writeVariableInitialization(variable);
+    printer.writeVariableDeclaration(declaration);
     printer.write(';');
   }
 }
@@ -1526,7 +1505,7 @@ class FunctionDeclaration extends Statement implements LocalFunction {
   @override
   LocalFunctionId id = LocalFunctionId.invalid;
 
-  FunctionDeclaration(this.variable, this.function) {
+  new(this.variable, this.function) {
     variable.parent = this;
     function.parent = this;
   }
@@ -1574,84 +1553,5 @@ class FunctionDeclaration extends Statement implements LocalFunction {
     if (function.body is ReturnStatement) {
       printer.write(';');
     }
-  }
-}
-
-class VariableInitialization extends Statement
-    implements VariableStatement, ContextConsumer {
-  @override
-  Variable variable;
-
-  /// Contexts of the variables captured by the late variable initializer.
-  ///
-  /// If [variable] isn't `late`, [capturedContexts] should be `null`.
-  @override
-  List<VariableContext>? capturedContexts;
-
-  VariableInitialization({
-    required this.variable,
-    bool hasDeclaredInitializer = false,
-  }) {
-    variable.variableInitialization = this;
-    this.hasDeclaredInitializer = hasDeclaredInitializer;
-  }
-
-  static const int FlagHasDeclaredInitializer = 1 << 0;
-  static const int FlagErroneouslyInitialized = 1 << 1;
-
-  int flags = 0;
-
-  bool get hasDeclaredInitializer => flags & FlagHasDeclaredInitializer != 0;
-
-  void set hasDeclaredInitializer(bool value) {
-    flags = value
-        ? (flags | FlagHasDeclaredInitializer)
-        : (flags & ~FlagHasDeclaredInitializer);
-  }
-
-  bool get isErroneouslyInitialized => flags & FlagErroneouslyInitialized != 0;
-
-  void set isErroneouslyInitialized(bool value) {
-    flags = value
-        ? (flags | FlagErroneouslyInitialized)
-        : (flags & ~FlagErroneouslyInitialized);
-  }
-
-  @override
-  R accept<R>(StatementVisitor<R> v) => v.visitVariableInitialization(this);
-
-  @override
-  R accept1<R, A>(StatementVisitor1<R, A> v, A arg) =>
-      v.visitVariableInitialization(this, arg);
-
-  @override
-  void transformChildren(Transformer v) {
-    variable = v.transform(variable)..parent = this;
-  }
-
-  @override
-  void transformOrRemoveChildren(RemovingTransformer v) {
-    variable = v.transformOrRemove(variable, cannotRemoveSentinel)!
-      ..parent = this;
-  }
-
-  @override
-  void visitChildren(Visitor v) {
-    variable.accept(v);
-  }
-
-  @override
-  String toString() {
-    return "VariableInitialization(${toStringInternal()})";
-  }
-
-  @override
-  void toTextInternal(AstPrinter printer) {
-    printer.write(printer.getVariableName(variable));
-    if (variable.initializer case var initializer?) {
-      printer.write(' := ');
-      printer.writeExpression(initializer);
-    }
-    printer.write(';');
   }
 }

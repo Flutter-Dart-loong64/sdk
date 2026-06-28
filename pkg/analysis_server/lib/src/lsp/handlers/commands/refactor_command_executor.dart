@@ -20,7 +20,7 @@ import 'package:analyzer_plugin/utilities/change_builder/change_builder_core.dar
 
 /// A command handler that executes commands used to implement refactorings
 /// that can describe their inputs (either via the original Dart protocol or
-/// the updated Go-specified protocol).
+/// the updated Interactive Forms protocol).
 class RefactorCommandExecutor extends SimpleEditCommandHandler<AnalysisServer>
     with RefactorCommandHandlerMixin<void> {
   @override
@@ -28,7 +28,7 @@ class RefactorCommandExecutor extends SimpleEditCommandHandler<AnalysisServer>
 
   final RefactoringProducerGenerator generator;
 
-  RefactorCommandExecutor(super.server, this.commandName, this.generator);
+  new(super.server, this.commandName, this.generator);
 
   @override
   bool get requiresTrustedCaller => false;

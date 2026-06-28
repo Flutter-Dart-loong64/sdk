@@ -2,7 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-import 'package:analyzer/src/diagnostic/diagnostic.dart' as diag;
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 
 import '../dart/resolution/context_collection_resolution.dart';
@@ -29,27 +28,13 @@ class B extends A {}
 
   @SkippedTest() // TODO(scheglov): implement augmentation
   test_class_extends_inAugmentation() async {
-    newFile('$testPackageLibPath/a.dart', r'''
-part of 'test.dart';
-augment class B extend A {}
-''');
-
-    await assertErrorsInCode(
-      r'''
-part 'a.dart';
+    await resolveTestCodeWithDiagnostics(r'''
 final class A {}
 class B {}
-''',
-      [
-        error(
-          diag.subtypeOfFinalIsNotBaseFinalOrSealed,
-          38,
-          1,
-          text:
-              "The type 'B' must be 'base', 'final' or 'sealed' because the supertype 'A' is 'final'.",
-        ),
-      ],
-    );
+//    ^
+// [diag.subtypeOfFinalIsNotBaseFinalOrSealed] The type 'B' must be 'base', 'final' or 'sealed' because the supertype 'A' is 'final'.
+augment class B extends A {}
+''');
   }
 
   test_class_extends_outside() async {
@@ -68,7 +53,8 @@ class B extends A {}
   }
 
   test_class_extends_outside_viaLanguage219AndCore() async {
-    var a = newFile('$testPackageLibPath/a.dart', r'''
+    var a = getFile('$testPackageLibPath/a.dart');
+    await resolveFileWithDiagnostics(a, r'''
 // @dart=2.19
 import 'dart:core';
 class A implements MapEntry<int, int> {
@@ -76,9 +62,6 @@ class A implements MapEntry<int, int> {
   int get value => 1;
 }
 ''');
-
-    var result = await resolveFile2(a);
-    assertNoErrorsInTestResult(result);
 
     await resolveTestCodeWithDiagnostics(r'''
 import 'a.dart';
@@ -119,7 +102,8 @@ class B implements A {}
     // No [SUBTYPE_OF_FINAL_IS_NOT_BASE_FINAL_OR_SEALED] reported outside of
     // library to avoid over-reporting when we have a
     // [FINAL_CLASS_IMPLEMENTED_OUTSIDE_OF_LIBRARY] error.
-    var a = newFile('$testPackageLibPath/a.dart', r'''
+    var a = getFile('$testPackageLibPath/a.dart');
+    await resolveFileWithDiagnostics(a, r'''
 // @dart=2.19
 import 'dart:core';
 class A implements MapEntry<int, int> {
@@ -127,9 +111,6 @@ class A implements MapEntry<int, int> {
   int get value => 1;
 }
 ''');
-
-    var result = await resolveFile2(a);
-    assertNoErrorsInTestResult(result);
 
     await resolveTestCodeWithDiagnostics(r'''
 import 'a.dart';

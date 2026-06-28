@@ -793,6 +793,13 @@ class CoverageVisitor implements Visitor<void> {
   }
 
   @override
+  void visitAuxiliaryPattern(AuxiliaryPattern node) {
+    throw new UnsupportedError(
+      "Unsupported auxiliary node $node (${node.runtimeType}).",
+    );
+  }
+
+  @override
   void visitMapPatternEntry(MapPatternEntry node) {
     visited.add(NodeKind.MapPatternEntry);
     node.visitChildren(this);
@@ -956,20 +963,14 @@ class CoverageVisitor implements Visitor<void> {
   }
 
   @override
-  void visitLegacyVariableStatement(LegacyVariableStatement node) {
-    visited.add(StatementKind.LegacyVariableStatement);
+  void visitVariableStatement(VariableStatement node) {
+    visited.add(StatementKind.VariableStatement);
     node.visitChildren(this);
   }
 
   @override
   void visitFunctionDeclaration(FunctionDeclaration node) {
     visited.add(StatementKind.FunctionDeclaration);
-    node.visitChildren(this);
-  }
-
-  @override
-  void visitVariableInitialization(VariableInitialization node) {
-    visited.add(StatementKind.VariableInitialization);
     node.visitChildren(this);
   }
 
@@ -1004,6 +1005,12 @@ class CoverageVisitor implements Visitor<void> {
   }
 
   @override
+  void visitLateVariable(LateVariable node) {
+    visited.add(VariableKind.LateVariable);
+    node.visitChildren(this);
+  }
+
+  @override
   void visitCatchVariable(CatchVariable node) {
     visited.add(VariableKind.CatchVariable);
     node.visitChildren(this);
@@ -1034,8 +1041,8 @@ class CoverageVisitor implements Visitor<void> {
   }
 
   @override
-  void visitLegacyVariable(LegacyVariable node) {
-    visited.add(NodeKind.LegacyVariable);
+  void visitVariableDeclaration(VariableDeclaration node) {
+    visited.add(NodeKind.VariableDeclaration);
     node.visitChildren(this);
   }
 
@@ -1330,7 +1337,6 @@ enum NodeKind {
   Extension,
   ExtensionTypeDeclaration,
   FunctionNode,
-  LegacyVariable,
   Library,
   LibraryDependency,
   LibraryPart,
@@ -1349,6 +1355,7 @@ enum NodeKind {
   SwitchExpressionCase,
   TypeVariable,
   Typedef,
+  VariableDeclaration,
 }
 
 enum MemberKind { Constructor, Field, Procedure }
@@ -1469,20 +1476,20 @@ enum StatementKind {
   IfCaseStatement,
   IfStatement,
   LabeledStatement,
-  LegacyVariableStatement,
   PatternSwitchStatement,
   PatternVariableDeclaration,
   ReturnStatement,
   SwitchStatement,
   TryCatch,
   TryFinally,
-  VariableInitialization,
+  VariableStatement,
   WhileStatement,
   YieldStatement,
 }
 
 enum VariableKind {
   CatchVariable,
+  LateVariable,
   LocalVariable,
   NamedParameter,
   PositionalParameter,

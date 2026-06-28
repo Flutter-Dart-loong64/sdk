@@ -17,7 +17,7 @@ import 'package:analyzer/src/utilities/extensions/collection.dart';
 class DartDocumentHighlightsComputer {
   final CompilationUnit _unit;
 
-  DartDocumentHighlightsComputer(this._unit);
+  new(this._unit);
 
   /// Computes matching highlight tokens for the requested offset.
   List<({Token token, DocumentHighlightKind kind})> compute(
@@ -163,7 +163,7 @@ class _DartDocumentHighlightsVisitor extends GeneralizingAstVisitor<void> {
   /// Stack to track the current function for return/yield keywords.
   final List<AstNode> _functionStack = [];
 
-  _DartDocumentHighlightsVisitor(this._target);
+  new(this._target);
 
   @override
   void visitAssignedVariablePattern(AssignedVariablePattern node) {
@@ -410,10 +410,8 @@ class _DartDocumentHighlightsVisitor extends GeneralizingAstVisitor<void> {
     // For unnamed constructors, we don't want to add an occurrence for the
     // class name here because visitConstructorDeclaration will have added one
     // for the constructor (not the type).
-    if (node.parent case ConstructorDeclaration(
-      :var name,
-      :var typeName,
-    ) when name == null && node == typeName) {
+    if (node.parent case ConstructorDeclaration(:var name, :var typeName)
+        when name == null && node == typeName) {
       return;
     }
 
@@ -519,13 +517,13 @@ class _HighlightTargets {
   final Set<String> _targetElementNames;
   final AstNode? _targetNode;
 
-  _HighlightTargets.elements(this._targetElements)
+  new elements(this._targetElements)
     : _targetNode = null,
       _targetElementNames = {
         for (var element in _targetElements) ?element.name,
       };
 
-  _HighlightTargets.node(this._targetNode)
+  new node(this._targetNode)
     : _targetElements = const {},
       _targetElementNames = const {};
 
