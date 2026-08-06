@@ -6,6 +6,7 @@ import 'package:_fe_analyzer_shared/src/flow_analysis/flow_analysis.dart';
 import 'package:_fe_analyzer_shared/src/types/shared_type.dart';
 import 'package:analyzer/dart/analysis/features.dart';
 import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/scope.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/src/dart/ast/ast.dart';
 import 'package:analyzer/src/dart/ast/extensions.dart';
@@ -83,7 +84,7 @@ class PropertyElementResolver with ScopeHelpers {
         var elementToInfer = _resolver.inferenceHelper
             .constructorElementToInfer(
               typeElement: context.element,
-              constructorName: identifier,
+              constructorName: identifier.token,
               definingLibrary: _resolver.definingLibrary,
             );
         if (elementToInfer != null &&
@@ -135,7 +136,7 @@ class PropertyElementResolver with ScopeHelpers {
     required bool hasRead,
     required bool hasWrite,
   }) {
-    var target = node.realTarget;
+    var target = node.realTarget2;
 
     if (target is ExtensionOverrideImpl) {
       var result = _extensionResolver.getOverrideMember(target, '[]');
@@ -275,7 +276,7 @@ class PropertyElementResolver with ScopeHelpers {
     required bool hasWrite,
     PrefixedIdentifierImpl? originalNode,
   }) {
-    var target = node.realTarget;
+    var target = node.realTarget2;
     var propertyName = node.propertyName;
 
     if (target is ExtensionOverrideImpl) {
@@ -300,7 +301,7 @@ class PropertyElementResolver with ScopeHelpers {
     return _resolve(
       node: node,
       target: target,
-      isCascaded: node.target == null,
+      isCascaded: node.target2 == null,
       isNullAware: node.isNullAware,
       propertyName: propertyName,
       hasRead: hasRead,
@@ -318,7 +319,7 @@ class PropertyElementResolver with ScopeHelpers {
     if (ancestorCascade != null) {
       return _resolve(
         node: node,
-        target: ancestorCascade.target,
+        target: ancestorCascade.target2,
         isCascaded: true,
         isNullAware: ancestorCascade.isNullAware,
         propertyName: node,
@@ -366,7 +367,7 @@ class PropertyElementResolver with ScopeHelpers {
             readElementRequested,
             SharedTypeView(unpromotedType),
           );
-          flow.storeExpressionInfo(node, expressionInfo);
+          _resolver.flowAnalysis.storeExpressionInfo(node, expressionInfo);
           getType = wrappedPromotedType?.unwrapTypeView();
         }
         getType ??= unpromotedType;
@@ -397,6 +398,50 @@ class PropertyElementResolver with ScopeHelpers {
       writeElementRequested2: writeElementRequested,
       writeElementRecovery2: writeElementRecovery,
       getType: getType,
+    );
+  }
+
+  NamedWriteResolutionImpl? resolveUnqualifiedNameAssignmentTarget(
+    UnqualifiedNameAssignmentTargetImpl node,
+  ) {
+    var scopeLookupResult = node.scopeLookupResult!;
+    reportDeprecatedExportUse(
+      scopeLookupResult: scopeLookupResult,
+      nameToken: node.name,
+      hasRead: false,
+      hasWrite: true,
+    );
+
+    var writeResolution = _resolveUnqualifiedNameWrite(node, scopeLookupResult);
+    if (writeResolution == null) return null;
+
+    return writeResolution;
+  }
+
+  ({
+    NamedReadResolutionImpl read,
+    NamedWriteResolutionImpl write,
+    ExpressionInfo? readExpressionInfo,
+  })?
+  resolveUnqualifiedNameReadWriteAssignmentTarget(
+    UnqualifiedNameAssignmentTargetImpl node,
+  ) {
+    var scopeLookupResult = node.scopeLookupResult!;
+    reportDeprecatedExportUse(
+      scopeLookupResult: scopeLookupResult,
+      nameToken: node.name,
+      hasRead: true,
+      hasWrite: true,
+    );
+
+    var readResult = _resolveUnqualifiedNameRead(node, scopeLookupResult);
+    var writeResolution = _resolveUnqualifiedNameWrite(node, scopeLookupResult);
+    if (readResult == null || writeResolution == null) return null;
+
+    return (
+      read: readResult.resolution,
+      write: writeResolution,
+      readExpressionInfo: readResult.expressionInfo,
     );
   }
 
@@ -460,8 +505,46 @@ class PropertyElementResolver with ScopeHelpers {
     }
   }
 
+  ValidNamedReadResolutionImpl? _createValidNamedReadResolution(
+    Element? element, {
+    required TypeImpl? type,
+  }) {
+    if (type == null) return null;
+    if (element is InternalVariableElement) {
+      return VariableReadResolutionImpl(element: element, type: type);
+    }
+    if (element is InternalGetterElement) {
+      return GetterInvocationResolutionImpl(element: element, type: type);
+    }
+    return null;
+  }
+
+  ValidNamedWriteResolutionImpl? _createValidNamedWriteResolution(
+    Element? element,
+  ) {
+    if (element is InternalVariableElement) {
+      return VariableWriteResolutionImpl(
+        element: element,
+        acceptedType: element.type,
+      );
+    }
+    if (element is InternalSetterElement &&
+        element.formalParameters.length == 1) {
+      return SetterInvocationResolutionImpl(element: element);
+    }
+    return null;
+  }
+
   bool _isAccessible(ExecutableElement element) {
     return element.isAccessibleIn(_definingLibrary);
+  }
+
+  TypeImpl? _namedReadType(Element? element) {
+    return switch (element) {
+      InternalVariableElement() => element.type,
+      InternalGetterElement() => element.returnType,
+      _ => null,
+    };
   }
 
   void _reportUnresolvedIndex(
@@ -600,12 +683,17 @@ class PropertyElementResolver with ScopeHelpers {
           isCascaded
               ? CascadePropertyTarget.singleton
                     as PropertyTarget<ExpressionImpl>
-              : ExpressionPropertyTarget(flow.getExpressionInfo(target)),
+              : ExpressionPropertyTarget(
+                  _resolver.flowAnalysis.getExpressionInfo(target),
+                ),
           propertyName.name,
           result.getter2,
           SharedTypeView(unpromotedType),
         );
-        flow.storeExpressionInfo(originalNode ?? node, expressionInfo);
+        _resolver.flowAnalysis.storeExpressionInfo(
+          originalNode ?? node,
+          expressionInfo,
+        );
         getType = wrappedPromotedType?.unwrapTypeView();
       }
       getType ??= unpromotedType;
@@ -726,7 +814,7 @@ class PropertyElementResolver with ScopeHelpers {
     required bool hasRead,
     required bool hasWrite,
   }) {
-    if (target.parent is CascadeExpression) {
+    if (target.parent2 is CascadeExpression) {
       // Report this error and recover by treating it like a non-cascade.
       diagnosticReporter.report(
         diag.extensionOverrideWithCascade.at(target.name),
@@ -1037,7 +1125,7 @@ class PropertyElementResolver with ScopeHelpers {
             readElement,
             SharedTypeView(unpromotedType),
           );
-          flow.storeExpressionInfo(node, expressionInfo);
+          _resolver.flowAnalysis.storeExpressionInfo(node, expressionInfo);
           getType = wrappedPromotedType?.unwrapTypeView();
         }
         getType ??= unpromotedType;
@@ -1089,6 +1177,118 @@ class PropertyElementResolver with ScopeHelpers {
       readElementRequested2: readElement,
       writeElementRequested2: writeElement,
       getType: getType,
+    );
+  }
+
+  ({NamedReadResolutionImpl resolution, ExpressionInfo? expressionInfo})?
+  _resolveUnqualifiedNameRead(
+    UnqualifiedNameAssignmentTargetImpl node,
+    ScopeLookupResult scopeLookupResult,
+  ) {
+    var readLookup =
+        LexicalLookup.resolveGetter(scopeLookupResult) ??
+        _resolver.thisLookupGetter2(node);
+    var readElementRequested = readLookup?.requested;
+    var readElementRecovery = readLookup?.recovery;
+
+    if (readElementRequested == null) {
+      diagnosticReporter.report(
+        diag.undefinedIdentifier.withArguments(name: node.name.lexeme).at(node),
+      );
+    }
+
+    var isInvalidExpressionTarget =
+        readElementRequested is! InternalVariableElement &&
+        readElementRequested is! InternalGetterElement &&
+        [readElementRequested, readElementRecovery]
+            .whereType<InternalExecutableElement>()
+            .any((element) => element is! InternalPropertyAccessorElement);
+
+    _resolver.checkReadOfNotAssignedLocalVariable2(
+      node,
+      name: node.name.lexeme,
+      element: readElementRequested,
+    );
+
+    ExpressionInfo? expressionInfo;
+    TypeImpl? readType;
+    if (readElementRequested is InternalVariableElement) {
+      readType = readElementRequested.type;
+      var flow = _resolver.flowAnalysis.flow;
+      if (readElementRequested is PromotableElementImpl && flow != null) {
+        SharedTypeView? promotedType;
+        (promotedType, expressionInfo) = flow.variableRead(
+          readElementRequested,
+        );
+        readType = promotedType?.unwrapTypeView<TypeImpl>() ?? readType;
+      }
+    } else if (readElementRequested is InternalGetterElement) {
+      readType = readElementRequested.returnType;
+      var flow = _resolver.flowAnalysis.flow;
+      if (!readElementRequested.isStatic && flow != null) {
+        SharedTypeView? promotedType;
+        (promotedType, expressionInfo) = flow.propertyGet(
+          ThisPropertyTarget.singleton,
+          node.name.lexeme,
+          readElementRequested,
+          SharedTypeView(readType),
+        );
+        readType = promotedType?.unwrapTypeView<TypeImpl>() ?? readType;
+      }
+    } else if (readElementRequested is InternalExecutableElement) {
+      readType = readElementRequested.type;
+    }
+
+    if (isInvalidExpressionTarget) return null;
+
+    NamedReadResolutionImpl? resolution = _createValidNamedReadResolution(
+      readElementRequested,
+      type: readType,
+    );
+    resolution ??= InvalidNamedReadResolutionImpl(
+      candidates: [?readElementRequested, ?readElementRecovery],
+      recovery: _createValidNamedReadResolution(
+        readElementRecovery,
+        type: _namedReadType(readElementRecovery),
+      ),
+      type: InvalidTypeImpl.instance,
+    );
+    return (resolution: resolution, expressionInfo: expressionInfo);
+  }
+
+  NamedWriteResolutionImpl? _resolveUnqualifiedNameWrite(
+    UnqualifiedNameAssignmentTargetImpl node,
+    ScopeLookupResult scopeLookupResult,
+  ) {
+    var writeLookup =
+        LexicalLookup.resolveSetter(scopeLookupResult) ??
+        _resolver.thisLookupSetter2(node);
+    var writeElementRequested = writeLookup?.requested;
+    var writeElementRecovery = writeLookup?.recovery;
+
+    AssignmentVerifier(
+      diagnosticReporter,
+    ).verifyUnqualifiedNameAssignmentTarget(
+      node: node,
+      requested: writeElementRequested,
+      recovery: writeElementRecovery,
+    );
+
+    var isInvalidExpressionTarget =
+        [writeElementRequested, writeElementRecovery]
+            .whereType<InternalExecutableElement>()
+            .any((element) => element is! InternalPropertyAccessorElement);
+    if (isInvalidExpressionTarget) return null;
+
+    var requestedResolution = _createValidNamedWriteResolution(
+      writeElementRequested,
+    );
+    if (requestedResolution != null) return requestedResolution;
+
+    return InvalidNamedWriteResolutionImpl(
+      acceptedType: InvalidTypeImpl.instance,
+      candidates: [?writeElementRequested, ?writeElementRecovery],
+      recovery: _createValidNamedWriteResolution(writeElementRecovery),
     );
   }
 

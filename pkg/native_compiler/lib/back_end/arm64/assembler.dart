@@ -779,7 +779,9 @@ final class Arm64Assembler extends Assembler with Uint32OutputBuffer {
       address(threadReg, vmOffsets.Thread_call_to_runtime_entry_point_offset),
     );
     blr(LR);
-    addCallSiteMetadata?.call();
+    addCallSiteMetadata?.call(
+      (entry == .FatalError) ? .fatalError : .runtimeCall,
+    );
   }
 
   @override
@@ -792,7 +794,7 @@ final class Arm64Assembler extends Assembler with Uint32OutputBuffer {
     loadFromPool(codeReg, stub);
     ldr(LR, fieldAddress(codeReg, vmOffsets.Code_entry_point_offset.first));
     blr(LR);
-    addCallSiteMetadata?.call();
+    addCallSiteMetadata?.call(.stubCall);
   }
 
   // TODO: remove after all stubs are implemented in the compiler
@@ -800,7 +802,7 @@ final class Arm64Assembler extends Assembler with Uint32OutputBuffer {
     loadFromPool(codeReg, vmStub);
     ldr(LR, fieldAddress(codeReg, vmOffsets.Code_entry_point_offset.first));
     blr(LR);
-    addCallSiteMetadata?.call();
+    addCallSiteMetadata?.call(.stubCall);
   }
 
   // TODO: remove after all stubs are implemented in the compiler
@@ -831,6 +833,7 @@ final class Arm64Assembler extends Assembler with Uint32OutputBuffer {
     int instanceSize,
     Label slowPath, {
     required bool initializeFields,
+    Register initValueReg = nullReg,
   }) {
     final endReg = scratch1Reg;
     final newTopReg = scratch2Reg;
@@ -851,10 +854,10 @@ final class Arm64Assembler extends Assembler with Uint32OutputBuffer {
       if (instanceSize <= maxUnrolledSize) {
         int offset = vmOffsets.Instance_first_field_offset;
         for (; offset + 2 * wordSize <= instanceSize; offset += 2 * wordSize) {
-          stp(nullReg, nullReg, pairAddress(resultReg, offset));
+          stp(initValueReg, initValueReg, pairAddress(resultReg, offset));
         }
         if (offset < instanceSize) {
-          str(nullReg, address(resultReg, offset));
+          str(initValueReg, address(resultReg, offset));
           offset += wordSize;
         }
         assert(offset == instanceSize);
@@ -869,8 +872,8 @@ final class Arm64Assembler extends Assembler with Uint32OutputBuffer {
         final loop = Label();
         bind(loop);
         stp(
-          nullReg,
-          nullReg,
+          initValueReg,
+          initValueReg,
           WritebackRegOffsetAddress(
             fieldReg,
             2 * wordSize,
@@ -883,6 +886,63 @@ final class Arm64Assembler extends Assembler with Uint32OutputBuffer {
         cmp(fieldReg, newTopReg);
         b(loop, Condition.unsignedLess);
       }
+    }
+
+    addImmediate(resultReg, resultReg, heapObjectTag);
+  }
+
+  /// Generate code for inline variable-length array allocation.
+  void inlineArrayAllocation(
+    Register resultReg,
+    Register tagsReg,
+    Register instanceSizeReg,
+    Register lengthReg,
+    Register scratch1Reg,
+    Register scratch2Reg,
+    Label slowPath, {
+    required bool initializeFields,
+    int? lengthFieldOffset,
+    int? dataFieldOffset,
+    int? headerSize,
+    Register initValueReg = nullReg,
+  }) {
+    final endReg = scratch1Reg;
+    final newTopReg = scratch2Reg;
+    // Load Thread.top_ and Thread.end_.
+    ldp(resultReg, endReg, pairAddress(threadReg, vmOffsets.Thread_top_offset));
+    // TODO: get rid of this overflow check
+    adds(newTopReg, resultReg, instanceSizeReg);
+    b(slowPath, .unsignedGreaterOrEqual);
+    cmp(endReg, newTopReg);
+    b(slowPath, .unsignedLessOrEqual);
+
+    // TLAB has enough space. Update top and initialize object.
+    str(newTopReg, address(threadReg, vmOffsets.Thread_top_offset));
+    str(tagsReg, address(resultReg, vmOffsets.Object_tags_offset));
+    // TODO: figure out if we need store-store barrier here.
+
+    if (initializeFields) {
+      // TODO: support compressed pointers.
+      final fieldReg = scratch1Reg;
+
+      str(lengthReg, address(resultReg, lengthFieldOffset!));
+      addImmediate(fieldReg, resultReg, headerSize!);
+      if (dataFieldOffset != null) {
+        str(fieldReg, address(resultReg, dataFieldOffset));
+      }
+
+      final loop = Label();
+      bind(loop);
+      stp(
+        initValueReg,
+        initValueReg,
+        WritebackRegOffsetAddress(fieldReg, 2 * wordSize, isPostIndexed: true),
+      );
+      // There is at least two word (kAllocationRedZoneSize) gap at the end of page
+      // which makes it possible to initialize objects by two words at once and
+      // write slightly beyond the end.
+      cmp(fieldReg, newTopReg);
+      b(loop, Condition.unsignedLess);
     }
 
     addImmediate(resultReg, resultReg, heapObjectTag);
@@ -1110,6 +1170,17 @@ final class Arm64Assembler extends Assembler with Uint32OutputBuffer {
     OperandSize sz = OperandSize.s64,
   ]) {
     madd(rd, rn, rm, ZR, sz);
+  }
+
+  void umulh(Register rd, Register rn, Register rm) {
+    _emitMul(
+      B22 | B23 | B24 | B25 | B27 | B28,
+      rd,
+      rn,
+      rm,
+      ZR,
+      OperandSize.s64,
+    );
   }
 
   void _emitMul(
@@ -1441,6 +1512,26 @@ final class Arm64Assembler extends Assembler with Uint32OutputBuffer {
     );
   }
 
+  void clz(Register rd, Register rn, [OperandSize sz = OperandSize.s64]) {
+    _emitDataProcessing1(B12, rd, rn, sz);
+  }
+
+  void _emitDataProcessing1(
+    int opcode,
+    Register rd,
+    Register rn,
+    OperandSize sz,
+  ) {
+    assert(sz.is32or64);
+    emit(
+      (B22 | B23 | B25 | B27 | B28 | B30) |
+          opcode |
+          rd.encodingRd() |
+          rn.encodingRn() |
+          (sz.is64 ? B31 : 0),
+    );
+  }
+
   // Logical operations with immediate or shifted register.
   void and(
     Register rd,
@@ -1687,6 +1778,66 @@ final class Arm64Assembler extends Assembler with Uint32OutputBuffer {
       default:
         throw 'Unexpect address ${a.runtimeType}';
     }
+  }
+
+  /// Load-Acquire Register.
+  void ldar(Register rt, Register rn, [OperandSize sz = OperandSize.s64]) {
+    _emitLoadStoreExclusive(
+      B10 |
+          B11 |
+          B12 |
+          B13 |
+          B14 |
+          B15 |
+          B16 |
+          B17 |
+          B18 |
+          B19 |
+          B20 |
+          B22 |
+          B23 |
+          B27,
+      rt,
+      rn,
+      sz,
+    );
+  }
+
+  /// Store-Release Register.
+  void stlr(Register rt, Register rn, [OperandSize sz = OperandSize.s64]) {
+    _emitLoadStoreExclusive(
+      B10 |
+          B11 |
+          B12 |
+          B13 |
+          B14 |
+          B15 |
+          B16 |
+          B17 |
+          B18 |
+          B19 |
+          B20 |
+          B23 |
+          B27,
+      rt,
+      rn,
+      sz,
+    );
+  }
+
+  void _emitLoadStoreExclusive(
+    int opcode,
+    Register rt,
+    Register rn,
+    OperandSize sz,
+  ) {
+    assert(!sz.is128);
+    emit(
+      opcode |
+          rn.encodingRn(allowSP: true) |
+          rt.encodingRt() |
+          (sz.log2sizeInBytes << 30),
+    );
   }
 
   void fldr(FPRegister rt, Address a, [OperandSize sz = OperandSize.s64]) {
@@ -2167,9 +2318,9 @@ extension on Immediate {
       ~value & (sz.is32 ? 0xffffffff : -1),
       sz,
     );
-    final trailingZeros = _countTrailingZeros(value);
-    final trailingOnes = _countTrailingZeros(~value);
-    int setBits = _countOneBits(value);
+    final trailingZeros = value.trailingZeroBitCount;
+    final trailingOnes = (~value).trailingZeroBitCount;
+    int setBits = value.oneBitCount;
 
     // The fixed bits in the immediate s field.
     // If width == 64 (X reg), start at 0xFFFFFF80.
@@ -2228,31 +2379,6 @@ extension on Immediate {
 
   static int _countLeadingZeros(int value, OperandSize sz) =>
       value < 0 ? 0 : (sz.bitWidth - value.bitLength);
-
-  static int _countTrailingZeros(int value) {
-    var n = 0;
-    while ((value & 0xff) == 0) {
-      n += 8;
-      value = value >>> 8;
-    }
-    while ((value & 1) == 0) {
-      ++n;
-      value = value >>> 1;
-    }
-    return n;
-  }
-
-  static int _countOneBits(int value) {
-    value = ((value >>> 1) & 0x5555555555555555) + (value & 0x5555555555555555);
-    value = ((value >>> 2) & 0x3333333333333333) + (value & 0x3333333333333333);
-    value = ((value >>> 4) & 0x0f0f0f0f0f0f0f0f) + (value & 0x0f0f0f0f0f0f0f0f);
-    value = ((value >>> 8) & 0x00ff00ff00ff00ff) + (value & 0x00ff00ff00ff00ff);
-    value =
-        ((value >>> 16) & 0x0000ffff0000ffff) + (value & 0x0000ffff0000ffff);
-    value =
-        ((value >>> 32) & 0x00000000ffffffff) + (value & 0x00000000ffffffff);
-    return value;
-  }
 
   int encodingFpImm(OperandSize sz) =>
       tryEncodingFpImm(sz) ??

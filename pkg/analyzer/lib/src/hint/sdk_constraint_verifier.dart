@@ -2,12 +2,12 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/syntactic_entity.dart';
 import 'package:analyzer/dart/ast/token.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
+import 'package:analyzer/src/dart/ast/ast.dart';
 import 'package:analyzer/src/diagnostic/diagnostic.dart' as diag;
 import 'package:analyzer/src/error/listener.dart';
 import 'package:analyzer/src/utilities/extensions/version.dart';
@@ -15,7 +15,7 @@ import 'package:pub_semver/pub_semver.dart';
 
 /// A visitor that finds code that assumes a later version of the SDK than the
 /// minimum version required by the SDK constraints in `pubspec.yaml`.
-class SdkConstraintVerifier extends RecursiveAstVisitor<void> {
+class SdkConstraintVerifier extends RecursiveAstVisitor2<void> {
   /// The error reporter to be used to report errors.
   final DiagnosticReporter _errorReporter;
 
@@ -58,7 +58,7 @@ class SdkConstraintVerifier extends RecursiveAstVisitor<void> {
   void visitArgumentList(ArgumentList node) {
     // Check (optional) positional arguments.
     // Named arguments are checked in [NamedArgument].
-    for (var argument in node.arguments) {
+    for (var argument in node.arguments2) {
       if (argument is! NamedArgument) {
         var parameter = argument.correspondingParameter;
         _checkSinceSdkVersion(parameter, node, errorEntity: argument);
@@ -76,20 +76,69 @@ class SdkConstraintVerifier extends RecursiveAstVisitor<void> {
   }
 
   @override
-  void visitBinaryExpression(BinaryExpression node) {
+  void visitBinaryOperatorInvocation(BinaryOperatorInvocation node) {
     if (checkTripleShift) {
       TokenType operatorType = node.operator.type;
       if (operatorType == TokenType.GT_GT_GT) {
         _errorReporter.report(diag.sdkVersionGtGtGtOperator.at(node.operator));
       }
     }
-    super.visitBinaryExpression(node);
+    super.visitBinaryOperatorInvocation(node);
   }
 
   @override
-  void visitConstructorName(ConstructorName node) {
+  void visitCompoundAssignment(CompoundAssignment node) {
+    var target = node.target;
+    if (target is UnqualifiedNameAssignmentTarget) {
+      if (target.read case ValidNamedReadResolution(:var element)) {
+        _checkSinceSdkVersion(element, target);
+      }
+      if (target.write case ValidNamedWriteResolution(:var element)) {
+        _checkSinceSdkVersion(element, target);
+      }
+    }
     _checkSinceSdkVersion(node.element, node);
-    super.visitConstructorName(node);
+    super.visitCompoundAssignment(node);
+  }
+
+  @override
+  void visitConstructorReference2(ConstructorReference2 node) {
+    var typeReference = node.typeReference;
+    _checkSinceSdkVersion(
+      typeReference.element,
+      typeReference,
+      errorEntity: typeReference.name,
+    );
+    _checkSinceSdkVersion(
+      node.element,
+      node,
+      errorEntity: node.selector?.name2 ?? typeReference.name,
+    );
+    super.visitConstructorReference2(node);
+  }
+
+  @override
+  void visitConstructorTearOff(ConstructorTearOff node) {
+    var typeReference = node.typeReference;
+    _checkSinceSdkVersion(
+      typeReference.element,
+      typeReference,
+      errorEntity: typeReference.name,
+    );
+    _checkSinceSdkVersion(node.element, node, errorEntity: node.selector.name2);
+    super.visitConstructorTearOff(node);
+  }
+
+  @override
+  void visitDirectAssignment(DirectAssignment node) {
+    var target = node.target;
+    if (target is UnqualifiedNameAssignmentTarget) {
+      var write = target.write;
+      if (write case ValidNamedWriteResolution(:var element)) {
+        _checkSinceSdkVersion(element, target);
+      }
+    }
+    super.visitDirectAssignment(node);
   }
 
   @override
@@ -101,6 +150,20 @@ class SdkConstraintVerifier extends RecursiveAstVisitor<void> {
   @override
   void visitHideCombinator(HideCombinator node) {
     // Don't flag references to either `Future` or `Stream` within a combinator.
+  }
+
+  @override
+  void visitIfNullAssignment(IfNullAssignment node) {
+    var target = node.target;
+    if (target is UnqualifiedNameAssignmentTarget) {
+      if (target.read case ValidNamedReadResolution(:var element)) {
+        _checkSinceSdkVersion(element, target);
+      }
+      if (target.write case ValidNamedWriteResolution(:var element)) {
+        _checkSinceSdkVersion(element, target);
+      }
+    }
+    super.visitIfNullAssignment(node);
   }
 
   @override
@@ -177,11 +240,9 @@ class SdkConstraintVerifier extends RecursiveAstVisitor<void> {
             return;
           }
           if (target is AssignmentExpression) {
-            target = target.leftHandSide;
+            target = target.leftHandSide2;
           }
-          if (target is ConstructorName) {
-            errorEntity = target.name?.token ?? target.type.name;
-          } else if (target is ExtensionOverride) {
+          if (target is ExtensionOverride) {
             errorEntity = target.name;
           } else if (target is FunctionExpressionInvocation) {
             errorEntity = target.argumentList;
@@ -226,7 +287,7 @@ class SdkConstraintVerifier extends RecursiveAstVisitor<void> {
       if (node is PrefixedIdentifier) {
         targetType = node.prefix.staticType;
       } else if (node is PropertyAccess) {
-        targetType = node.realTarget.staticType;
+        targetType = node.realTarget2.staticType;
       }
       if (targetType != null) {
         var targetElement = targetType.element;

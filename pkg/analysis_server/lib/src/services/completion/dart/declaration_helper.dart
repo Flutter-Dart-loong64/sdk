@@ -239,18 +239,16 @@ class DeclarationHelper {
   /// given [constructor]. If a [fieldToInclude] is provided, then it should not
   /// be skipped because the cursor is inside that field's name.
   void addFieldsForInitializers(
-    ConstructorDeclaration constructor,
+    ConstructorElement constructorElement,
+    NodeList<ConstructorInitializer> list,
+    FormalParameterList parameters,
     FieldElement? fieldToInclude,
   ) {
-    var constructorElement = constructor.declaredFragment?.element;
-    var containingElement = constructorElement?.enclosingElement;
-    if (containingElement == null) {
-      return;
-    }
+    var containingElement = constructorElement.enclosingElement;
 
     var fieldsToSkip = <FieldElement>{};
     // Skip fields that are already initialized in the initializer list.
-    for (var initializer in constructor.initializers) {
+    for (var initializer in list) {
       if (initializer is ConstructorFieldInitializer) {
         var fieldElement = initializer.fieldName.element;
         if (fieldElement is FieldElement) {
@@ -259,7 +257,7 @@ class DeclarationHelper {
       }
     }
     // Skip fields that are already initialized in the parameter list.
-    for (var parameter in constructor.parameters.parameters) {
+    for (var parameter in parameters.parameters) {
       if (parameter is FieldFormalParameter) {
         var parameterElement = parameter.declaredFragment?.element;
         if (parameterElement is FieldFormalParameterElement) {
@@ -425,7 +423,7 @@ class DeclarationHelper {
       parent = parent.parent;
     }
     switch (parent) {
-      case BlockClassBody():
+      case BlockClassBody() when containingMember is! PrimaryConstructorBody:
       case BlockEnumBody():
         parent = parent?.parent;
     }
@@ -1257,12 +1255,24 @@ class DeclarationHelper {
           _visitCatchClause(currentNode);
         case CommentReference():
           return _visitCommentReference(currentNode);
-        case ConstructorDeclaration():
-          _visitParameterList(currentNode.parameters);
+        case ConstructorDeclaration(:var parameters) ||
+            PrimaryConstructorBody(
+              declaration: PrimaryConstructorDeclaration(
+                formalParameters: var parameters,
+              ),
+            ):
+          _visitParameterList(parameters);
           return currentNode;
         case DeclaredVariablePattern():
           _visitDeclaredVariablePattern(currentNode);
-        case FieldDeclaration():
+        case FieldDeclaration(:var parent):
+          if (parent case BlockClassBody(
+            parent: ClassDeclaration(
+              namePart: PrimaryConstructorDeclaration(:var formalParameters),
+            ),
+          )) {
+            _visitParameterList(formalParameters);
+          }
           return currentNode;
         case ForElement(forLoopParts: var parts):
           if (parts != previousNode) {
@@ -2702,7 +2712,11 @@ class DeclarationHelper {
       for (var param in parameterList.parameters) {
         var declaredElement = param.declaredFragment?.element;
         if (declaredElement != null) {
-          _suggestParameter(declaredElement);
+          if (declaredElement case FieldFormalParameterElement(:var field?)) {
+            _suggestField(field: field);
+          } else {
+            _suggestParameter(declaredElement);
+          }
         }
       }
     }

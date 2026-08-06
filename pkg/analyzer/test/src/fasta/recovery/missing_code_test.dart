@@ -39,9 +39,9 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: ListLiteral
+          expression2: ListLiteral
             leftBracket: [
-            elements
+            elements2
               SimpleIdentifier
                 token: a
               SimpleIdentifier
@@ -71,9 +71,9 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: ListLiteral
+          expression2: ListLiteral
             leftBracket: [
-            elements
+            elements2
               SimpleIdentifier
                 token: a
               SimpleIdentifier
@@ -103,18 +103,18 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: ListLiteral
+          expression2: ListLiteral
             leftBracket: [
-            elements
+            elements2
               SimpleIdentifier
                 token: a
               IfElement
                 ifKeyword: if
                 leftParenthesis: (
-                expression: SimpleIdentifier
+                expression2: SimpleIdentifier
                   token: x
                 rightParenthesis: )
-                thenElement: SimpleIdentifier
+                thenElement2: SimpleIdentifier
                   token: b
               SimpleIdentifier
                 token: c
@@ -141,21 +141,21 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: ListLiteral
+          expression2: ListLiteral
             leftBracket: [
-            elements
+            elements2
               SimpleIdentifier
                 token: a
               IfElement
                 ifKeyword: if
                 leftParenthesis: (
-                expression: SimpleIdentifier
+                expression2: SimpleIdentifier
                   token: x
                 rightParenthesis: )
-                thenElement: SimpleIdentifier
+                thenElement2: SimpleIdentifier
                   token: b
                 elseKeyword: else
-                elseElement: SimpleIdentifier
+                elseElement2: SimpleIdentifier
                   token: y
               SimpleIdentifier
                 token: c
@@ -186,26 +186,26 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: SetOrMapLiteral
+          expression2: SetOrMapLiteral
             leftBracket: {
-            elements
+            elements2
               MapLiteralEntry
-                key: SimpleIdentifier
+                key2: SimpleIdentifier
                   token: a
                 separator: :
-                value: SimpleIdentifier
+                value2: SimpleIdentifier
                   token: b
               MapLiteralEntry
-                key: SimpleIdentifier
+                key2: SimpleIdentifier
                   token: c
                 separator: :
-                value: SimpleIdentifier
+                value2: SimpleIdentifier
                   token: d
               MapLiteralEntry
-                key: SimpleIdentifier
+                key2: SimpleIdentifier
                   token: e
                 separator: :
-                value: SimpleIdentifier
+                value2: SimpleIdentifier
                   token: f
             rightBracket: }
             isMap: false
@@ -231,32 +231,32 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: SetOrMapLiteral
+          expression2: SetOrMapLiteral
             leftBracket: {
-            elements
+            elements2
               MapLiteralEntry
-                key: SimpleIdentifier
+                key2: SimpleIdentifier
                   token: a
                 separator: :
-                value: SimpleIdentifier
+                value2: SimpleIdentifier
                   token: b
               IfElement
                 ifKeyword: if
                 leftParenthesis: (
-                expression: SimpleIdentifier
+                expression2: SimpleIdentifier
                   token: x
                 rightParenthesis: )
-                thenElement: MapLiteralEntry
-                  key: SimpleIdentifier
+                thenElement2: MapLiteralEntry
+                  key2: SimpleIdentifier
                     token: c
                   separator: :
-                  value: SimpleIdentifier
+                  value2: SimpleIdentifier
                     token: d
               MapLiteralEntry
-                key: SimpleIdentifier
+                key2: SimpleIdentifier
                   token: e
                 separator: :
-                value: SimpleIdentifier
+                value2: SimpleIdentifier
                   token: f
             rightBracket: }
             isMap: false
@@ -282,39 +282,39 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: SetOrMapLiteral
+          expression2: SetOrMapLiteral
             leftBracket: {
-            elements
+            elements2
               MapLiteralEntry
-                key: SimpleIdentifier
+                key2: SimpleIdentifier
                   token: a
                 separator: :
-                value: SimpleIdentifier
+                value2: SimpleIdentifier
                   token: b
               IfElement
                 ifKeyword: if
                 leftParenthesis: (
-                expression: SimpleIdentifier
+                expression2: SimpleIdentifier
                   token: x
                 rightParenthesis: )
-                thenElement: MapLiteralEntry
-                  key: SimpleIdentifier
+                thenElement2: MapLiteralEntry
+                  key2: SimpleIdentifier
                     token: c
                   separator: :
-                  value: SimpleIdentifier
+                  value2: SimpleIdentifier
                     token: d
                 elseKeyword: else
-                elseElement: MapLiteralEntry
-                  key: SimpleIdentifier
+                elseElement2: MapLiteralEntry
+                  key2: SimpleIdentifier
                     token: y
                   separator: :
-                  value: SimpleIdentifier
+                  value2: SimpleIdentifier
                     token: z
               MapLiteralEntry
-                key: SimpleIdentifier
+                key2: SimpleIdentifier
                   token: e
                 separator: :
-                value: SimpleIdentifier
+                value2: SimpleIdentifier
                   token: f
             rightBracket: }
             isMap: false
@@ -340,14 +340,14 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: SetOrMapLiteral
+          expression2: SetOrMapLiteral
             leftBracket: {
-            elements
+            elements2
               MapLiteralEntry
-                key: SimpleIdentifier
+                key2: SimpleIdentifier
                   token: <empty> <synthetic>
                 separator: :
-                value: SimpleIdentifier
+                value2: SimpleIdentifier
                   token: b
             rightBracket: }
             isMap: false
@@ -373,14 +373,14 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: SetOrMapLiteral
+          expression2: SetOrMapLiteral
             leftBracket: {
-            elements
+            elements2
               MapLiteralEntry
-                key: SimpleIdentifier
+                key2: SimpleIdentifier
                   token: a
                 separator: :
-                value: SimpleIdentifier
+                value2: SimpleIdentifier
                   token: <empty> <synthetic>
             rightBracket: }
             isMap: false
@@ -406,20 +406,20 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: SetOrMapLiteral
+          expression2: SetOrMapLiteral
             leftBracket: {
-            elements
+            elements2
               MapLiteralEntry
-                key: SimpleIdentifier
+                key2: SimpleIdentifier
                   token: a
                 separator: :
-                value: SimpleIdentifier
+                value2: SimpleIdentifier
                   token: <empty> <synthetic>
               MapLiteralEntry
-                key: SimpleIdentifier
+                key2: SimpleIdentifier
                   token: b
                 separator: :
-                value: SimpleIdentifier
+                value2: SimpleIdentifier
                   token: c
             rightBracket: }
             isMap: false
@@ -451,7 +451,14 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: BinaryExpression
+          expression2: BinaryOperatorInvocation
+            leftOperand: SimpleIdentifier
+              token: x
+            operator: &
+            rightOperand: SimpleIdentifier
+              token: <empty> <synthetic>
+            binaryOperator: bitwiseAnd
+          expression(v1): BinaryExpression
             leftOperand: SimpleIdentifier
               token: x
             operator: &
@@ -488,12 +495,25 @@ CompilationUnit
             name: &
             parameters: FormalParameterList
               leftParenthesis: (
+              requiredPositionalFormalParameters
+                RegularFormalParameter
+                  name: x
+              rightParenthesis: )
+            parameters(v1): FormalParameterList
+              leftParenthesis: (
               parameter: RegularFormalParameter
                 name: x
               rightParenthesis: )
             body: ExpressionFunctionBody
               functionDefinition: =>
-              expression: BinaryExpression
+              expression2: BinaryOperatorInvocation
+                leftOperand: SuperExpression
+                  superKeyword: super
+                operator: &
+                rightOperand: SimpleIdentifier
+                  token: <empty> <synthetic>
+                binaryOperator: bitwiseAnd
+              expression(v1): BinaryExpression
                 leftOperand: SuperExpression
                   superKeyword: super
                 operator: &
@@ -521,12 +541,18 @@ CompilationUnit
       functionExpression: FunctionExpression
         parameters: FormalParameterList
           leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              name: x
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           parameter: RegularFormalParameter
             name: x
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: SimpleIdentifier
+          expression2: SimpleIdentifier
             token: as
           semicolon: ; <synthetic>
     TopLevelVariableDeclaration
@@ -553,13 +579,19 @@ CompilationUnit
       functionExpression: FunctionExpression
         parameters: FormalParameterList
           leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              name: x
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           parameter: RegularFormalParameter
             name: x
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: AsExpression
-            expression: SimpleIdentifier
+          expression2: AsExpression
+            expression2: SimpleIdentifier
               token: x
             asOperator: as
             type: NamedType
@@ -600,7 +632,13 @@ CompilationUnit
                       name: x
                 semicolon: ;
               ExpressionStatement
-                expression: AssignmentExpression
+                expression2: DirectAssignment
+                  target: UnqualifiedNameAssignmentTarget
+                    name: x
+                  operator: =
+                  value: SimpleIdentifier
+                    token: <empty> <synthetic>
+                expression(v1): AssignmentExpression
                   leftHandSide: SimpleIdentifier
                     token: x
                   operator: =
@@ -631,7 +669,14 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: BinaryExpression
+          expression2: BinaryOperatorInvocation
+            leftOperand: SimpleIdentifier
+              token: x
+            operator: |
+            rightOperand: SimpleIdentifier
+              token: <empty> <synthetic>
+            binaryOperator: bitwiseOr
+          expression(v1): BinaryExpression
             leftOperand: SimpleIdentifier
               token: x
             operator: |
@@ -668,12 +713,25 @@ CompilationUnit
             name: |
             parameters: FormalParameterList
               leftParenthesis: (
+              requiredPositionalFormalParameters
+                RegularFormalParameter
+                  name: x
+              rightParenthesis: )
+            parameters(v1): FormalParameterList
+              leftParenthesis: (
               parameter: RegularFormalParameter
                 name: x
               rightParenthesis: )
             body: ExpressionFunctionBody
               functionDefinition: =>
-              expression: BinaryExpression
+              expression2: BinaryOperatorInvocation
+                leftOperand: SuperExpression
+                  superKeyword: super
+                operator: |
+                rightOperand: SimpleIdentifier
+                  token: <empty> <synthetic>
+                binaryOperator: bitwiseOr
+              expression(v1): BinaryExpression
                 leftOperand: SuperExpression
                   superKeyword: super
                 operator: |
@@ -702,6 +760,12 @@ CompilationUnit
       functionExpression: FunctionExpression
         parameters: FormalParameterList
           leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              name: x
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           parameter: RegularFormalParameter
             name: x
           rightParenthesis: )
@@ -710,10 +774,10 @@ CompilationUnit
             leftBracket: {
             statements
               ExpressionStatement
-                expression: CascadeExpression
-                  target: SimpleIdentifier
+                expression2: CascadeExpression
+                  target2: SimpleIdentifier
                     token: x
-                  cascadeSections
+                  cascadeSections2
                     PropertyAccess
                       operator: ..
                       propertyName: SimpleIdentifier
@@ -777,6 +841,18 @@ CompilationUnit
       functionExpression: FunctionExpression
         parameters: FormalParameterList
           leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              type: NamedType
+                name: int
+              name: a
+            RegularFormalParameter
+              type: NamedType
+                name: int
+              name: b
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           parameter: RegularFormalParameter
             type: NamedType
               name: int
@@ -813,14 +889,14 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: ConditionalExpression
-            condition: SimpleIdentifier
+          expression2: ConditionalExpression
+            condition2: SimpleIdentifier
               token: x
             question: ?
-            thenExpression: SimpleIdentifier
+            thenExpression2: SimpleIdentifier
               token: y
             colon: :
-            elseExpression: SimpleIdentifier
+            elseExpression2: SimpleIdentifier
               token: <empty> <synthetic>
           semicolon: ; <synthetic>
 ''');
@@ -846,14 +922,14 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: ConditionalExpression
-            condition: SimpleIdentifier
+          expression2: ConditionalExpression
+            condition2: SimpleIdentifier
               token: x
             question: ?
-            thenExpression: SimpleIdentifier
+            thenExpression2: SimpleIdentifier
               token: <empty> <synthetic>
             colon: :
-            elseExpression: SimpleIdentifier
+            elseExpression2: SimpleIdentifier
               token: z
           semicolon: ; <synthetic>
 ''');
@@ -879,7 +955,14 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: BinaryExpression
+          expression2: BinaryOperatorInvocation
+            leftOperand: SimpleIdentifier
+              token: x
+            operator: ==
+            rightOperand: SimpleIdentifier
+              token: <empty> <synthetic>
+            binaryOperator: equal
+          expression(v1): BinaryExpression
             leftOperand: SimpleIdentifier
               token: x
             operator: ==
@@ -916,12 +999,25 @@ CompilationUnit
             name: ==
             parameters: FormalParameterList
               leftParenthesis: (
+              requiredPositionalFormalParameters
+                RegularFormalParameter
+                  name: x
+              rightParenthesis: )
+            parameters(v1): FormalParameterList
+              leftParenthesis: (
               parameter: RegularFormalParameter
                 name: x
               rightParenthesis: )
             body: ExpressionFunctionBody
               functionDefinition: =>
-              expression: BinaryExpression
+              expression2: BinaryOperatorInvocation
+                leftOperand: SuperExpression
+                  superKeyword: super
+                operator: ==
+                rightOperand: SimpleIdentifier
+                  token: <empty> <synthetic>
+                binaryOperator: equal
+              expression(v1): BinaryExpression
                 leftOperand: SuperExpression
                   superKeyword: super
                 operator: ==
@@ -947,12 +1043,18 @@ CompilationUnit
       functionExpression: FunctionExpression
         parameters: FormalParameterList
           leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              name: x
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           parameter: RegularFormalParameter
             name: x
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: => <synthetic>
-          expression: SimpleIdentifier
+          expression2: SimpleIdentifier
             token: x
           semicolon: ;
 ''');
@@ -973,12 +1075,18 @@ CompilationUnit
       functionExpression: FunctionExpression
         parameters: FormalParameterList
           leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              name: x
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           parameter: RegularFormalParameter
             name: x
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: => <synthetic>
-          expression: SimpleIdentifier
+          expression2: SimpleIdentifier
             token: x
           semicolon: ;
 ''');
@@ -1004,7 +1112,14 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: BinaryExpression
+          expression2: BinaryOperatorInvocation
+            leftOperand: SimpleIdentifier
+              token: x
+            operator: >
+            rightOperand: SimpleIdentifier
+              token: <empty> <synthetic>
+            binaryOperator: greaterThan
+          expression(v1): BinaryExpression
             leftOperand: SimpleIdentifier
               token: x
             operator: >
@@ -1041,12 +1156,25 @@ CompilationUnit
             name: >
             parameters: FormalParameterList
               leftParenthesis: (
+              requiredPositionalFormalParameters
+                RegularFormalParameter
+                  name: x
+              rightParenthesis: )
+            parameters(v1): FormalParameterList
+              leftParenthesis: (
               parameter: RegularFormalParameter
                 name: x
               rightParenthesis: )
             body: ExpressionFunctionBody
               functionDefinition: =>
-              expression: BinaryExpression
+              expression2: BinaryOperatorInvocation
+                leftOperand: SuperExpression
+                  superKeyword: super
+                operator: >
+                rightOperand: SimpleIdentifier
+                  token: <empty> <synthetic>
+                binaryOperator: greaterThan
+              expression(v1): BinaryExpression
                 leftOperand: SuperExpression
                   superKeyword: super
                 operator: >
@@ -1077,7 +1205,14 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: BinaryExpression
+          expression2: BinaryOperatorInvocation
+            leftOperand: SimpleIdentifier
+              token: x
+            operator: >>
+            rightOperand: SimpleIdentifier
+              token: <empty> <synthetic>
+            binaryOperator: shiftRight
+          expression(v1): BinaryExpression
             leftOperand: SimpleIdentifier
               token: x
             operator: >>
@@ -1114,12 +1249,25 @@ CompilationUnit
             name: >>
             parameters: FormalParameterList
               leftParenthesis: (
+              requiredPositionalFormalParameters
+                RegularFormalParameter
+                  name: x
+              rightParenthesis: )
+            parameters(v1): FormalParameterList
+              leftParenthesis: (
               parameter: RegularFormalParameter
                 name: x
               rightParenthesis: )
             body: ExpressionFunctionBody
               functionDefinition: =>
-              expression: BinaryExpression
+              expression2: BinaryOperatorInvocation
+                leftOperand: SuperExpression
+                  superKeyword: super
+                operator: >>
+                rightOperand: SimpleIdentifier
+                  token: <empty> <synthetic>
+                binaryOperator: shiftRight
+              expression(v1): BinaryExpression
                 leftOperand: SuperExpression
                   superKeyword: super
                 operator: >>
@@ -1150,7 +1298,14 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: BinaryExpression
+          expression2: BinaryOperatorInvocation
+            leftOperand: SimpleIdentifier
+              token: x
+            operator: >=
+            rightOperand: SimpleIdentifier
+              token: <empty> <synthetic>
+            binaryOperator: greaterThanOrEqual
+          expression(v1): BinaryExpression
             leftOperand: SimpleIdentifier
               token: x
             operator: >=
@@ -1187,12 +1342,25 @@ CompilationUnit
             name: >=
             parameters: FormalParameterList
               leftParenthesis: (
+              requiredPositionalFormalParameters
+                RegularFormalParameter
+                  name: x
+              rightParenthesis: )
+            parameters(v1): FormalParameterList
+              leftParenthesis: (
               parameter: RegularFormalParameter
                 name: x
               rightParenthesis: )
             body: ExpressionFunctionBody
               functionDefinition: =>
-              expression: BinaryExpression
+              expression2: BinaryOperatorInvocation
+                leftOperand: SuperExpression
+                  superKeyword: super
+                operator: >=
+                rightOperand: SimpleIdentifier
+                  token: <empty> <synthetic>
+                binaryOperator: greaterThanOrEqual
+              expression(v1): BinaryExpression
                 leftOperand: SuperExpression
                   superKeyword: super
                 operator: >=
@@ -1223,7 +1391,14 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: BinaryExpression
+          expression2: BinaryOperatorInvocation
+            leftOperand: SimpleIdentifier
+              token: x
+            operator: ^
+            rightOperand: SimpleIdentifier
+              token: <empty> <synthetic>
+            binaryOperator: bitwiseXor
+          expression(v1): BinaryExpression
             leftOperand: SimpleIdentifier
               token: x
             operator: ^
@@ -1260,12 +1435,25 @@ CompilationUnit
             name: ^
             parameters: FormalParameterList
               leftParenthesis: (
+              requiredPositionalFormalParameters
+                RegularFormalParameter
+                  name: x
+              rightParenthesis: )
+            parameters(v1): FormalParameterList
+              leftParenthesis: (
               parameter: RegularFormalParameter
                 name: x
               rightParenthesis: )
             body: ExpressionFunctionBody
               functionDefinition: =>
-              expression: BinaryExpression
+              expression2: BinaryOperatorInvocation
+                leftOperand: SuperExpression
+                  superKeyword: super
+                operator: ^
+                rightOperand: SimpleIdentifier
+                  token: <empty> <synthetic>
+                binaryOperator: bitwiseXor
+              expression(v1): BinaryExpression
                 leftOperand: SuperExpression
                   superKeyword: super
                 operator: ^
@@ -1308,13 +1496,13 @@ CompilationUnit
               AssertInitializer
                 assertKeyword: assert
                 leftParenthesis: (
-                condition: BooleanLiteral
+                condition2: BooleanLiteral
                   literal: true
                 rightParenthesis: )
               AssertInitializer
                 assertKeyword: assert
                 leftParenthesis: (
-                condition: BooleanLiteral
+                condition2: BooleanLiteral
                   literal: true
                 rightParenthesis: )
             body: EmptyFunctionBody
@@ -1355,14 +1543,14 @@ CompilationUnit
               AssertInitializer
                 assertKeyword: assert
                 leftParenthesis: (
-                condition: BooleanLiteral
+                condition2: BooleanLiteral
                   literal: true
                 rightParenthesis: )
               ConstructorFieldInitializer
                 fieldName: SimpleIdentifier
                   token: x
                 equals: =
-                expression: IntegerLiteral
+                expression2: IntegerLiteral
                   literal: 2
             body: EmptyFunctionBody
               semicolon: ;
@@ -1402,7 +1590,7 @@ CompilationUnit
               AssertInitializer
                 assertKeyword: assert
                 leftParenthesis: (
-                condition: BooleanLiteral
+                condition2: BooleanLiteral
                   literal: true
                 rightParenthesis: )
               ConstructorFieldInitializer
@@ -1411,7 +1599,7 @@ CompilationUnit
                 fieldName: SimpleIdentifier
                   token: x
                 equals: =
-                expression: IntegerLiteral
+                expression2: IntegerLiteral
                   literal: 2
             body: EmptyFunctionBody
               semicolon: ;
@@ -1445,8 +1633,8 @@ CompilationUnit
               IfStatement
                 ifKeyword: if
                 leftParenthesis: (
-                expression: IsExpression
-                  expression: SimpleIdentifier
+                expression2: IsExpression
+                  expression2: SimpleIdentifier
                     token: <empty> <synthetic>
                   isOperator: is
                   type: NamedType
@@ -1476,6 +1664,12 @@ CompilationUnit
       functionExpression: FunctionExpression
         parameters: FormalParameterList
           leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              name: x
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           parameter: RegularFormalParameter
             name: x
           rightParenthesis: )
@@ -1486,8 +1680,8 @@ CompilationUnit
               IfStatement
                 ifKeyword: if
                 leftParenthesis: (
-                expression: IsExpression
-                  expression: SimpleIdentifier
+                expression2: IsExpression
+                  expression2: SimpleIdentifier
                     token: x
                   isOperator: is
                   type: NamedType
@@ -1520,7 +1714,14 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: BinaryExpression
+          expression2: BinaryOperatorInvocation
+            leftOperand: SimpleIdentifier
+              token: x
+            operator: <
+            rightOperand: SimpleIdentifier
+              token: <empty> <synthetic>
+            binaryOperator: lessThan
+          expression(v1): BinaryExpression
             leftOperand: SimpleIdentifier
               token: x
             operator: <
@@ -1557,12 +1758,25 @@ CompilationUnit
             name: <
             parameters: FormalParameterList
               leftParenthesis: (
+              requiredPositionalFormalParameters
+                RegularFormalParameter
+                  name: x
+              rightParenthesis: )
+            parameters(v1): FormalParameterList
+              leftParenthesis: (
               parameter: RegularFormalParameter
                 name: x
               rightParenthesis: )
             body: ExpressionFunctionBody
               functionDefinition: =>
-              expression: BinaryExpression
+              expression2: BinaryOperatorInvocation
+                leftOperand: SuperExpression
+                  superKeyword: super
+                operator: <
+                rightOperand: SimpleIdentifier
+                  token: <empty> <synthetic>
+                binaryOperator: lessThan
+              expression(v1): BinaryExpression
                 leftOperand: SuperExpression
                   superKeyword: super
                 operator: <
@@ -1593,7 +1807,14 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: BinaryExpression
+          expression2: BinaryOperatorInvocation
+            leftOperand: SimpleIdentifier
+              token: x
+            operator: <<
+            rightOperand: SimpleIdentifier
+              token: <empty> <synthetic>
+            binaryOperator: shiftLeft
+          expression(v1): BinaryExpression
             leftOperand: SimpleIdentifier
               token: x
             operator: <<
@@ -1630,12 +1851,25 @@ CompilationUnit
             name: <<
             parameters: FormalParameterList
               leftParenthesis: (
+              requiredPositionalFormalParameters
+                RegularFormalParameter
+                  name: x
+              rightParenthesis: )
+            parameters(v1): FormalParameterList
+              leftParenthesis: (
               parameter: RegularFormalParameter
                 name: x
               rightParenthesis: )
             body: ExpressionFunctionBody
               functionDefinition: =>
-              expression: BinaryExpression
+              expression2: BinaryOperatorInvocation
+                leftOperand: SuperExpression
+                  superKeyword: super
+                operator: <<
+                rightOperand: SimpleIdentifier
+                  token: <empty> <synthetic>
+                binaryOperator: shiftLeft
+              expression(v1): BinaryExpression
                 leftOperand: SuperExpression
                   superKeyword: super
                 operator: <<
@@ -1666,7 +1900,14 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: BinaryExpression
+          expression2: BinaryOperatorInvocation
+            leftOperand: SimpleIdentifier
+              token: x
+            operator: <=
+            rightOperand: SimpleIdentifier
+              token: <empty> <synthetic>
+            binaryOperator: lessThanOrEqual
+          expression(v1): BinaryExpression
             leftOperand: SimpleIdentifier
               token: x
             operator: <=
@@ -1703,12 +1944,25 @@ CompilationUnit
             name: <=
             parameters: FormalParameterList
               leftParenthesis: (
+              requiredPositionalFormalParameters
+                RegularFormalParameter
+                  name: x
+              rightParenthesis: )
+            parameters(v1): FormalParameterList
+              leftParenthesis: (
               parameter: RegularFormalParameter
                 name: x
               rightParenthesis: )
             body: ExpressionFunctionBody
               functionDefinition: =>
-              expression: BinaryExpression
+              expression2: BinaryOperatorInvocation
+                leftOperand: SuperExpression
+                  superKeyword: super
+                operator: <=
+                rightOperand: SimpleIdentifier
+                  token: <empty> <synthetic>
+                binaryOperator: lessThanOrEqual
+              expression(v1): BinaryExpression
                 leftOperand: SuperExpression
                   superKeyword: super
                 operator: <=
@@ -1739,7 +1993,14 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: BinaryExpression
+          expression2: BinaryOperatorInvocation
+            leftOperand: SimpleIdentifier
+              token: x
+            operator: -
+            rightOperand: SimpleIdentifier
+              token: <empty> <synthetic>
+            binaryOperator: subtract
+          expression(v1): BinaryExpression
             leftOperand: SimpleIdentifier
               token: x
             operator: -
@@ -1776,12 +2037,25 @@ CompilationUnit
             name: -
             parameters: FormalParameterList
               leftParenthesis: (
+              requiredPositionalFormalParameters
+                RegularFormalParameter
+                  name: x
+              rightParenthesis: )
+            parameters(v1): FormalParameterList
+              leftParenthesis: (
               parameter: RegularFormalParameter
                 name: x
               rightParenthesis: )
             body: ExpressionFunctionBody
               functionDefinition: =>
-              expression: BinaryExpression
+              expression2: BinaryOperatorInvocation
+                leftOperand: SuperExpression
+                  superKeyword: super
+                operator: -
+                rightOperand: SimpleIdentifier
+                  token: <empty> <synthetic>
+                binaryOperator: subtract
+              expression(v1): BinaryExpression
                 leftOperand: SuperExpression
                   superKeyword: super
                 operator: -
@@ -1820,7 +2094,7 @@ CompilationUnit
               rightParenthesis: ) <synthetic>
             body: ExpressionFunctionBody
               functionDefinition: =>
-              expression: IntegerLiteral
+              expression2: IntegerLiteral
                 literal: 0
               semicolon: ;
         rightBracket: }
@@ -1893,12 +2167,24 @@ CompilationUnit
       functionExpression: FunctionExpression
         parameters: FormalParameterList
           leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              name: x
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           parameter: RegularFormalParameter
             name: x
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: BinaryExpression
+          expression2: IfNull
+            leftOperand: SimpleIdentifier
+              token: x
+            operator: ??
+            rightOperand: SimpleIdentifier
+              token: throw
+          expression(v1): BinaryExpression
             leftOperand: SimpleIdentifier
               token: x
             operator: ??
@@ -1928,7 +2214,14 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: BinaryExpression
+          expression2: BinaryOperatorInvocation
+            leftOperand: SimpleIdentifier
+              token: x
+            operator: %
+            rightOperand: SimpleIdentifier
+              token: <empty> <synthetic>
+            binaryOperator: modulo
+          expression(v1): BinaryExpression
             leftOperand: SimpleIdentifier
               token: x
             operator: %
@@ -1965,12 +2258,25 @@ CompilationUnit
             name: %
             parameters: FormalParameterList
               leftParenthesis: (
+              requiredPositionalFormalParameters
+                RegularFormalParameter
+                  name: x
+              rightParenthesis: )
+            parameters(v1): FormalParameterList
+              leftParenthesis: (
               parameter: RegularFormalParameter
                 name: x
               rightParenthesis: )
             body: ExpressionFunctionBody
               functionDefinition: =>
-              expression: BinaryExpression
+              expression2: BinaryOperatorInvocation
+                leftOperand: SuperExpression
+                  superKeyword: super
+                operator: %
+                rightOperand: SimpleIdentifier
+                  token: <empty> <synthetic>
+                binaryOperator: modulo
+              expression(v1): BinaryExpression
                 leftOperand: SuperExpression
                   superKeyword: super
                 operator: %
@@ -2001,7 +2307,14 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: BinaryExpression
+          expression2: BinaryOperatorInvocation
+            leftOperand: SimpleIdentifier
+              token: x
+            operator: +
+            rightOperand: SimpleIdentifier
+              token: <empty> <synthetic>
+            binaryOperator: add
+          expression(v1): BinaryExpression
             leftOperand: SimpleIdentifier
               token: x
             operator: +
@@ -2038,12 +2351,25 @@ CompilationUnit
             name: +
             parameters: FormalParameterList
               leftParenthesis: (
+              requiredPositionalFormalParameters
+                RegularFormalParameter
+                  name: x
+              rightParenthesis: )
+            parameters(v1): FormalParameterList
+              leftParenthesis: (
               parameter: RegularFormalParameter
                 name: x
               rightParenthesis: )
             body: ExpressionFunctionBody
               functionDefinition: =>
-              expression: BinaryExpression
+              expression2: BinaryOperatorInvocation
+                leftOperand: SuperExpression
+                  superKeyword: super
+                operator: +
+                rightOperand: SimpleIdentifier
+                  token: <empty> <synthetic>
+                binaryOperator: add
+              expression(v1): BinaryExpression
                 leftOperand: SuperExpression
                   superKeyword: super
                 operator: +
@@ -2085,11 +2411,11 @@ CompilationUnit
                     VariableDeclaration
                       name: v
                       equals: =
-                      initializer: SimpleStringLiteral
+                      initializer2: SimpleStringLiteral
                         literal: 'String'
                 semicolon: ;
               ExpressionStatement
-                expression: PrefixedIdentifier
+                expression2: PrefixedIdentifier
                   prefix: SimpleIdentifier
                     token: v
                   period: .
@@ -2120,7 +2446,14 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: BinaryExpression
+          expression2: BinaryOperatorInvocation
+            leftOperand: SimpleIdentifier
+              token: x
+            operator: /
+            rightOperand: SimpleIdentifier
+              token: <empty> <synthetic>
+            binaryOperator: divide
+          expression(v1): BinaryExpression
             leftOperand: SimpleIdentifier
               token: x
             operator: /
@@ -2157,12 +2490,25 @@ CompilationUnit
             name: /
             parameters: FormalParameterList
               leftParenthesis: (
+              requiredPositionalFormalParameters
+                RegularFormalParameter
+                  name: x
+              rightParenthesis: )
+            parameters(v1): FormalParameterList
+              leftParenthesis: (
               parameter: RegularFormalParameter
                 name: x
               rightParenthesis: )
             body: ExpressionFunctionBody
               functionDefinition: =>
-              expression: BinaryExpression
+              expression2: BinaryOperatorInvocation
+                leftOperand: SuperExpression
+                  superKeyword: super
+                operator: /
+                rightOperand: SimpleIdentifier
+                  token: <empty> <synthetic>
+                binaryOperator: divide
+              expression(v1): BinaryExpression
                 leftOperand: SuperExpression
                   superKeyword: super
                 operator: /
@@ -2193,7 +2539,14 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: BinaryExpression
+          expression2: BinaryOperatorInvocation
+            leftOperand: SimpleIdentifier
+              token: x
+            operator: *
+            rightOperand: SimpleIdentifier
+              token: <empty> <synthetic>
+            binaryOperator: multiply
+          expression(v1): BinaryExpression
             leftOperand: SimpleIdentifier
               token: x
             operator: *
@@ -2230,12 +2583,25 @@ CompilationUnit
             name: *
             parameters: FormalParameterList
               leftParenthesis: (
+              requiredPositionalFormalParameters
+                RegularFormalParameter
+                  name: x
+              rightParenthesis: )
+            parameters(v1): FormalParameterList
+              leftParenthesis: (
               parameter: RegularFormalParameter
                 name: x
               rightParenthesis: )
             body: ExpressionFunctionBody
               functionDefinition: =>
-              expression: BinaryExpression
+              expression2: BinaryOperatorInvocation
+                leftOperand: SuperExpression
+                  superKeyword: super
+                operator: *
+                rightOperand: SimpleIdentifier
+                  token: <empty> <synthetic>
+                binaryOperator: multiply
+              expression(v1): BinaryExpression
                 leftOperand: SuperExpression
                   superKeyword: super
                 operator: *
@@ -2275,19 +2641,19 @@ CompilationUnit
             leftBracket: {
             statements
               ExpressionStatement
-                expression: MethodInvocation
+                expression2: MethodInvocation
                   methodName: SimpleIdentifier
                     token: print
                   argumentList: ArgumentList
                     leftParenthesis: (
-                    arguments
+                    arguments2
                       StringInterpolation
                         elements
                           InterpolationString
                             contents: "
                           InterpolationExpression
                             leftBracket: ${
-                            expression: IntegerLiteral
+                            expression2: IntegerLiteral
                               literal: 42
                             rightBracket: }
                           InterpolationString
@@ -2319,7 +2685,14 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: BinaryExpression
+          expression2: BinaryOperatorInvocation
+            leftOperand: SimpleIdentifier
+              token: x
+            operator: ~/
+            rightOperand: SimpleIdentifier
+              token: <empty> <synthetic>
+            binaryOperator: truncatingDivide
+          expression(v1): BinaryExpression
             leftOperand: SimpleIdentifier
               token: x
             operator: ~/
@@ -2356,12 +2729,25 @@ CompilationUnit
             name: ~/
             parameters: FormalParameterList
               leftParenthesis: (
+              requiredPositionalFormalParameters
+                RegularFormalParameter
+                  name: x
+              rightParenthesis: )
+            parameters(v1): FormalParameterList
+              leftParenthesis: (
               parameter: RegularFormalParameter
                 name: x
               rightParenthesis: )
             body: ExpressionFunctionBody
               functionDefinition: =>
-              expression: BinaryExpression
+              expression2: BinaryOperatorInvocation
+                leftOperand: SuperExpression
+                  superKeyword: super
+                operator: ~/
+                rightOperand: SimpleIdentifier
+                  token: <empty> <synthetic>
+                binaryOperator: truncatingDivide
+              expression(v1): BinaryExpression
                 leftOperand: SuperExpression
                   superKeyword: super
                 operator: ~/
@@ -2391,6 +2777,15 @@ CompilationUnit
       functionExpression: FunctionExpression
         parameters: FormalParameterList
           leftParenthesis: (
+          delimitedFormalParameters: DelimitedFormalParameters
+            leftDelimiter: {
+            formalParameters
+              RegularFormalParameter
+                name: a
+            rightDelimiter: }
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           leftDelimiter: {
           parameter: RegularFormalParameter
             name: a
@@ -2418,6 +2813,19 @@ CompilationUnit
       name: f
       functionExpression: FunctionExpression
         parameters: FormalParameterList
+          leftParenthesis: (
+          delimitedFormalParameters: DelimitedFormalParameters
+            leftDelimiter: {
+            formalParameters
+              RegularFormalParameter
+                name: a
+              RegularFormalParameter
+                name: <empty> <synthetic>
+              RegularFormalParameter
+                name: b
+            rightDelimiter: }
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
           leftParenthesis: (
           leftDelimiter: {
           parameter: RegularFormalParameter
@@ -2449,6 +2857,15 @@ CompilationUnit
       functionExpression: FunctionExpression
         parameters: FormalParameterList
           leftParenthesis: (
+          delimitedFormalParameters: DelimitedFormalParameters
+            leftDelimiter: [
+            formalParameters
+              RegularFormalParameter
+                name: a
+            rightDelimiter: ]
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           leftDelimiter: [
           parameter: RegularFormalParameter
             name: a
@@ -2476,6 +2893,19 @@ CompilationUnit
       name: f
       functionExpression: FunctionExpression
         parameters: FormalParameterList
+          leftParenthesis: (
+          delimitedFormalParameters: DelimitedFormalParameters
+            leftDelimiter: [
+            formalParameters
+              RegularFormalParameter
+                name: a
+              RegularFormalParameter
+                name: <empty> <synthetic>
+              RegularFormalParameter
+                name: b
+            rightDelimiter: ]
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
           leftParenthesis: (
           leftDelimiter: [
           parameter: RegularFormalParameter
@@ -2507,6 +2937,12 @@ CompilationUnit
       functionExpression: FunctionExpression
         parameters: FormalParameterList
           leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              name: a
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           parameter: RegularFormalParameter
             name: a
           rightParenthesis: )
@@ -2532,6 +2968,16 @@ CompilationUnit
       name: f
       functionExpression: FunctionExpression
         parameters: FormalParameterList
+          leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              name: a
+            RegularFormalParameter
+              name: <empty> <synthetic>
+            RegularFormalParameter
+              name: b
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
           leftParenthesis: (
           parameter: RegularFormalParameter
             name: a
@@ -2581,6 +3027,12 @@ CompilationUnit
               token: C
             parameters: FormalParameterList
               leftParenthesis: (
+              requiredPositionalFormalParameters
+                RegularFormalParameter
+                  name: this
+              rightParenthesis: )
+            parameters(v1): FormalParameterList
+              leftParenthesis: (
               parameter: RegularFormalParameter
                 name: this
               rightParenthesis: )
@@ -2623,6 +3075,14 @@ CompilationUnit
             typeName: SimpleIdentifier
               token: C
             parameters: FormalParameterList
+              leftParenthesis: (
+              requiredPositionalFormalParameters
+                RegularFormalParameter
+                  name: this
+                RegularFormalParameter
+                  name: p
+              rightParenthesis: )
+            parameters(v1): FormalParameterList
               leftParenthesis: (
               parameter: RegularFormalParameter
                 name: this
@@ -2669,6 +3129,14 @@ CompilationUnit
               token: C
             parameters: FormalParameterList
               leftParenthesis: (
+              requiredPositionalFormalParameters
+                FieldFormalParameter
+                  thisKeyword: this
+                  period: .
+                  name: <empty> <synthetic>
+              rightParenthesis: )
+            parameters(v1): FormalParameterList
+              leftParenthesis: (
               parameter: FieldFormalParameter
                 thisKeyword: this
                 period: .
@@ -2714,6 +3182,16 @@ CompilationUnit
               token: C
             parameters: FormalParameterList
               leftParenthesis: (
+              requiredPositionalFormalParameters
+                FieldFormalParameter
+                  thisKeyword: this
+                  period: .
+                  name: <empty> <synthetic>
+                RegularFormalParameter
+                  name: p
+              rightParenthesis: )
+            parameters(v1): FormalParameterList
+              leftParenthesis: (
               parameter: FieldFormalParameter
                 thisKeyword: this
                 period: .
@@ -2742,6 +3220,19 @@ CompilationUnit
       name: f
       functionExpression: FunctionExpression
         parameters: FormalParameterList
+          leftParenthesis: (
+          delimitedFormalParameters: DelimitedFormalParameters
+            leftDelimiter: {
+            formalParameters
+              RegularFormalParameter
+                name: a
+                defaultClause: FormalParameterDefaultClause
+                  separator: :
+                  value2: IntegerLiteral
+                    literal: 0
+            rightDelimiter: } <synthetic>
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
           leftParenthesis: (
           leftDelimiter: {
           parameter: RegularFormalParameter
@@ -2777,6 +3268,19 @@ CompilationUnit
       functionExpression: FunctionExpression
         parameters: FormalParameterList
           leftParenthesis: (
+          delimitedFormalParameters: DelimitedFormalParameters
+            leftDelimiter: {
+            formalParameters
+              RegularFormalParameter
+                name: a
+                defaultClause: FormalParameterDefaultClause
+                  separator: :
+                  value2: IntegerLiteral
+                    literal: 0
+            rightDelimiter: } <synthetic>
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           leftDelimiter: {
           parameter: RegularFormalParameter
             name: a
@@ -2809,6 +3313,12 @@ CompilationUnit
       functionExpression: FunctionExpression
         parameters: FormalParameterList
           leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              name: a
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           parameter: RegularFormalParameter
             name: a
           rightParenthesis: )
@@ -2834,6 +3344,12 @@ CompilationUnit
       name: f
       functionExpression: FunctionExpression
         parameters: FormalParameterList
+          leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              name: a
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
           leftParenthesis: (
           parameter: RegularFormalParameter
             name: a
@@ -2862,6 +3378,19 @@ CompilationUnit
       name: f
       functionExpression: FunctionExpression
         parameters: FormalParameterList
+          leftParenthesis: (
+          delimitedFormalParameters: DelimitedFormalParameters
+            leftDelimiter: [
+            formalParameters
+              RegularFormalParameter
+                name: a
+                defaultClause: FormalParameterDefaultClause
+                  separator: =
+                  value2: IntegerLiteral
+                    literal: 0
+            rightDelimiter: ] <synthetic>
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
           leftParenthesis: (
           leftDelimiter: [
           parameter: RegularFormalParameter
@@ -2895,6 +3424,19 @@ CompilationUnit
       name: f
       functionExpression: FunctionExpression
         parameters: FormalParameterList
+          leftParenthesis: (
+          delimitedFormalParameters: DelimitedFormalParameters
+            leftDelimiter: [
+            formalParameters
+              RegularFormalParameter
+                name: a
+                defaultClause: FormalParameterDefaultClause
+                  separator: =
+                  value2: IntegerLiteral
+                    literal: 0
+            rightDelimiter: ] <synthetic>
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
           leftParenthesis: (
           leftDelimiter: [
           parameter: RegularFormalParameter
@@ -2932,6 +3474,16 @@ CompilationUnit
       functionExpression: FunctionExpression
         parameters: FormalParameterList
           leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              name: a
+            RegularFormalParameter
+              name: b
+            RegularFormalParameter
+              name: c
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           parameter: RegularFormalParameter
             name: a
           parameter: RegularFormalParameter
@@ -2948,6 +3500,16 @@ CompilationUnit
       functionExpression: FunctionExpression
         parameters: FormalParameterList
           leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              name: v1
+            RegularFormalParameter
+              name: v2
+            RegularFormalParameter
+              name: v
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           parameter: RegularFormalParameter
             name: v1
           parameter: RegularFormalParameter
@@ -2960,12 +3522,33 @@ CompilationUnit
             leftBracket: {
             statements
               ExpressionStatement
-                expression: MethodInvocation
+                expression2: MethodInvocation
                   methodName: SimpleIdentifier
                     token: g
                   argumentList: ArgumentList
                     leftParenthesis: (
-                    arguments
+                    arguments2
+                      LogicalOr
+                        leftOperand: BinaryOperatorInvocation
+                          leftOperand: SimpleIdentifier
+                            token: v1
+                          operator: ==
+                          rightOperand: SimpleIdentifier
+                            token: v2
+                          binaryOperator: equal
+                        operator: ||
+                        rightOperand: BinaryOperatorInvocation
+                          leftOperand: SimpleIdentifier
+                            token: v1
+                          operator: ==
+                          rightOperand: SimpleIdentifier
+                            token: v
+                          binaryOperator: equal
+                      IntegerLiteral
+                        literal: 3
+                      BooleanLiteral
+                        literal: true
+                    arguments(v1)
                       BinaryExpression
                         leftOperand: BinaryExpression
                           leftOperand: SimpleIdentifier
@@ -3006,6 +3589,19 @@ CompilationUnit
       functionExpression: FunctionExpression
         parameters: FormalParameterList
           leftParenthesis: (
+          delimitedFormalParameters: DelimitedFormalParameters
+            leftDelimiter: {
+            formalParameters
+              RegularFormalParameter
+                name: a
+                defaultClause: FormalParameterDefaultClause
+                  separator: :
+                  value2: SimpleIdentifier
+                    token: <empty> <synthetic>
+            rightDelimiter: }
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           leftDelimiter: {
           parameter: RegularFormalParameter
             name: a
@@ -3037,6 +3633,21 @@ CompilationUnit
       name: f
       functionExpression: FunctionExpression
         parameters: FormalParameterList
+          leftParenthesis: (
+          delimitedFormalParameters: DelimitedFormalParameters
+            leftDelimiter: {
+            formalParameters
+              RegularFormalParameter
+                name: a
+                defaultClause: FormalParameterDefaultClause
+                  separator: :
+                  value2: SimpleIdentifier
+                    token: <empty> <synthetic>
+              RegularFormalParameter
+                name: b
+            rightDelimiter: }
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
           leftParenthesis: (
           leftDelimiter: {
           parameter: RegularFormalParameter
@@ -3072,6 +3683,19 @@ CompilationUnit
       functionExpression: FunctionExpression
         parameters: FormalParameterList
           leftParenthesis: (
+          delimitedFormalParameters: DelimitedFormalParameters
+            leftDelimiter: [
+            formalParameters
+              RegularFormalParameter
+                name: a
+                defaultClause: FormalParameterDefaultClause
+                  separator: =
+                  value2: SimpleIdentifier
+                    token: <empty> <synthetic>
+            rightDelimiter: ]
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           leftDelimiter: [
           parameter: RegularFormalParameter
             name: a
@@ -3103,6 +3727,21 @@ CompilationUnit
       name: f
       functionExpression: FunctionExpression
         parameters: FormalParameterList
+          leftParenthesis: (
+          delimitedFormalParameters: DelimitedFormalParameters
+            leftDelimiter: [
+            formalParameters
+              RegularFormalParameter
+                name: a
+                defaultClause: FormalParameterDefaultClause
+                  separator: =
+                  value2: SimpleIdentifier
+                    token: <empty> <synthetic>
+              RegularFormalParameter
+                name: b
+            rightDelimiter: ]
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
           leftParenthesis: (
           leftDelimiter: [
           parameter: RegularFormalParameter
@@ -3139,6 +3778,19 @@ CompilationUnit
       functionExpression: FunctionExpression
         parameters: FormalParameterList
           leftParenthesis: (
+          delimitedFormalParameters: DelimitedFormalParameters
+            leftDelimiter: [
+            formalParameters
+              RegularFormalParameter
+                name: a
+                defaultClause: FormalParameterDefaultClause
+                  separator: =
+                  value2: IntegerLiteral
+                    literal: 0
+            rightDelimiter: ]
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           leftDelimiter: [
           parameter: RegularFormalParameter
             name: a
@@ -3172,6 +3824,19 @@ CompilationUnit
       functionExpression: FunctionExpression
         parameters: FormalParameterList
           leftParenthesis: (
+          delimitedFormalParameters: DelimitedFormalParameters
+            leftDelimiter: [
+            formalParameters
+              RegularFormalParameter
+                name: a
+                defaultClause: FormalParameterDefaultClause
+                  separator: =
+                  value2: IntegerLiteral
+                    literal: 0
+            rightDelimiter: ]
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           leftDelimiter: [
           parameter: RegularFormalParameter
             name: a
@@ -3203,6 +3868,19 @@ CompilationUnit
       name: f
       functionExpression: FunctionExpression
         parameters: FormalParameterList
+          leftParenthesis: (
+          delimitedFormalParameters: DelimitedFormalParameters
+            leftDelimiter: {
+            formalParameters
+              RegularFormalParameter
+                name: a
+                defaultClause: FormalParameterDefaultClause
+                  separator: :
+                  value2: IntegerLiteral
+                    literal: 0
+            rightDelimiter: }
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
           leftParenthesis: (
           leftDelimiter: {
           parameter: RegularFormalParameter
@@ -3236,6 +3914,19 @@ CompilationUnit
       functionExpression: FunctionExpression
         parameters: FormalParameterList
           leftParenthesis: (
+          delimitedFormalParameters: DelimitedFormalParameters
+            leftDelimiter: [
+            formalParameters
+              RegularFormalParameter
+                name: a
+                defaultClause: FormalParameterDefaultClause
+                  separator: =
+                  value2: IntegerLiteral
+                    literal: 0
+            rightDelimiter: ]
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           leftDelimiter: [
           parameter: RegularFormalParameter
             name: a
@@ -3268,6 +3959,16 @@ CompilationUnit
       functionExpression: FunctionExpression
         parameters: FormalParameterList
           leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              name: a
+              defaultClause: FormalParameterDefaultClause
+                separator: :
+                value2: IntegerLiteral
+                  literal: 0
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           parameter: RegularFormalParameter
             name: a
             defaultClause: FormalParameterDefaultClause
@@ -3297,6 +3998,16 @@ CompilationUnit
       name: f
       functionExpression: FunctionExpression
         parameters: FormalParameterList
+          leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              name: a
+              defaultClause: FormalParameterDefaultClause
+                separator: =
+                value2: IntegerLiteral
+                  literal: 0
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
           leftParenthesis: (
           parameter: RegularFormalParameter
             name: a
@@ -3342,6 +4053,14 @@ CompilationUnit
             rightBracket: >
         functionKeyword: Function <synthetic>
         parameters: FormalParameterList
+          leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              type: NamedType
+                name: E
+              name: element
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
           leftParenthesis: (
           parameter: RegularFormalParameter
             type: NamedType

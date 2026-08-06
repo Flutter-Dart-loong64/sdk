@@ -28,7 +28,6 @@ import 'package:analyzer/src/summary2/export.dart';
 import 'package:analyzer/src/summary2/informative_data.dart';
 import 'package:analyzer/src/summary2/linked_element_factory.dart';
 import 'package:analyzer/src/summary2/reference.dart';
-import 'package:analyzer/src/utilities/extensions/element.dart';
 import 'package:analyzer/src/utilities/uri_cache.dart';
 import 'package:pub_semver/pub_semver.dart';
 
@@ -304,6 +303,7 @@ class LibraryReader {
         create: (name) {
           var fragment = ClassFragmentImpl(name: name);
           fragment.readFlags(_reader);
+          fragment.withClauseMixinStartIndex = _reader.readUint30();
           fragment.typeParameters = _readTypeParameterFragments();
 
           _lazyRead((membersOffset) {
@@ -497,6 +497,7 @@ class LibraryReader {
         create: (name) {
           var fragment = EnumFragmentImpl(name: name);
           fragment.readFlags(_reader);
+          fragment.withClauseMixinStartIndex = _reader.readUint30();
           fragment.typeParameters = _readTypeParameterFragments();
 
           _lazyRead((offset) {
@@ -723,7 +724,7 @@ class LibraryReader {
 
           fragment.metadata = reader._readMetadata();
           if (reader.readOptionalExpression() case var initializer?) {
-            fragment.constantInitializer = initializer;
+            fragment.constantInitializer2 = initializer;
             ConstantContextForExpressionImpl(fragment, initializer);
           }
         },
@@ -802,7 +803,7 @@ class LibraryReader {
   ) {
     for (var fragment in fragments) {
       fragment.metadata = reader._readMetadata();
-      fragment.constantInitializer = reader.readOptionalExpression();
+      fragment.constantInitializer2 = reader.readOptionalExpression();
     }
   }
 
@@ -1338,7 +1339,7 @@ class LibraryReader {
           reader.currentLibraryFragment = fragment.libraryFragment;
           fragment.metadata = reader._readMetadata();
           if (reader.readOptionalExpression() case var initializer?) {
-            fragment.constantInitializer = initializer;
+            fragment.constantInitializer2 = initializer;
             ConstantContextForExpressionImpl(fragment, initializer);
           }
         },
@@ -1763,8 +1764,8 @@ class ResolutionReader {
     _localElements.length -= typeParameters.length;
 
     return FunctionTypeImpl(
-      typeParameters: typeParameters.map((f) => f.asElement2).toList(),
-      formalParameters: formalParameters.map((f) => f.asElement2).toList(),
+      typeParameters: typeParameters.map((f) => f.element).toList(),
+      formalParameters: formalParameters.map((f) => f.element).toList(),
       returnType: returnType,
       nullabilitySuffix: nullability,
     );

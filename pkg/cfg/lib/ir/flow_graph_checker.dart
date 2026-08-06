@@ -152,6 +152,8 @@ final class FlowGraphChecker extends Pass implements InstructionVisitor<void> {
           assert(user.typeArguments == def);
         case AllocateMapLiteral():
           assert(user.typeArguments == def);
+        case AllocateArray():
+          assert(user.typeArguments == def);
         case InstantiateClosure():
           assert(user.typeArguments == def);
         case EnterSuspendableFunction():
@@ -320,6 +322,11 @@ final class FlowGraphChecker extends Pass implements InstructionVisitor<void> {
   }
 
   @override
+  void visitExternalCall(ExternalCall instr) {
+    verifyCall(instr);
+  }
+
+  @override
   void visitParameter(Parameter instr) {
     assert(parametersAllowed);
     final block = instr.block!;
@@ -352,6 +359,9 @@ final class FlowGraphChecker extends Pass implements InstructionVisitor<void> {
   void visitStoreStaticField(StoreStaticField instr) {}
 
   @override
+  void visitLoadArrayElement(LoadArrayElement instr) {}
+
+  @override
   void visitThrow(Throw instr) {
     assert(instr.next == null);
     assert(instr.block!.successors.isEmpty);
@@ -360,6 +370,12 @@ final class FlowGraphChecker extends Pass implements InstructionVisitor<void> {
 
   @override
   void visitNullCheck(NullCheck instr) {}
+
+  @override
+  void visitIndexCheck(IndexCheck instr) {
+    assert(instr.index.type is IntType);
+    assert(instr.length.type is IntType);
+  }
 
   @override
   void visitTypeParameters(TypeParameters instr) {
@@ -502,7 +518,11 @@ final class FlowGraphChecker extends Pass implements InstructionVisitor<void> {
   }
 
   @override
-  void visitAllocateList(AllocateList instr) {}
+  void visitAllocateArray(AllocateArray instr) {
+    if (instr.hasTypeArguments) {
+      verifyTypeArgumentsInput(instr.typeArguments!, instr);
+    }
+  }
 
   @override
   void visitSetListElement(SetListElement instr) {}

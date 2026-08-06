@@ -34,7 +34,7 @@ CompilationUnit
           VariableDeclaration
             name: x
             equals: =
-            initializer: FunctionExpression
+            initializer2: FunctionExpression
               parameters: FormalParameterList
                 leftParenthesis: (
                 rightParenthesis: )
@@ -76,12 +76,12 @@ CompilationUnit
                 fieldName: SimpleIdentifier
                   token: a
                 equals: =
-                expression: MethodInvocation
+                expression2: MethodInvocation
                   methodName: SimpleIdentifier
                     token: f
                   argumentList: ArgumentList
                     leftParenthesis: (
-                    arguments
+                    arguments2
                       FunctionExpression
                         parameters: FormalParameterList
                           leftParenthesis: (
@@ -127,11 +127,11 @@ CompilationUnit
                 fieldName: SimpleIdentifier
                   token: a
                 equals: =
-                expression: IndexExpression
-                  target: SimpleIdentifier
+                expression2: IndexExpression
+                  target2: SimpleIdentifier
                     token: x
                   leftBracket: [
-                  index: FunctionExpression
+                  index2: FunctionExpression
                     parameters: FormalParameterList
                       leftParenthesis: (
                       rightParenthesis: )
@@ -176,9 +176,9 @@ CompilationUnit
                 fieldName: SimpleIdentifier
                   token: a
                 equals: =
-                expression: ListLiteral
+                expression2: ListLiteral
                   leftBracket: [
-                  elements
+                  elements2
                     FunctionExpression
                       parameters: FormalParameterList
                         leftParenthesis: (
@@ -224,14 +224,14 @@ CompilationUnit
                 fieldName: SimpleIdentifier
                   token: a
                 equals: =
-                expression: SetOrMapLiteral
+                expression2: SetOrMapLiteral
                   leftBracket: {
-                  elements
+                  elements2
                     MapLiteralEntry
-                      key: SimpleStringLiteral
+                      key2: SimpleStringLiteral
                         literal: 'key'
                       separator: :
-                      value: FunctionExpression
+                      value2: FunctionExpression
                         parameters: FormalParameterList
                           leftParenthesis: (
                           rightParenthesis: )
@@ -277,9 +277,9 @@ CompilationUnit
                 fieldName: SimpleIdentifier
                   token: a
                 equals: =
-                expression: ParenthesizedExpression
+                expression2: ParenthesizedExpression
                   leftParenthesis: (
-                  expression: FunctionExpression
+                  expression2: FunctionExpression
                     parameters: FormalParameterList
                       leftParenthesis: (
                       rightParenthesis: )
@@ -324,13 +324,13 @@ CompilationUnit
                 fieldName: SimpleIdentifier
                   token: a
                 equals: =
-                expression: StringInterpolation
+                expression2: StringInterpolation
                   elements
                     InterpolationString
                       contents: "
                     InterpolationExpression
                       leftBracket: ${
-                      expression: FunctionExpression
+                      expression2: FunctionExpression
                         parameters: FormalParameterList
                           leftParenthesis: (
                           rightParenthesis: )
@@ -366,6 +366,9 @@ CompilationUnit
       combinators
         ShowCombinator
           keyword: show
+          names
+            CombinatorName
+              name: E
           shownNames
             SimpleIdentifier
               token: E
@@ -388,6 +391,11 @@ CompilationUnit
       combinators
         ShowCombinator
           keyword: show
+          names
+            CombinatorName
+              name: hide
+            CombinatorName
+              name: show
           shownNames
             SimpleIdentifier
               token: hide
@@ -395,6 +403,9 @@ CompilationUnit
               token: show
         HideCombinator
           keyword: hide
+          names
+            CombinatorName
+              name: ugly
           hiddenNames
             SimpleIdentifier
               token: ugly
@@ -651,7 +662,7 @@ CompilationUnit
             token: B
           arguments: ArgumentList
             leftParenthesis: (
-            arguments
+            arguments2
               IntegerLiteral
                 literal: 2
             rightParenthesis: )
@@ -665,7 +676,7 @@ CompilationUnit
               token: foo
           arguments: ArgumentList
             leftParenthesis: (
-            arguments
+            arguments2
               IntegerLiteral
                 literal: 3
             rightParenthesis: )
@@ -682,7 +693,7 @@ CompilationUnit
             token: bar
           arguments: ArgumentList
             leftParenthesis: (
-            arguments
+            arguments2
               IntegerLiteral
                 literal: 4
               IntegerLiteral
@@ -988,7 +999,18 @@ CompilationUnit
           VariableDeclaration
             name: _abstract
             equals: =
-            initializer: InstanceCreationExpression
+            initializer2: ConstructorInvocation
+              keyword: new
+              constructorReference: ConstructorReference2
+                typeReference: ConstructorTypeReference
+                  importPrefix: ImportPrefixReference
+                    name: abstract
+                    period: .
+                  name: A
+              argumentList: ArgumentList
+                leftParenthesis: (
+                rightParenthesis: )
+            initializer(v1): InstanceCreationExpression
               keyword: new
               constructorName: ConstructorName
                 type: NamedType
@@ -1107,7 +1129,18 @@ CompilationUnit
           VariableDeclaration
             name: _export
             equals: =
-            initializer: InstanceCreationExpression
+            initializer2: ConstructorInvocation
+              keyword: new
+              constructorReference: ConstructorReference2
+                typeReference: ConstructorTypeReference
+                  importPrefix: ImportPrefixReference
+                    name: export
+                    period: .
+                  name: A
+              argumentList: ArgumentList
+                leftParenthesis: (
+                rightParenthesis: )
+            initializer(v1): InstanceCreationExpression
               keyword: new
               constructorName: ConstructorName
                 type: NamedType
@@ -1145,7 +1178,18 @@ CompilationUnit
           VariableDeclaration
             name: _export
             equals: =
-            initializer: InstanceCreationExpression
+            initializer2: ConstructorInvocation
+              keyword: new
+              constructorReference: ConstructorReference2
+                typeReference: ConstructorTypeReference
+                  importPrefix: ImportPrefixReference
+                    name: export
+                    period: .
+                  name: A
+              argumentList: ArgumentList
+                leftParenthesis: (
+                rightParenthesis: )
+            initializer(v1): InstanceCreationExpression
               keyword: new
               constructorName: ConstructorName
                 type: NamedType
@@ -1183,7 +1227,18 @@ CompilationUnit
           VariableDeclaration
             name: _operator
             equals: =
-            initializer: InstanceCreationExpression
+            initializer2: ConstructorInvocation
+              keyword: new
+              constructorReference: ConstructorReference2
+                typeReference: ConstructorTypeReference
+                  importPrefix: ImportPrefixReference
+                    name: operator
+                    period: .
+                  name: A
+              argumentList: ArgumentList
+                leftParenthesis: (
+                rightParenthesis: )
+            initializer(v1): InstanceCreationExpression
               keyword: new
               constructorName: ConstructorName
                 type: NamedType
@@ -1253,13 +1308,13 @@ CompilationUnit
             leftBracket: {
             statements
               ExpressionStatement
-                expression: StringInterpolation
+                expression2: StringInterpolation
                   elements
                     InterpolationString
                       contents: "
                     InterpolationExpression
                       leftBracket: ${
-                      expression: SimpleIdentifier
+                      expression2: SimpleIdentifier
                         token: n
                       rightBracket: }
                     InterpolationString
@@ -1307,7 +1362,18 @@ CompilationUnit
           VariableDeclaration
             name: _typedef
             equals: =
-            initializer: InstanceCreationExpression
+            initializer2: ConstructorInvocation
+              keyword: new
+              constructorReference: ConstructorReference2
+                typeReference: ConstructorTypeReference
+                  importPrefix: ImportPrefixReference
+                    name: typedef
+                    period: .
+                  name: A
+              argumentList: ArgumentList
+                leftParenthesis: (
+                rightParenthesis: )
+            initializer(v1): InstanceCreationExpression
               keyword: new
               constructorName: ConstructorName
                 type: NamedType
@@ -1341,7 +1407,18 @@ CompilationUnit
           VariableDeclaration
             name: _abstract
             equals: =
-            initializer: InstanceCreationExpression
+            initializer2: ConstructorInvocation
+              keyword: new
+              constructorReference: ConstructorReference2
+                typeReference: ConstructorTypeReference
+                  importPrefix: ImportPrefixReference
+                    name: abstract
+                    period: .
+                  name: A
+              argumentList: ArgumentList
+                leftParenthesis: (
+                rightParenthesis: )
+            initializer(v1): InstanceCreationExpression
               keyword: new
               constructorName: ConstructorName
                 type: NamedType
@@ -1415,7 +1492,7 @@ CompilationUnit
           VariableDeclaration
             name: x
             equals: =
-            initializer: IntegerLiteral
+            initializer2: IntegerLiteral
               literal: 0
       semicolon: ;
 ''');
@@ -1437,7 +1514,7 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: IntegerLiteral
+          expression2: IntegerLiteral
             literal: 0
           semicolon: ;
 ''');
@@ -1458,7 +1535,7 @@ CompilationUnit
           VariableDeclaration
             name: x
             equals: =
-            initializer: IntegerLiteral
+            initializer2: IntegerLiteral
               literal: 0
       semicolon: ;
 ''');
@@ -1616,6 +1693,14 @@ CompilationUnit
           rightBracket: >
         parameters: FormalParameterList
           leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              type: NamedType
+                name: T
+              name: t
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           parameter: RegularFormalParameter
             type: NamedType
               name: T
@@ -1649,6 +1734,26 @@ CompilationUnit
           rightBracket: >
         parameters: FormalParameterList
           leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              type: NamedType
+                importPrefix: ImportPrefixReference
+                  name: core
+                  period: .
+                name: List
+                typeArguments: TypeArgumentList
+                  leftBracket: <
+                  arguments
+                    NamedType
+                      importPrefix: ImportPrefixReference
+                        name: core
+                        period: .
+                      name: int
+                  rightBracket: >
+              name: x
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           parameter: RegularFormalParameter
             type: NamedType
               importPrefix: ImportPrefixReference
@@ -1673,7 +1778,7 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: NullLiteral
+          expression2: NullLiteral
             literal: null
           semicolon: ;
 ''');
@@ -1698,6 +1803,26 @@ CompilationUnit
           rightBracket: >
         parameters: FormalParameterList
           leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              type: NamedType
+                importPrefix: ImportPrefixReference
+                  name: core
+                  period: .
+                name: List
+                typeArguments: TypeArgumentList
+                  leftBracket: <
+                  arguments
+                    NamedType
+                      importPrefix: ImportPrefixReference
+                        name: core
+                        period: .
+                      name: int
+                  rightBracket: >
+              name: x
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           parameter: RegularFormalParameter
             type: NamedType
               importPrefix: ImportPrefixReference
@@ -1722,7 +1847,7 @@ CompilationUnit
           rightParenthesis: )
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: NullLiteral
+          expression2: NullLiteral
             literal: null
           semicolon: ;
 ''');
@@ -1847,7 +1972,7 @@ CompilationUnit
       functionExpression: FunctionExpression
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: IntegerLiteral
+          expression2: IntegerLiteral
             literal: 0
           semicolon: ;
 ''');
@@ -1869,7 +1994,7 @@ CompilationUnit
       functionExpression: FunctionExpression
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: IntegerLiteral
+          expression2: IntegerLiteral
             literal: 0
           semicolon: ;
 ''');
@@ -1889,6 +2014,12 @@ CompilationUnit
       name: p
       functionExpression: FunctionExpression
         parameters: FormalParameterList
+          leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              name: v
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
           leftParenthesis: (
           parameter: RegularFormalParameter
             name: v
@@ -1915,6 +2046,14 @@ CompilationUnit
       functionExpression: FunctionExpression
         parameters: FormalParameterList
           leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              type: NamedType
+                name: int
+              name: v
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           parameter: RegularFormalParameter
             type: NamedType
               name: int
@@ -1938,6 +2077,12 @@ CompilationUnit
       name: p
       functionExpression: FunctionExpression
         parameters: FormalParameterList
+          leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              name: v
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
           leftParenthesis: (
           parameter: RegularFormalParameter
             name: v
@@ -1964,6 +2109,14 @@ CompilationUnit
       name: p
       functionExpression: FunctionExpression
         parameters: FormalParameterList
+          leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              type: NamedType
+                name: int
+              name: v
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
           leftParenthesis: (
           parameter: RegularFormalParameter
             type: NamedType
@@ -2160,7 +2313,7 @@ CompilationUnit
           VariableDeclaration
             name: x
             equals: =
-            initializer: IntegerLiteral
+            initializer2: IntegerLiteral
               literal: 0
       semicolon: ;
 ''');
@@ -2181,7 +2334,7 @@ CompilationUnit
           VariableDeclaration
             name: x
             equals: =
-            initializer: IntegerLiteral
+            initializer2: IntegerLiteral
               literal: 0
       semicolon: ;
 ''');
@@ -2202,12 +2355,26 @@ CompilationUnit
             functionKeyword: Function
             parameters: FormalParameterList
               leftParenthesis: (
+              requiredPositionalFormalParameters
+                RegularFormalParameter
+                  type: NamedType
+                    name: int
+              rightParenthesis: )
+            parameters(v1): FormalParameterList
+              leftParenthesis: (
               parameter: RegularFormalParameter
                 type: NamedType
                   name: int
               rightParenthesis: )
           functionKeyword: Function
           parameters: FormalParameterList
+            leftParenthesis: (
+            requiredPositionalFormalParameters
+              RegularFormalParameter
+                type: NamedType
+                  name: String
+            rightParenthesis: )
+          parameters(v1): FormalParameterList
             leftParenthesis: (
             parameter: RegularFormalParameter
               type: NamedType
@@ -2233,6 +2400,16 @@ CompilationUnit
         type: GenericFunctionType
           functionKeyword: Function
           parameters: FormalParameterList
+            leftParenthesis: (
+            requiredPositionalFormalParameters
+              RegularFormalParameter
+                type: NamedType
+                  name: int
+              RegularFormalParameter
+                type: NamedType
+                  name: String
+            rightParenthesis: )
+          parameters(v1): FormalParameterList
             leftParenthesis: (
             parameter: RegularFormalParameter
               type: NamedType
@@ -2267,7 +2444,7 @@ CompilationUnit
           VariableDeclaration
             name: x
             equals: =
-            initializer: IntegerLiteral
+            initializer2: IntegerLiteral
               literal: 0
       semicolon: ;
 ''');
@@ -2289,7 +2466,7 @@ CompilationUnit
           VariableDeclaration
             name: get
             equals: =
-            initializer: NullLiteral
+            initializer2: NullLiteral
               literal: null
       semicolon: ;
 ''');
@@ -2311,7 +2488,7 @@ CompilationUnit
           VariableDeclaration
             name: set
             equals: =
-            initializer: NullLiteral
+            initializer2: NullLiteral
               literal: null
       semicolon: ;
 ''');
@@ -3084,6 +3261,11 @@ CompilationUnit
       combinators
         HideCombinator
           keyword: hide
+          names
+            CombinatorName
+              name: A
+            CombinatorName
+              name: B
           hiddenNames
             SimpleIdentifier
               token: A
@@ -3108,11 +3290,17 @@ CompilationUnit
       combinators
         HideCombinator
           keyword: hide
+          names
+            CombinatorName
+              name: A
           hiddenNames
             SimpleIdentifier
               token: A
         ShowCombinator
           keyword: show
+          names
+            CombinatorName
+              name: B
           shownNames
             SimpleIdentifier
               token: B
@@ -3151,6 +3339,11 @@ CompilationUnit
       combinators
         ShowCombinator
           keyword: show
+          names
+            CombinatorName
+              name: A
+            CombinatorName
+              name: B
           shownNames
             SimpleIdentifier
               token: A
@@ -3175,11 +3368,17 @@ CompilationUnit
       combinators
         ShowCombinator
           keyword: show
+          names
+            CombinatorName
+              name: B
           shownNames
             SimpleIdentifier
               token: B
         HideCombinator
           keyword: hide
+          names
+            CombinatorName
+              name: A
           hiddenNames
             SimpleIdentifier
               token: A
@@ -3267,7 +3466,7 @@ CompilationUnit
       functionExpression: FunctionExpression
         body: ExpressionFunctionBody
           functionDefinition: =>
-          expression: IntegerLiteral
+          expression2: IntegerLiteral
             literal: 0
           semicolon: ;
 ''');
@@ -3287,6 +3486,83 @@ CompilationUnit
       name: f
       functionExpression: FunctionExpression
         parameters: FormalParameterList
+          leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              metadata
+                Annotation
+                  atSign: @
+                  name: SimpleIdentifier
+                    token: A
+              name: a
+            RegularFormalParameter
+              metadata
+                Annotation
+                  atSign: @
+                  name: SimpleIdentifier
+                    token: B
+                  arguments: ArgumentList
+                    leftParenthesis: (
+                    arguments2
+                      IntegerLiteral
+                        literal: 2
+                    rightParenthesis: )
+              type: NamedType
+                name: Foo
+              name: b
+          delimitedFormalParameters: DelimitedFormalParameters
+            leftDelimiter: {
+            formalParameters
+              RegularFormalParameter
+                metadata
+                  Annotation
+                    atSign: @
+                    name: PrefixedIdentifier
+                      prefix: SimpleIdentifier
+                        token: C
+                      period: .
+                      identifier: SimpleIdentifier
+                        token: foo
+                    arguments: ArgumentList
+                      leftParenthesis: (
+                      arguments2
+                        IntegerLiteral
+                          literal: 3
+                      rightParenthesis: )
+                name: c
+                defaultClause: FormalParameterDefaultClause
+                  separator: :
+                  value2: IntegerLiteral
+                    literal: 0
+              RegularFormalParameter
+                metadata
+                  Annotation
+                    atSign: @
+                    name: PrefixedIdentifier
+                      prefix: SimpleIdentifier
+                        token: d
+                      period: .
+                      identifier: SimpleIdentifier
+                        token: E
+                    period: .
+                    constructorName: SimpleIdentifier
+                      token: bar
+                    arguments: ArgumentList
+                      leftParenthesis: (
+                      arguments2
+                        IntegerLiteral
+                          literal: 4
+                        IntegerLiteral
+                          literal: 5
+                      rightParenthesis: )
+                name: x
+                defaultClause: FormalParameterDefaultClause
+                  separator: :
+                  value2: IntegerLiteral
+                    literal: 0
+            rightDelimiter: }
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
           leftParenthesis: (
           parameter: RegularFormalParameter
             metadata
@@ -3387,6 +3663,12 @@ CompilationUnit
       functionExpression: FunctionExpression
         parameters: FormalParameterList
           leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              name: v
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           parameter: RegularFormalParameter
             name: v
           rightParenthesis: )
@@ -3414,6 +3696,13 @@ CompilationUnit
           name: int
         functionKeyword: Function
         parameters: FormalParameterList
+          leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              type: NamedType
+                name: int
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
           leftParenthesis: (
           parameter: RegularFormalParameter
             type: NamedType
@@ -3447,6 +3736,13 @@ CompilationUnit
         functionKeyword: Function
         parameters: FormalParameterList
           leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              type: NamedType
+                name: T
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           parameter: RegularFormalParameter
             type: NamedType
               name: T
@@ -3478,6 +3774,13 @@ CompilationUnit
           name: T
         functionKeyword: Function
         parameters: FormalParameterList
+          leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              type: NamedType
+                name: T
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
           leftParenthesis: (
           parameter: RegularFormalParameter
             type: NamedType
@@ -3512,6 +3815,22 @@ CompilationUnit
       type: GenericFunctionType
         functionKeyword: Function
         parameters: FormalParameterList
+          leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              type: NamedType
+                name: A
+              name: a
+            RegularFormalParameter
+              type: NamedType
+                name: B
+              name: b
+            RegularFormalParameter
+              type: NamedType
+                name: C
+              name: c
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
           leftParenthesis: (
           parameter: RegularFormalParameter
             type: NamedType
@@ -3555,6 +3874,22 @@ CompilationUnit
       type: GenericFunctionType
         functionKeyword: Function
         parameters: FormalParameterList
+          leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              type: NamedType
+                name: A
+              name: a
+            RegularFormalParameter
+              type: NamedType
+                name: B
+              name: b
+            RegularFormalParameter
+              type: NamedType
+                name: C
+              name: c
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
           leftParenthesis: (
           parameter: RegularFormalParameter
             type: NamedType
@@ -3607,6 +3942,22 @@ CompilationUnit
       type: GenericFunctionType
         functionKeyword: Function
         parameters: FormalParameterList
+          leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              type: NamedType
+                name: A
+              name: a
+            RegularFormalParameter
+              type: NamedType
+                name: B
+              name: b
+            RegularFormalParameter
+              type: NamedType
+                name: C
+              name: c
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
           leftParenthesis: (
           parameter: RegularFormalParameter
             type: NamedType
@@ -3664,6 +4015,22 @@ CompilationUnit
         functionKeyword: Function
         parameters: FormalParameterList
           leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              type: NamedType
+                name: A
+              name: a
+            RegularFormalParameter
+              type: NamedType
+                name: B
+              name: b
+            RegularFormalParameter
+              type: NamedType
+                name: C
+              name: c
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           parameter: RegularFormalParameter
             type: NamedType
               name: A
@@ -3720,6 +4087,22 @@ CompilationUnit
         functionKeyword: Function
         parameters: FormalParameterList
           leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              type: NamedType
+                name: A
+              name: a
+            RegularFormalParameter
+              type: NamedType
+                name: B
+              name: b
+            RegularFormalParameter
+              type: NamedType
+                name: C
+              name: c
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           parameter: RegularFormalParameter
             type: NamedType
               name: A
@@ -3772,6 +4155,22 @@ CompilationUnit
         functionKeyword: Function
         parameters: FormalParameterList
           leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              type: NamedType
+                name: A
+              name: a
+            RegularFormalParameter
+              type: NamedType
+                name: B
+              name: b
+            RegularFormalParameter
+              type: NamedType
+                name: C
+              name: c
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           parameter: RegularFormalParameter
             type: NamedType
               name: A
@@ -3815,6 +4214,13 @@ CompilationUnit
         functionKeyword: Function
         parameters: FormalParameterList
           leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              type: NamedType
+                name: int
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           parameter: RegularFormalParameter
             type: NamedType
               name: int
@@ -3849,6 +4255,13 @@ CompilationUnit
         functionKeyword: Function
         parameters: FormalParameterList
           leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              type: NamedType
+                name: int
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
+          leftParenthesis: (
           parameter: RegularFormalParameter
             type: NamedType
               name: int
@@ -3882,6 +4295,13 @@ CompilationUnit
           name: int
         functionKeyword: Function
         parameters: FormalParameterList
+          leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              type: NamedType
+                name: int
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
           leftParenthesis: (
           parameter: RegularFormalParameter
             type: NamedType
@@ -3995,6 +4415,11 @@ CompilationUnit
       combinators
         HideCombinator
           keyword: hide
+          names
+            CombinatorName
+              name: A
+            CombinatorName
+              name: B
           hiddenNames
             SimpleIdentifier
               token: A
@@ -4057,11 +4482,17 @@ CompilationUnit
       combinators
         HideCombinator
           keyword: hide
+          names
+            CombinatorName
+              name: A
           hiddenNames
             SimpleIdentifier
               token: A
         ShowCombinator
           keyword: show
+          names
+            CombinatorName
+              name: B
           shownNames
             SimpleIdentifier
               token: B
@@ -4087,11 +4518,17 @@ CompilationUnit
       combinators
         ShowCombinator
           keyword: show
+          names
+            CombinatorName
+              name: B
           shownNames
             SimpleIdentifier
               token: B
         HideCombinator
           keyword: hide
+          names
+            CombinatorName
+              name: A
           hiddenNames
             SimpleIdentifier
               token: A
@@ -4114,6 +4551,11 @@ CompilationUnit
       combinators
         ShowCombinator
           keyword: show
+          names
+            CombinatorName
+              name: A
+            CombinatorName
+              name: B
           shownNames
             SimpleIdentifier
               token: A
@@ -4348,13 +4790,21 @@ CompilationUnit
             name: g
             body: ExpressionFunctionBody
               functionDefinition: =>
-              expression: SimpleIdentifier
+              expression2: SimpleIdentifier
                 token: f
               semicolon: ;
           MethodDeclaration
             propertyKeyword: set
             name: s
             parameters: FormalParameterList
+              leftParenthesis: (
+              requiredPositionalFormalParameters
+                RegularFormalParameter
+                  type: NamedType
+                    name: int
+                  name: v
+              rightParenthesis: )
+            parameters(v1): FormalParameterList
               leftParenthesis: (
               parameter: RegularFormalParameter
                 type: NamedType
@@ -4366,7 +4816,13 @@ CompilationUnit
                 leftBracket: {
                 statements
                   ExpressionStatement
-                    expression: AssignmentExpression
+                    expression2: DirectAssignment
+                      target: UnqualifiedNameAssignmentTarget
+                        name: f
+                      operator: =
+                      value: SimpleIdentifier
+                        token: v
+                    expression(v1): AssignmentExpression
                       leftHandSide: SimpleIdentifier
                         token: f
                       operator: =
@@ -4380,6 +4836,14 @@ CompilationUnit
             name: add
             parameters: FormalParameterList
               leftParenthesis: (
+              requiredPositionalFormalParameters
+                RegularFormalParameter
+                  type: NamedType
+                    name: int
+                  name: v
+              rightParenthesis: )
+            parameters(v1): FormalParameterList
+              leftParenthesis: (
               parameter: RegularFormalParameter
                 type: NamedType
                   name: int
@@ -4387,7 +4851,18 @@ CompilationUnit
               rightParenthesis: )
             body: ExpressionFunctionBody
               functionDefinition: =>
-              expression: AssignmentExpression
+              expression2: DirectAssignment
+                target: UnqualifiedNameAssignmentTarget
+                  name: f
+                operator: =
+                value: BinaryOperatorInvocation
+                  leftOperand: SimpleIdentifier
+                    token: f
+                  operator: +
+                  rightOperand: SimpleIdentifier
+                    token: v
+                  binaryOperator: add
+              expression(v1): AssignmentExpression
                 leftHandSide: SimpleIdentifier
                   token: f
                 operator: =
@@ -4620,7 +5095,7 @@ CompilationUnit
           VariableDeclaration
             name: a
             equals: =
-            initializer: IntegerLiteral
+            initializer2: IntegerLiteral
               literal: 0
       semicolon: ;
 ''');
@@ -4743,6 +5218,14 @@ CompilationUnit
         name: bool
       name: F
       parameters: FormalParameterList
+        leftParenthesis: (
+        requiredPositionalFormalParameters
+          RegularFormalParameter
+            type: NamedType
+              name: Object
+            name: value
+        rightParenthesis: )
+      parameters(v1): FormalParameterList
         leftParenthesis: (
         parameter: RegularFormalParameter
           type: NamedType
@@ -4889,6 +5372,14 @@ CompilationUnit
           name: bool
         functionKeyword: Function
         parameters: FormalParameterList
+          leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              type: NamedType
+                name: Object
+              name: value
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
           leftParenthesis: (
           parameter: RegularFormalParameter
             type: NamedType
@@ -5043,6 +5534,14 @@ CompilationUnit
           name: bool
         functionKeyword: Function
         parameters: FormalParameterList
+          leftParenthesis: (
+          requiredPositionalFormalParameters
+            RegularFormalParameter
+              type: NamedType
+                name: Object
+              name: value
+          rightParenthesis: )
+        parameters(v1): FormalParameterList
           leftParenthesis: (
           parameter: RegularFormalParameter
             type: NamedType
