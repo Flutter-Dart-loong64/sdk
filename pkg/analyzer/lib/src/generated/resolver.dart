@@ -1008,17 +1008,17 @@ class ResolverVisitor extends ThrowingAstVisitor2<void>
   getSwitchStatementMemberInfo(covariant SwitchStatementImpl node, int index) {
     CaseHeadOrDefaultInfo<AstNodeImpl, ExpressionImpl, PromotableElementImpl>
     ofMember(SwitchMemberImpl member) {
-      if (member is SwitchCaseImpl) {
-        return CaseHeadInfo(pattern: member.expression2, variables: {});
-      } else if (member is SwitchPatternCaseImpl) {
-        var guardedPattern = member.guardedPattern;
-        return CaseHeadInfo(
-          pattern: guardedPattern.pattern,
-          variables: guardedPattern.variables,
-          guard: guardedPattern.whenClause?.expression2,
-        );
-      } else {
-        return CaseDefaultInfo();
+      switch (member) {
+        case SwitchCaseImpl(:var expression2):
+          return CaseHeadInfo(pattern: expression2, variables: {});
+        case SwitchPatternCaseImpl(:var guardedPattern):
+          return CaseHeadInfo(
+            pattern: guardedPattern.pattern,
+            variables: guardedPattern.variables,
+            guard: guardedPattern.whenClause?.expression2,
+          );
+        case SwitchDefaultImpl():
+          return CaseDefaultInfo();
       }
     }
 
@@ -5493,14 +5493,14 @@ class _WhyNotPromotedVisitor
     DemoteViaExplicitWrite<PromotableElementImpl, AstNode> reason,
   ) {
     var node = reason.node;
-    if (node is ForEachPartsWithIdentifier) {
-      node = node.identifier;
-    }
     if (_dataForTesting != null) {
       _dataForTesting.nonPromotionReasonTargets[node] = reason.shortName;
     }
     var variableName = reason.variable.name;
-    return [_contextMessageForWrite(variableName, node, reason)];
+    var errorEntity = node is ForEachPartsWithIdentifier
+        ? node.identifier2
+        : node;
+    return [_contextMessageForWrite(variableName, errorEntity, reason)];
   }
 
   @override
@@ -5670,7 +5670,7 @@ class _WhyNotPromotedVisitor
 
   DiagnosticMessageImpl _contextMessageForWrite(
     String? variableName,
-    AstNode node,
+    SyntacticEntity node,
     DemoteViaExplicitWrite<PromotableElementImpl, AstNode> reason,
   ) {
     return DiagnosticMessageImpl(
