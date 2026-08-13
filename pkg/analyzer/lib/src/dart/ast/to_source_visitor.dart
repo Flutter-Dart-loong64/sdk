@@ -315,8 +315,8 @@ class ToSourceVisitor implements AstVisitor2<void> {
     _visitToken(node.constKeyword, suffix: ' ');
     _visitToken(node.factoryKeyword, suffix: ' ');
     _visitToken(node.newKeyword, suffix: ' ');
-    if (node.typeName != null) {
-      _visitNode(node.typeName);
+    if (node.typeName2 != null) {
+      _visitToken(node.typeName2);
       _visitToken(node.name, prefix: '.');
     } else {
       _visitToken(node.name);
@@ -843,7 +843,7 @@ class ToSourceVisitor implements AstVisitor2<void> {
     if (node.deferredKeyword != null) {
       sink.write(' deferred');
     }
-    _visitNode(node.prefix, prefix: ' as ');
+    _visitToken(node.prefixName, prefix: ' as ');
     _visitNodeList(node.combinators, prefix: ' ', separator: ' ');
     sink.write(';');
   }
@@ -1269,6 +1269,13 @@ class ToSourceVisitor implements AstVisitor2<void> {
 
   @override
   void visitPropertyAssignmentTarget(PropertyAssignmentTarget node) {
+    _visitNode(node.receiver);
+    sink.write(node.operator.lexeme);
+    sink.write(node.propertyName.lexeme);
+  }
+
+  @override
+  void visitPropertyExtraction(PropertyExtraction node) {
     _visitNode(node.receiver);
     sink.write(node.operator.lexeme);
     sink.write(node.propertyName.lexeme);

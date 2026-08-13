@@ -426,6 +426,23 @@ class FlowGraphBuilder {
     return instr;
   }
 
+  /// Append [LoadExternalField] to the graph.
+  LoadExternalField addLoadExternalField(
+    CField field, {
+    required bool hasObject,
+  }) {
+    final object = hasObject ? pop() : null;
+    final instr = LoadExternalField(
+      graph,
+      currentSourcePosition,
+      field,
+      object: object,
+    );
+    push(instr);
+    appendInstruction(instr);
+    return instr;
+  }
+
   /// Append [LoadArrayElement] to the graph.
   LoadArrayElement addLoadArrayElement(ArrayKind kind, CType type) {
     final index = pop();
@@ -439,6 +456,23 @@ class FlowGraphBuilder {
       index,
     );
     push(instr);
+    appendInstruction(instr);
+    return instr;
+  }
+
+  /// Append [StoreArrayElement] to the graph.
+  StoreArrayElement addStoreArrayElement(ArrayKind kind) {
+    final value = pop();
+    final index = pop();
+    final array = pop();
+    final instr = StoreArrayElement(
+      graph,
+      currentSourcePosition,
+      kind,
+      array,
+      index,
+      value,
+    );
     appendInstruction(instr);
     return instr;
   }

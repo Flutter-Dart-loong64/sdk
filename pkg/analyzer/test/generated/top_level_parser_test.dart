@@ -65,7 +65,8 @@ CompilationUnit
         leftBracket: {
         members
           ConstructorDeclaration
-            typeName: SimpleIdentifier
+            typeName2: C
+            typeName(v1): SimpleIdentifier
               token: C
             parameters: FormalParameterList
               leftParenthesis: (
@@ -117,7 +118,8 @@ CompilationUnit
         leftBracket: {
         members
           ConstructorDeclaration
-            typeName: SimpleIdentifier
+            typeName2: C
+            typeName(v1): SimpleIdentifier
               token: C
             parameters: FormalParameterList
               leftParenthesis: (
@@ -167,7 +169,8 @@ CompilationUnit
         leftBracket: {
         members
           ConstructorDeclaration
-            typeName: SimpleIdentifier
+            typeName2: C
+            typeName(v1): SimpleIdentifier
               token: C
             parameters: FormalParameterList
               leftParenthesis: (
@@ -216,7 +219,8 @@ CompilationUnit
         leftBracket: {
         members
           ConstructorDeclaration
-            typeName: SimpleIdentifier
+            typeName2: C
+            typeName(v1): SimpleIdentifier
               token: C
             parameters: FormalParameterList
               leftParenthesis: (
@@ -270,7 +274,8 @@ CompilationUnit
         leftBracket: {
         members
           ConstructorDeclaration
-            typeName: SimpleIdentifier
+            typeName2: C
+            typeName(v1): SimpleIdentifier
               token: C
             parameters: FormalParameterList
               leftParenthesis: (
@@ -318,7 +323,8 @@ CompilationUnit
         leftBracket: {
         members
           ConstructorDeclaration
-            typeName: SimpleIdentifier
+            typeName2: C
+            typeName(v1): SimpleIdentifier
               token: C
             parameters: FormalParameterList
               leftParenthesis: (
@@ -367,8 +373,7 @@ CompilationUnit
       uri: SimpleStringLiteral
         literal: 'dart:math'
       asKeyword: as
-      prefix: SimpleIdentifier
-        token: M
+      prefixName: M
       combinators
         ShowCombinator
           keyword: show
@@ -379,6 +384,8 @@ CompilationUnit
             SimpleIdentifier
               token: E
       semicolon: ;
+      prefix: SimpleIdentifier
+        token: M
 ''');
   }
 
@@ -768,7 +775,8 @@ CompilationUnit
                   name: x
             semicolon: ;
           ConstructorDeclaration
-            typeName: SimpleIdentifier
+            typeName2: A
+            typeName(v1): SimpleIdentifier
               token: A
             parameters: FormalParameterList
               leftParenthesis: (
@@ -4400,9 +4408,10 @@ CompilationUnit
         literal: 'lib/lib.dart'
       deferredKeyword: deferred
       asKeyword: as
+      prefixName: a
+      semicolon: ;
       prefix: SimpleIdentifier
         token: a
-      semicolon: ;
 ''');
   }
 
@@ -4464,9 +4473,10 @@ CompilationUnit
       uri: SimpleStringLiteral
         literal: 'lib/lib.dart'
       asKeyword: as
+      prefixName: a
+      semicolon: ;
       prefix: SimpleIdentifier
         token: a
-      semicolon: ;
 ''');
   }
 
@@ -4483,8 +4493,7 @@ CompilationUnit
       uri: SimpleStringLiteral
         literal: 'lib/lib.dart'
       asKeyword: as
-      prefix: SimpleIdentifier
-        token: a
+      prefixName: a
       combinators
         HideCombinator
           keyword: hide
@@ -4503,6 +4512,8 @@ CompilationUnit
             SimpleIdentifier
               token: B
       semicolon: ;
+      prefix: SimpleIdentifier
+        token: a
 ''');
   }
 
@@ -4519,8 +4530,7 @@ CompilationUnit
       uri: SimpleStringLiteral
         literal: 'lib/lib.dart'
       asKeyword: as
-      prefix: SimpleIdentifier
-        token: a
+      prefixName: a
       combinators
         ShowCombinator
           keyword: show
@@ -4539,6 +4549,8 @@ CompilationUnit
             SimpleIdentifier
               token: A
       semicolon: ;
+      prefix: SimpleIdentifier
+        token: a
 ''');
   }
 

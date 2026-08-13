@@ -692,15 +692,36 @@ class AstBuilder extends StackListener {
       );
     }
 
+    if (initializerObject is PropertyExtractionImpl) {
+      return buildInitializerTargetExpressionRecovery(
+        initializerObject.receiver,
+        initializerObject,
+      );
+    }
+
     if (initializerObject is DirectAssignmentImpl) {
       var target = initializerObject.target;
-      if (target is! UnqualifiedNameAssignmentTargetImpl) {
-        return null;
+      Token? thisKeyword;
+      Token? period;
+      late Token fieldName;
+      switch (target) {
+        case PropertyAssignmentTargetImpl(
+          receiver: ThisExpressionImpl(thisKeyword: var writtenThisKeyword),
+          :var operator,
+          :var propertyName,
+        ):
+          thisKeyword = writtenThisKeyword;
+          period = operator;
+          fieldName = propertyName;
+        case UnqualifiedNameAssignmentTargetImpl(:var name):
+          fieldName = name;
+        default:
+          return null;
       }
       return ConstructorFieldInitializerImpl(
-        thisKeyword: null,
-        period: null,
-        fieldName2: target.name,
+        thisKeyword: thisKeyword,
+        period: period,
+        fieldName2: fieldName,
         equals: initializerObject.operator,
         expression2: initializerObject.value,
       );
@@ -772,6 +793,9 @@ class AstBuilder extends StackListener {
       } else if (target is PropertyAccessImpl) {
         argumentList = null;
         target = target.target2;
+      } else if (target is PropertyExtractionImpl) {
+        argumentList = null;
+        target = target.receiver;
       } else {
         break;
       }
@@ -850,6 +874,18 @@ class AstBuilder extends StackListener {
             prefix: receiver,
             period: dot,
             identifier: identifierOrInvoke,
+          ),
+        );
+      } else if (receiver != null &&
+          _featureSet.isEnabled(Feature.constructor_tearoffs) &&
+          dot.type == TokenType.PERIOD &&
+          identifierOrInvoke.name != 'call' &&
+          _isSupportedPropertyReceiver(receiver)) {
+        push(
+          PropertyExtractionImpl(
+            receiver: receiver,
+            operator: dot,
+            propertyName: identifierOrInvoke.token,
           ),
         );
       } else {
@@ -2181,7 +2217,7 @@ class AstBuilder extends StackListener {
     var combinators = pop() as List<CombinatorImpl>?;
     var deferredKeyword = pop(NullValues.Deferred) as Token?;
     var asKeyword = pop(NullValues.As) as Token?;
-    var prefix = pop(NullValues.Prefix) as SimpleIdentifierImpl?;
+    var prefixName = (pop(NullValues.Prefix) as SimpleIdentifierImpl?)?.token;
     var configurations = pop() as List<ConfigurationImpl>?;
     var uri = pop() as StringLiteralImpl;
     var metadata = pop() as List<AnnotationImpl>?;
@@ -2196,7 +2232,7 @@ class AstBuilder extends StackListener {
         configurations: configurations,
         deferredKeyword: deferredKeyword,
         asKeyword: asKeyword,
-        prefix: prefix,
+        prefixName: prefixName,
         combinators: combinators,
         semicolon: semicolon ?? Tokens.semicolon(),
       ),
@@ -3707,11 +3743,13 @@ class AstBuilder extends StackListener {
       );
     }
     reportErrorIfSuper(rhs);
-    var propertyReceiver = switch (lhs) {
+    var property = switch (lhs) {
+      PropertyExtractionImpl(:var receiver, :var operator, :var propertyName) =>
+        (receiver, operator, propertyName),
       PropertyAccessImpl(target2: var receiver?, operator: var operator)
           when operator.type == TokenType.PERIOD &&
-              _isSupportedPropertyAssignmentReceiver(receiver) =>
-        receiver,
+              _isSupportedPropertyReceiver(receiver) =>
+        (receiver, operator, lhs.propertyName.token),
       _ => null,
     };
     if (!isAssignable && token.type == TokenType.EQ) {
@@ -3730,19 +3768,21 @@ class AstBuilder extends StackListener {
           value: rhs,
         ),
       );
-    } else if (token.type == TokenType.EQ && propertyReceiver != null) {
-      lhs as PropertyAccessImpl;
-      push(
-        DirectAssignmentImpl(
-          target: PropertyAssignmentTargetImpl(
-            receiver: propertyReceiver,
-            operator: lhs.operator,
-            propertyName: lhs.propertyName.token,
-          ),
-          operator: token,
-          value: rhs,
-        ),
+    } else if (property != null) {
+      var target = PropertyAssignmentTargetImpl(
+        receiver: property.$1,
+        operator: property.$2,
+        propertyName: property.$3,
       );
+      if (token.type == TokenType.EQ) {
+        push(DirectAssignmentImpl(target: target, operator: token, value: rhs));
+      } else if (token.type == TokenType.QUESTION_QUESTION_EQ) {
+        push(IfNullAssignmentImpl(target: target, operator: token, value: rhs));
+      } else {
+        push(
+          CompoundAssignmentImpl(target: target, operator: token, value: rhs),
+        );
+      }
     } else if (lhs is SimpleIdentifierImpl) {
       if (token.type == TokenType.EQ) {
         push(
@@ -5559,7 +5599,7 @@ class AstBuilder extends StackListener {
     var combinators = pop() as List<CombinatorImpl>?;
     var deferredKeyword = pop(NullValues.Deferred) as Token?;
     var asKeyword = pop(NullValues.As) as Token?;
-    var prefix = pop(NullValues.Prefix) as SimpleIdentifierImpl?;
+    var prefixName = (pop(NullValues.Prefix) as SimpleIdentifierImpl?)?.token;
     var configurations = pop() as List<ConfigurationImpl>?;
 
     var directive = directives.last;
@@ -5567,10 +5607,10 @@ class AstBuilder extends StackListener {
       case ImportDirectiveImpl():
         // TODO(scheglov): This code would be easier if we used one object.
         var mergedAsKeyword = directive.asKeyword;
-        var mergedPrefix = directive.prefix;
+        var mergedPrefixName = directive.prefixName;
         if (directive.asKeyword == null && asKeyword != null) {
           mergedAsKeyword = asKeyword;
-          mergedPrefix = prefix;
+          mergedPrefixName = prefixName;
         }
 
         directives.last = ImportDirectiveImpl(
@@ -5581,7 +5621,7 @@ class AstBuilder extends StackListener {
           configurations: [...directive.configurations, ...?configurations],
           deferredKeyword: directive.deferredKeyword ?? deferredKeyword,
           asKeyword: mergedAsKeyword,
-          prefix: mergedPrefix,
+          prefixName: mergedPrefixName,
           combinators: [...directive.combinators, ...?combinators],
           semicolon: semicolon ?? directive.semicolon,
         );
@@ -5764,6 +5804,13 @@ class AstBuilder extends StackListener {
     debugEvent("UnaryPostfixAssignmentExpression");
 
     var expression = pop() as ExpressionImpl;
+    if (expression is PropertyExtractionImpl) {
+      expression = PropertyAccessImpl(
+        target2: expression.receiver,
+        operator: expression.operator,
+        propertyName: SimpleIdentifierImpl(token: expression.propertyName),
+      );
+    }
     if (!expression.isAssignable) {
       // This error is also reported by the body builder.
       handleRecoverableError(
@@ -5794,6 +5841,13 @@ class AstBuilder extends StackListener {
     debugEvent("UnaryPrefixAssignmentExpression");
 
     var expression = pop() as ExpressionImpl;
+    if (expression is PropertyExtractionImpl) {
+      expression = PropertyAccessImpl(
+        target2: expression.receiver,
+        operator: expression.operator,
+        propertyName: SimpleIdentifierImpl(token: expression.propertyName),
+      );
+    }
     if (!expression.isAssignable) {
       // This error is also reported by the body builder.
       handleRecoverableError(
@@ -6039,7 +6093,7 @@ class AstBuilder extends StackListener {
       );
     }
 
-    SimpleIdentifierImpl? typeNameIdentifier;
+    Token? typeName;
     Token? period;
     Token? constructorNameToken;
 
@@ -6051,14 +6105,14 @@ class AstBuilder extends StackListener {
         if (newKeyword != null) {
           constructorNameToken = preliminaryName.token;
         } else {
-          typeNameIdentifier = preliminaryName;
+          typeName = preliminaryName.token;
         }
       case PrefixedIdentifierImpl():
-        typeNameIdentifier = preliminaryName.prefix;
+        typeName = preliminaryName.prefix.token;
         period = preliminaryName.period;
         constructorNameToken = preliminaryName.identifier.token;
       case _OperatorName():
-        typeNameIdentifier = preliminaryName.name;
+        typeName = preliminaryName.name.token;
       default:
         throw UnimplementedError(
           'name is an instance of ${preliminaryName.runtimeType} in endClassConstructor',
@@ -6094,7 +6148,7 @@ class AstBuilder extends StackListener {
       constKeyword: modifiers?.finalConstOrVarKeyword,
       factoryKeyword: null,
       newKeyword: modifiers?.newKeyword,
-      typeName: typeNameIdentifier,
+      typeName2: typeName,
       period: period,
       name: constructorNameToken,
       parameters: parameters,
@@ -6148,7 +6202,7 @@ class AstBuilder extends StackListener {
       );
     }
 
-    SimpleIdentifierImpl? typeNameIdentifier;
+    Token? typeName;
     Token? period;
     Token? constructorNameToken;
     switch (preliminaryName) {
@@ -6164,15 +6218,15 @@ class AstBuilder extends StackListener {
           // whose name is `C`.
           var enclosingClassName = _classLikeBuilder?.name;
           if (enclosingClassName?.lexeme == preliminaryName.token.lexeme) {
-            typeNameIdentifier = preliminaryName;
+            typeName = preliminaryName.token;
           } else {
             constructorNameToken = preliminaryName.token;
           }
         } else {
-          typeNameIdentifier = preliminaryName;
+          typeName = preliminaryName.token;
         }
       case PrefixedIdentifierImpl():
-        typeNameIdentifier = preliminaryName.prefix;
+        typeName = preliminaryName.prefix.token;
         period = preliminaryName.period;
         constructorNameToken = preliminaryName.identifier.token;
     }
@@ -6185,7 +6239,7 @@ class AstBuilder extends StackListener {
       constKeyword: modifiers?.finalConstOrVarKeyword,
       factoryKeyword: factoryKeyword,
       newKeyword: null,
-      typeName: typeNameIdentifier,
+      typeName2: typeName,
       period: period,
       name: constructorNameToken,
       parameters: parameters,
@@ -6479,22 +6533,25 @@ class AstBuilder extends StackListener {
     );
   }
 
-  /// Whether [receiver] is in the property-assignment migration slice.
+  /// Whether [receiver] is in the property migration slice.
   ///
   /// Parentheses establish an expression boundary even when the expression
   /// inside them requires resolution. Ordinary property accesses preserve a
   /// supported root, while other postfix operations remain on their existing
   /// AST shapes until they are migrated explicitly.
-  bool _isSupportedPropertyAssignmentReceiver(ExpressionImpl receiver) {
+  bool _isSupportedPropertyReceiver(ExpressionImpl receiver) {
     switch (receiver) {
       case LiteralImpl():
       case ParenthesizedExpressionImpl():
       case ConstructorInvocationImpl():
       case InstanceCreationExpressionImpl():
+      case ThisExpressionImpl():
         return true;
       case PropertyAccessImpl(target2: var target?, operator: var operator)
           when operator.type == TokenType.PERIOD:
-        return _isSupportedPropertyAssignmentReceiver(target);
+        return _isSupportedPropertyReceiver(target);
+      case PropertyExtractionImpl(:var receiver):
+        return _isSupportedPropertyReceiver(receiver);
       default:
         return false;
     }

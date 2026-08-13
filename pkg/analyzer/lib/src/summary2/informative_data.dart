@@ -778,9 +778,9 @@ class _InfoBuilder {
       ),
       newKeywordOffset: node.newKeyword?.offset,
       factoryKeywordOffset: node.factoryKeyword?.offset,
-      typeNameOffset: node.typeName?.offset,
+      typeNameOffset: node.typeName2?.offset,
       periodOffset: node.period?.offset,
-      nameEnd: (node.name ?? node.typeName)?.end,
+      nameEnd: (node.name ?? node.typeName2)?.end,
       thisKeywordOffset: null,
     );
   }
@@ -927,7 +927,7 @@ class _InfoBuilder {
   _InfoImport _buildImport(ImportDirective node) {
     return _InfoImport(
       importKeywordOffset: node.importKeyword.offset,
-      prefixOffset: node.prefix?.token.offsetIfNotEmpty,
+      prefixOffset: node.prefixName?.offsetIfNotEmpty,
       combinators: _buildCombinators(node.combinators),
     );
   }
@@ -2179,6 +2179,13 @@ abstract class _OffsetsAstVisitor extends RecursiveAstVisitor2<void> {
     _tokenOrNull(node.operator);
     _tokenOrNull(node.propertyName);
     super.visitPropertyAssignmentTarget(node);
+  }
+
+  @override
+  void visitPropertyExtraction(PropertyExtraction node) {
+    _tokenOrNull(node.operator);
+    _tokenOrNull(node.propertyName);
+    super.visitPropertyExtraction(node);
   }
 
   @override

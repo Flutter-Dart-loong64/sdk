@@ -1693,6 +1693,17 @@ class ResolverVisitor extends ThrowingAstVisitor2<void>
     return _propertyElementResolver.resolvePropertyDirectAssignmentTarget(node);
   }
 
+  ({
+    NamedReadResolutionImpl read,
+    NamedWriteResolutionImpl write,
+    ExpressionInfo? readExpressionInfo,
+  })?
+  resolvePropertyReadWriteAssignmentTarget(PropertyAssignmentTargetImpl node) {
+    return _propertyElementResolver.resolvePropertyReadWriteAssignmentTarget(
+      node,
+    );
+  }
+
   @override
   RelationalOperatorResolution? resolveRelationalPatternOperator(
     covariant RelationalPatternImpl node,
@@ -1752,7 +1763,7 @@ class ResolverVisitor extends ThrowingAstVisitor2<void>
     );
   }
 
-  NamedWriteResolutionImpl? resolveUnqualifiedNameAssignmentTarget(
+  NamedWriteResolutionImpl resolveUnqualifiedNameAssignmentTarget(
     UnqualifiedNameAssignmentTargetImpl node,
   ) {
     return _propertyElementResolver.resolveUnqualifiedNameAssignmentTarget(
@@ -1764,7 +1775,7 @@ class ResolverVisitor extends ThrowingAstVisitor2<void>
     NamedReadResolutionImpl read,
     NamedWriteResolutionImpl write,
     ExpressionInfo? readExpressionInfo,
-  })?
+  })
   resolveUnqualifiedNameReadWriteAssignmentTarget(
     UnqualifiedNameAssignmentTargetImpl node,
   ) {
@@ -2558,7 +2569,6 @@ class ResolverVisitor extends ThrowingAstVisitor2<void>
         checkUnreachableNode(node);
         node.documentationComment?.accept2(this);
         node.metadata.accept2(this);
-        node.typeName?.accept2(this);
         node.parameters.accept2(this);
 
         flowAnalysis.bodyOrInitializer_enter(node, element.formalParameters);
@@ -4139,6 +4149,36 @@ class ResolverVisitor extends ThrowingAstVisitor2<void>
     if (isDotShorthand(node)) {
       popDotShorthandContext();
     }
+
+    inferenceLogWriter?.exitExpression(node);
+  }
+
+  @override
+  void visitPropertyExtraction(
+    covariant PropertyExtractionImpl node, {
+    TypeImpl contextType = UnknownInferredType.instance,
+  }) {
+    inferenceLogWriter?.enterExpression(node, contextType);
+    checkUnreachableNode(node);
+
+    analyzeExpression(
+      node.receiver,
+      SharedTypeSchemaView(UnknownInferredType.instance),
+      continueNullShorting: true,
+    );
+    node.receiver = popRewrite()!;
+
+    var (:expressionInfo, :resolution, :type) = _propertyElementResolver
+        .resolvePropertyExtraction(node);
+    node.resolution = resolution;
+    node.recordStaticType(type, resolver: this);
+    flowAnalysis.storeExpressionInfo(node, expressionInfo);
+
+    var replacement = insertGenericFunctionInstantiation(
+      node,
+      contextType: contextType,
+    );
+    _insertImplicitCallReference(replacement, contextType: contextType);
 
     inferenceLogWriter?.exitExpression(node);
   }

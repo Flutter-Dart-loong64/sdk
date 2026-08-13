@@ -1578,6 +1578,19 @@ class ResolvedAstPrinter extends ThrowingAstVisitor2<void>
   }
 
   @override
+  void visitPropertyExtraction(covariant PropertyExtractionImpl node) {
+    _sink.writeln('PropertyExtraction');
+    _sink.withIndent(() {
+      _writeNamedChildEntities(node);
+      _writeParameterElement(node);
+      if (_withResolution) {
+        _writeNamedReadResolution('resolution', node.resolution);
+      }
+      _writeType('staticType', node.staticType);
+    });
+  }
+
+  @override
   void visitRecordLiteral(RecordLiteral node) {
     _sink.writeln('RecordLiteral');
     _sink.withIndent(() {
@@ -2042,6 +2055,7 @@ class ResolvedAstPrinter extends ThrowingAstVisitor2<void>
     if (node case ExpressionImpl expression) {
       var v1 = V1Projection.toV1Expression(expression);
       if (!identical(v1, expression)) {
+        _sink.writeWithIndent('V1: ');
         writeNode(v1);
       }
     }
@@ -2398,6 +2412,17 @@ Expected parent: (${parent.runtimeType}) $parent
     switch (resolution) {
       case null:
         _sink.writelnWithIndent('$name: <null>');
+      case DynamicPropertyReadResolutionImpl():
+        _sink.writelnWithIndent('$name: DynamicPropertyReadResolution');
+        _sink.withIndent(() {
+          _writeType('type', resolution.type);
+        });
+      case ExecutableTearOffResolutionImpl():
+        _sink.writelnWithIndent('$name: ExecutableTearOffResolution');
+        _sink.withIndent(() {
+          _writeElement('element', resolution.element);
+          _writeType('type', resolution.type);
+        });
       case GetterInvocationResolutionImpl():
         _sink.writelnWithIndent('$name: GetterInvocationResolution');
         _sink.withIndent(() {
@@ -2416,6 +2441,11 @@ Expected parent: (${parent.runtimeType}) $parent
             }
           });
           _writeNamedReadResolution('recovery', resolution.recovery);
+        });
+      case RecordFieldReadResolutionImpl():
+        _sink.writelnWithIndent('$name: RecordFieldReadResolution');
+        _sink.withIndent(() {
+          _writeType('type', resolution.type);
         });
       case VariableReadResolutionImpl():
         _sink.writelnWithIndent('$name: VariableReadResolution');

@@ -284,7 +284,7 @@ static const char* ImageName(uword vm_instructions,
                              uword isolate_instructions,
                              uword pc,
                              intptr_t* offset) {
-  const Image isolate_image(isolate_instructions);
+  const TextImage isolate_image(isolate_instructions);
   if (isolate_image.contains(pc)) {
     *offset = pc - isolate_instructions;
     return kSnapshotTextAsmSymbol;
@@ -1673,7 +1673,7 @@ void Simulator::DoRedirectedCall(Instr* instr) {
   // We can't instrument the runtime.
   memory_.FlushAll();
 
-  ASSERT(Utils::IsAligned(get_register(SPREG), OS::ActivationFrameAlignment()));
+  ASSERT(Utils::IsAligned(get_register(R31), OS::ActivationFrameAlignment()));
 
   SimulatorSetjmpBuffer buffer(this);
   if (!DART_SETJMP(buffer.buffer_)) {

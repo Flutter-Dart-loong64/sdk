@@ -518,11 +518,10 @@ test(List l) => l.length = 3;
 test(List l) => (l).length -= 2;
 ''');
     analyze(result, result.findNode.singleFunctionDeclaration);
-    check(astNodes)[result.findNode.assignment('(l).length -= 2')]
+    var assignment = result.findNode.compoundAssignment('(l).length -= 2');
+    check(astNodes)[assignment]
       ..containsSubrange(astNodes[result.findNode.parenthesized('(l)')]!)
-      ..containsSubrange(
-        astNodes[result.findNode.propertyAccess('(l).length')]!,
-      )
+      ..containsSubrange(astNodes[assignment.target]!)
       ..containsSubrange(astNodes[result.findNode.integerLiteral('2')]!);
     var l = ['a', 'b', 'c', 'd', 'e'];
     check(runInterpreter(result, [makeList(result, l)])).equals(3);
@@ -538,9 +537,12 @@ class C {
 test(C c) => (c).p ??= hook(123, '123');
 ''');
     analyze(result, result.findNode.functionDeclaration('test'));
-    check(astNodes)[result.findNode.assignment("(c).p ??= hook(123, '123')")]
+    var assignment = result.findNode.ifNullAssignment(
+      "(c).p ??= hook(123, '123')",
+    );
+    check(astNodes)[assignment]
       ..containsSubrange(astNodes[result.findNode.parenthesized('(c)')]!)
-      ..containsSubrange(astNodes[result.findNode.propertyAccess('(c).p')]!)
+      ..containsSubrange(astNodes[assignment.target]!)
       ..containsSubrange(
         astNodes[result.findNode.methodInvocation("hook(123, '123')")]!,
       );
@@ -1728,12 +1730,12 @@ test(int i) => i.isEven;
     check(runInterpreter(result, [2])).equals(true);
   }
 
-  test_propertyGet_propertyAccess() async {
+  test_propertyGet_propertyExtraction() async {
     var result = await resolveTestCodeWithDiagnostics('''
 test() => 'foo'.length;
 ''');
     analyze(result, result.findNode.singleFunctionDeclaration);
-    check(astNodes)[result.findNode.propertyAccess("'foo'.length")]
+    check(astNodes)[result.findNode.propertyExtraction("'foo'.length")]
         .containsSubrange(astNodes[result.findNode.stringLiteral("'foo'")]!);
     check(runInterpreter(result, [])).equals(3);
   }

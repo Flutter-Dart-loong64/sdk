@@ -298,9 +298,13 @@ class BestPracticesVerifier extends RecursiveAstVisitor2<void> {
   @override
   void visitCompoundAssignment(CompoundAssignment node) {
     _elementUsageFrontierDetector.compoundAssignment(node);
-    var target = node.target;
-    if (target is UnqualifiedNameAssignmentTarget) {
-      _invalidAccessVerifier.verifyUnqualifiedNameAssignmentTarget(target);
+    switch (node.target) {
+      case PropertyAssignmentTarget target:
+        _invalidAccessVerifier.verifyPropertyAssignmentTarget(target);
+      case UnqualifiedNameAssignmentTarget target:
+        _invalidAccessVerifier.verifyUnqualifiedNameAssignmentTarget(target);
+      case InvalidAssignmentTarget():
+        break;
     }
     super.visitCompoundAssignment(node);
   }
@@ -612,9 +616,13 @@ class BestPracticesVerifier extends RecursiveAstVisitor2<void> {
   @override
   void visitIfNullAssignment(IfNullAssignment node) {
     _elementUsageFrontierDetector.ifNullAssignment(node);
-    var target = node.target;
-    if (target is UnqualifiedNameAssignmentTarget) {
-      _invalidAccessVerifier.verifyUnqualifiedNameAssignmentTarget(target);
+    switch (node.target) {
+      case PropertyAssignmentTarget target:
+        _invalidAccessVerifier.verifyPropertyAssignmentTarget(target);
+      case UnqualifiedNameAssignmentTarget target:
+        _invalidAccessVerifier.verifyUnqualifiedNameAssignmentTarget(target);
+      case InvalidAssignmentTarget():
+        break;
     }
     super.visitIfNullAssignment(node);
   }
@@ -847,6 +855,13 @@ class BestPracticesVerifier extends RecursiveAstVisitor2<void> {
     _deprecatedFunctionalityVerifier.primaryConstructorDeclaration(node);
     super.visitPrimaryConstructorDeclaration(node);
     _inPrimaryConstructorDeclaration = false;
+  }
+
+  @override
+  void visitPropertyExtraction(PropertyExtraction node) {
+    _elementUsageFrontierDetector.propertyExtraction(node);
+    _invalidAccessVerifier.verifyPropertyExtraction(node);
+    super.visitPropertyExtraction(node);
   }
 
   @override
@@ -1899,6 +1914,16 @@ class _InvalidAccessVerifier {
     }
   }
 
+  void verifyPropertyExtraction(PropertyExtraction node) {
+    var element = switch (node.resolution) {
+      InvalidNamedReadResolution(:var candidates) when candidates.isNotEmpty =>
+        candidates.first,
+      NamedReadResolutionWithElement(:var element) => element,
+      _ => null,
+    };
+    _verify(node: node, nameToken: node.propertyName, element: element);
+  }
+
   void verifySuperConstructorInvocation(SuperConstructorInvocation node) {
     var element = node.element;
     if (element == null || _inCurrentLibrary(element)) return;
@@ -2187,6 +2212,9 @@ class _InvalidAccessVerifier {
       name = node.name.lexeme;
       errorEntity = node.name;
     } else if (node is PropertyAssignmentTarget) {
+      name = node.propertyName.lexeme;
+      errorEntity = node.propertyName;
+    } else if (node is PropertyExtraction) {
       name = node.propertyName.lexeme;
       errorEntity = node.propertyName;
     } else if (node is UnqualifiedNameAssignmentTarget) {

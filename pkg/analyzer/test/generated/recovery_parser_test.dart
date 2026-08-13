@@ -34,7 +34,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: y
   binaryOperator: add
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: +
@@ -60,7 +60,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: add
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: +
@@ -84,7 +84,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: add
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: x
   operator: +
@@ -108,7 +108,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: add
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SuperExpression
     superKeyword: super
   operator: +
@@ -141,7 +141,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: add
-BinaryExpression
+V1: BinaryExpression
   leftOperand: BinaryExpression
     leftOperand: SimpleIdentifier
       token: <empty> <synthetic>
@@ -178,7 +178,7 @@ BinaryOperatorInvocation
       token: <empty> <synthetic>
     binaryOperator: multiply
   binaryOperator: add
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: +
@@ -213,7 +213,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: add
-BinaryExpression
+V1: BinaryExpression
   leftOperand: BinaryExpression
     leftOperand: SuperExpression
       superKeyword: super
@@ -266,7 +266,7 @@ DirectAssignment
     operator: =
     value: IntegerLiteral
       literal: 0
-AssignmentExpression
+V1: AssignmentExpression
   leftHandSide: SimpleIdentifier
     token: <empty> <synthetic>
   operator: =
@@ -297,7 +297,7 @@ DirectAssignment
     operator: =
     value: IntegerLiteral
       literal: 0
-AssignmentExpression
+V1: AssignmentExpression
   leftHandSide: SimpleIdentifier
     token: x
   operator: =
@@ -328,7 +328,7 @@ DirectAssignment
     operator: =
     value: SimpleIdentifier
       token: <empty> <synthetic>
-AssignmentExpression
+V1: AssignmentExpression
   leftHandSide: SimpleIdentifier
     token: x
   operator: =
@@ -355,7 +355,7 @@ DirectAssignment
   operator: =
   value: IntegerLiteral
     literal: 0
-AssignmentExpression
+V1: AssignmentExpression
   leftHandSide: SimpleIdentifier
     token: <empty> <synthetic>
   operator: =
@@ -378,7 +378,7 @@ DirectAssignment
   operator: =
   value: SimpleIdentifier
     token: <empty> <synthetic>
-AssignmentExpression
+V1: AssignmentExpression
   leftHandSide: SimpleIdentifier
     token: x
   operator: =
@@ -402,7 +402,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: y
   binaryOperator: bitwiseAnd
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: &
@@ -428,7 +428,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: bitwiseAnd
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: &
@@ -452,7 +452,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: bitwiseAnd
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: x
   operator: &
@@ -476,7 +476,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: bitwiseAnd
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SuperExpression
     superKeyword: super
   operator: &
@@ -508,7 +508,7 @@ LogicalAnd
   operator: &&
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
-BinaryExpression
+V1: BinaryExpression
   leftOperand: BinaryExpression
     leftOperand: SimpleIdentifier
       token: <empty> <synthetic>
@@ -544,7 +544,7 @@ LogicalAnd
     rightOperand: SimpleIdentifier
       token: <empty> <synthetic>
     binaryOperator: equal
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: &&
@@ -579,7 +579,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: bitwiseAnd
-BinaryExpression
+V1: BinaryExpression
   leftOperand: BinaryExpression
     leftOperand: SuperExpression
       superKeyword: super
@@ -607,7 +607,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: y
   binaryOperator: bitwiseOr
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: |
@@ -633,7 +633,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: bitwiseOr
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: |
@@ -657,7 +657,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: bitwiseOr
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: x
   operator: |
@@ -681,7 +681,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: bitwiseOr
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SuperExpression
     superKeyword: super
   operator: |
@@ -714,7 +714,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: bitwiseOr
-BinaryExpression
+V1: BinaryExpression
   leftOperand: BinaryExpression
     leftOperand: SimpleIdentifier
       token: <empty> <synthetic>
@@ -751,7 +751,7 @@ BinaryOperatorInvocation
       token: <empty> <synthetic>
     binaryOperator: bitwiseXor
   binaryOperator: bitwiseOr
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: |
@@ -786,7 +786,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: bitwiseOr
-BinaryExpression
+V1: BinaryExpression
   leftOperand: BinaryExpression
     leftOperand: SuperExpression
       superKeyword: super
@@ -814,7 +814,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: y
   binaryOperator: bitwiseXor
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: ^
@@ -840,7 +840,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: bitwiseXor
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: ^
@@ -864,7 +864,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: bitwiseXor
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: x
   operator: ^
@@ -888,7 +888,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: bitwiseXor
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SuperExpression
     superKeyword: super
   operator: ^
@@ -921,7 +921,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: bitwiseXor
-BinaryExpression
+V1: BinaryExpression
   leftOperand: BinaryExpression
     leftOperand: SimpleIdentifier
       token: <empty> <synthetic>
@@ -958,7 +958,7 @@ BinaryOperatorInvocation
       token: <empty> <synthetic>
     binaryOperator: bitwiseAnd
   binaryOperator: bitwiseXor
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: ^
@@ -993,7 +993,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: bitwiseXor
-BinaryExpression
+V1: BinaryExpression
   leftOperand: BinaryExpression
     leftOperand: SuperExpression
       superKeyword: super
@@ -1242,7 +1242,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: y
   binaryOperator: equal
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: ==
@@ -1268,7 +1268,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: equal
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: ==
@@ -1292,7 +1292,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: equal
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: x
   operator: ==
@@ -1316,7 +1316,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: equal
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SuperExpression
     superKeyword: super
   operator: ==
@@ -1348,7 +1348,7 @@ BinaryOperatorInvocation
     type: NamedType
       name: <empty> <synthetic>
   binaryOperator: equal
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: ==
@@ -1384,7 +1384,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: equal
-BinaryExpression
+V1: BinaryExpression
   leftOperand: BinaryExpression
     leftOperand: SuperExpression
       superKeyword: super
@@ -1412,7 +1412,7 @@ BinaryOperatorInvocation
   rightOperand: SuperExpression
     superKeyword: super
   binaryOperator: equal
-BinaryExpression
+V1: BinaryExpression
   leftOperand: IntegerLiteral
     literal: 1
   operator: ==
@@ -1504,7 +1504,8 @@ CompilationUnit
         leftBracket: {
         members
           ConstructorDeclaration
-            typeName: SimpleIdentifier
+            typeName2: A
+            typeName(v1): SimpleIdentifier
               token: A
             parameters: FormalParameterList
               leftParenthesis: (
@@ -1607,9 +1608,10 @@ CompilationUnit
       uri: SimpleStringLiteral
         literal: 'b.dart'
       asKeyword: as
+      prefixName: b
+      semicolon: ;
       prefix: SimpleIdentifier
         token: b
-      semicolon: ;
 ''');
   }
 
@@ -3023,7 +3025,8 @@ CompilationUnit
         leftBracket: {
         members
           ConstructorDeclaration
-            typeName: SimpleIdentifier
+            typeName2: C
+            typeName(v1): SimpleIdentifier
               token: C
             period: .
             name: named
@@ -3057,7 +3060,8 @@ CompilationUnit
         leftBracket: {
         members
           ConstructorDeclaration
-            typeName: SimpleIdentifier
+            typeName2: C
+            typeName(v1): SimpleIdentifier
               token: C
             period: .
             name: named
@@ -3095,7 +3099,8 @@ CompilationUnit
         leftBracket: {
         members
           ConstructorDeclaration
-            typeName: SimpleIdentifier
+            typeName2: C
+            typeName(v1): SimpleIdentifier
               token: C
             parameters: FormalParameterList
               leftParenthesis: ( <synthetic>
@@ -3127,7 +3132,8 @@ CompilationUnit
         leftBracket: {
         members
           ConstructorDeclaration
-            typeName: SimpleIdentifier
+            typeName2: C
+            typeName(v1): SimpleIdentifier
               token: C
             period: .
             name: named
@@ -3163,7 +3169,8 @@ CompilationUnit
         leftBracket: {
         members
           ConstructorDeclaration
-            typeName: SimpleIdentifier
+            typeName2: C
+            typeName(v1): SimpleIdentifier
               token: C
             period: .
             name: named
@@ -3215,7 +3222,7 @@ LogicalAnd
   operator: &&
   rightOperand: SimpleIdentifier
     token: y
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: &&
@@ -3240,7 +3247,7 @@ LogicalAnd
   operator: &&
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: &&
@@ -3263,7 +3270,7 @@ LogicalAnd
   operator: &&
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: x
   operator: &&
@@ -3295,7 +3302,7 @@ LogicalAnd
   operator: &&
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
-BinaryExpression
+V1: BinaryExpression
   leftOperand: BinaryExpression
     leftOperand: SimpleIdentifier
       token: <empty> <synthetic>
@@ -3331,7 +3338,7 @@ LogicalAnd
     rightOperand: SimpleIdentifier
       token: <empty> <synthetic>
     binaryOperator: bitwiseOr
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: &&
@@ -3358,7 +3365,7 @@ LogicalOr
   operator: ||
   rightOperand: SimpleIdentifier
     token: y
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: ||
@@ -3383,7 +3390,7 @@ LogicalOr
   operator: ||
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: ||
@@ -3406,7 +3413,7 @@ LogicalOr
   operator: ||
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: x
   operator: ||
@@ -3437,7 +3444,7 @@ LogicalOr
   operator: ||
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
-BinaryExpression
+V1: BinaryExpression
   leftOperand: BinaryExpression
     leftOperand: SimpleIdentifier
       token: <empty> <synthetic>
@@ -3472,7 +3479,7 @@ LogicalOr
     operator: &&
     rightOperand: SimpleIdentifier
       token: <empty> <synthetic>
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: ||
@@ -3683,7 +3690,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: y
   binaryOperator: multiply
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: *
@@ -3709,7 +3716,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: multiply
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: *
@@ -3733,7 +3740,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: multiply
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: x
   operator: *
@@ -3757,7 +3764,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: multiply
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SuperExpression
     superKeyword: super
   operator: *
@@ -3784,7 +3791,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: multiply
-BinaryExpression
+V1: BinaryExpression
   leftOperand: PrefixExpression
     operator: -
     operand: SimpleIdentifier
@@ -3813,7 +3820,7 @@ BinaryOperatorInvocation
       token: y
     unaryOperator: negate
   binaryOperator: multiply
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: *
@@ -3847,7 +3854,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: equal
-BinaryExpression
+V1: BinaryExpression
   leftOperand: BinaryExpression
     leftOperand: SuperExpression
       superKeyword: super
@@ -3986,7 +3993,7 @@ UnaryOperatorInvocation
   operand: SimpleIdentifier
     token: <empty> <synthetic>
   unaryOperator: negate
-PrefixExpression
+V1: PrefixExpression
   operator: -
   operand: SimpleIdentifier
     token: <empty> <synthetic>
@@ -4116,7 +4123,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: y
   binaryOperator: shiftLeft
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: <<
@@ -4142,7 +4149,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: shiftLeft
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: <<
@@ -4166,7 +4173,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: shiftLeft
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: x
   operator: <<
@@ -4190,7 +4197,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: shiftLeft
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SuperExpression
     superKeyword: super
   operator: <<
@@ -4223,7 +4230,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: shiftLeft
-BinaryExpression
+V1: BinaryExpression
   leftOperand: BinaryExpression
     leftOperand: SimpleIdentifier
       token: <empty> <synthetic>
@@ -4260,7 +4267,7 @@ BinaryOperatorInvocation
       token: <empty> <synthetic>
     binaryOperator: add
   binaryOperator: shiftLeft
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: <<
@@ -4295,7 +4302,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: <empty> <synthetic>
   binaryOperator: shiftLeft
-BinaryExpression
+V1: BinaryExpression
   leftOperand: BinaryExpression
     leftOperand: SuperExpression
       superKeyword: super
@@ -4345,7 +4352,7 @@ BinaryOperatorInvocation
   rightOperand: IntegerLiteral
     literal: 2
   binaryOperator: add
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: <empty> <synthetic>
   operator: +

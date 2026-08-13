@@ -4946,6 +4946,13 @@ const MessageCode forInLoopWithConstVariable = const MessageCode(
 );
 
 // DO NOT EDIT. THIS FILE IS GENERATED. SEE TOP OF FILE.
+const MessageCode futureTypeMustBeSubtypeOfJSAnyForConversionToJSPromise =
+    const MessageCode(
+      "FutureTypeMustBeSubtypeOfJSAnyForConversionToJSPromise",
+      problemMessage: """Calling 'toJS' on a function returning 'Future<T>' requires 'T' to be a subtype of 'JSAny?' or 'void'.""",
+    );
+
+// DO NOT EDIT. THIS FILE IS GENERATED. SEE TOP OF FILE.
 const Template<
   Message Function({
     required DartType genericFunctionType,
@@ -7745,6 +7752,35 @@ Message _withArgumentsJsInteropFunctionToJSRequiresStaticType({
 }
 
 // DO NOT EDIT. THIS FILE IS GENERATED. SEE TOP OF FILE.
+const Template<
+  Message Function({required String conversion, required DartType type})
+>
+jsInteropFunctionToJSReturnFutureOptionalParameters = const Template(
+  "JsInteropFunctionToJSReturnFutureOptionalParameters",
+  withArguments:
+      _withArgumentsJsInteropFunctionToJSReturnFutureOptionalParameters,
+);
+
+// DO NOT EDIT. THIS FILE IS GENERATED. SEE TOP OF FILE.
+Message _withArgumentsJsInteropFunctionToJSReturnFutureOptionalParameters({
+  required String conversion,
+  required DartType type,
+}) {
+  var conversion_0 = conversions.validateString(conversion);
+  TypeLabeler labeler = new TypeLabeler();
+  var type_0 = labeler.labelType(type);
+  return new Message(
+    jsInteropFunctionToJSReturnFutureOptionalParameters,
+    problemMessage:
+        """Functions converted via '${conversion_0}' that return '${type_0}' cannot declare optional parameters.""" +
+        labeler.originMessages,
+    correctionMessage:
+        """Remove the declared optional parameters from the function.""",
+    arguments: {'conversion': conversion, 'type': type},
+  );
+}
+
+// DO NOT EDIT. THIS FILE IS GENERATED. SEE TOP OF FILE.
 const Template<Message Function({required String conversion})>
 jsInteropFunctionToJSTypeParameters = const Template(
   "JsInteropFunctionToJSTypeParameters",
@@ -7791,7 +7827,7 @@ Message _withArgumentsJsInteropFunctionToJSTypeViolation({
     jsInteropFunctionToJSTypeViolation,
     problemMessage:
         """Function converted via '${conversion_0}' contains invalid types in its function signature: '${typeWithDiasllowedPartsHighlighted_0}'.""",
-    correctionMessage: """Use one of these valid types instead: JS types from 'dart:js_interop', ExternalDartReference, void, bool, num, double, int, String, extension types that erase to one of these types, '@staticInterop' types, 'dart:html' types when compiling to JS, or a type parameter that is a subtype of a valid non-primitive type.""",
+    correctionMessage: """Use one of these valid types instead: JS types from 'dart:js_interop', ExternalDartReference, void, bool, num, double, int, String, extension types that erase to one of these types, '@staticInterop' types, 'dart:html' types when compiling to JS, or a type parameter that is a subtype of a valid non-primitive type. If the return type is a Future, then the result type must be a subtype of 'JSAny?' or 'void'.""",
     arguments: {
       'conversion': conversion,
       'typeWithDiasllowedPartsHighlighted': typeWithDiasllowedPartsHighlighted,

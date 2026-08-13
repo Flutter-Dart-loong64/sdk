@@ -84,7 +84,7 @@ vars = {
   "clang_version": "git_revision:dde579becf31add55c5a473f28fd010df36d2490",
 
   # https://chrome-infra-packages.appspot.com/p/gn/gn
-  "gn_version": "git_revision:64cfb8344ec3e8585a89a3836716a026e2771fcb",
+  "gn_version": "git_revision:d5594ca84e69ea33223e41b49ac2736b27feae33",
 
   "reclient_version": "re_client_version:28341fc74c68f05a5c8be35160ada940c4edb969",
   "download_reclient": True,
@@ -103,7 +103,7 @@ vars = {
 
   # Prefer to use hashes of binaryen that have been reviewed & rolled into g3.
   "binaryen_rev" : "9926156a583cec3d22d521232b31c70fa9a87dc1",
-  "boringssl_rev": "619e6bc3deda4e0d2fe4ad3fc439ae4fc1e00caf",
+  "boringssl_rev": "7976725593fe5d36a4d7a9f89990ecfde2c90dd3",
   "browser-compat-data_tag": "ac8cae697014da1ff7124fba33b0b4245cc6cd1b", # v1.0.22
   "cpu_features_rev": "936b9ab5515dead115606559502e3864958f7f6e",
   "devtools_rev": "21f1838f3a9b138ac377efb953ca5a53c8832e75",
@@ -130,10 +130,10 @@ vars = {
   # 'tools/rev_sdk_deps.dart' will rev pkg dependencies to their latest; put an
   # EOL comment after a dependency to instead pin at the current revision.
   "core_rev": "4a5ae2bc9db1f39fac071f1a6fade64bd155f734",
-  "dartdoc_rev": "1fd02f73cfb2ade871f9ff9b96e7475fb81d5ce8",
+  "dartdoc_rev": "8be851e2bfc5e4cfc0c7ec6f64b1a89699bf6456",
   "ecosystem_rev": "ed9c592c1d35106c0a8a52044426515017a60646",
   "flute_rev": "b84119fba67016a80c3eb80765762bcc4d0d0b8d",
-  "http_rev": "9cb80c77562569705dd2089839a5526c5318c321",
+  "http_rev": "a9176ac97402a42e1b275a26eb20a9deaec92184",
   "i18n_rev": "e1b5a798f8922bb27bbc6d858748ece6f9a19f02",
   "leak_tracker_rev": "f5620600a5ce1c44f65ddaa02001e200b096e14c", # rolled manually
   "material_color_utilities_rev": "799b6ba2f3f1c28c67cc7e0b4f18e0c7d7f3c03e",
@@ -143,10 +143,10 @@ vars = {
   "shelf_rev": "fb3f931d2c158d794e83c1b76b7be4b625db3c28",
   "sync_http_rev": "6666fff944221891182e1f80bf56569338164d72",
   "tar_rev": "13479f7c2a18f499e840ad470cfcca8c579f6909",
-  "test_rev": "dd426d439da9d399975a3455d4d507bce9fec01b",
-  "tools_rev": "f3ec9ed5a7b25dfef256bea9827dc1f81c8c7afc",
+  "test_rev": "55b186ddcad50fe4808226e0b681875dda6dd123",
+  "tools_rev": "d644cdabe20233a344fc0eb1f5cbd1cc3388ad9d",
   "vector_math_rev": "cf3b5db7340d317dd3489e5a35434b408020a852",
-  "web_rev": "f1b9d561850355efd81b24fdbfd226dbe805d415",
+  "web_rev": "6b84f811cd67a5fd05f4dac24cb56542bcfc92e4",
   "webdriver_rev": "3a711ebb36871eac997c5d5d2429f7414873dc63",
   "webkit_inspection_protocol_rev": "762115a971d1968bc940454ad1e88d506d8c5640",
 

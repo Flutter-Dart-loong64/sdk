@@ -718,6 +718,16 @@ class AstBinaryWriter extends ThrowingAstVisitor2<void> {
   }
 
   @override
+  void visitPropertyExtraction(covariant PropertyExtractionImpl node) {
+    _writeByte(Tag.PropertyExtraction);
+    _writeNode(node.receiver);
+    _writeByte(TokensWriter.astToBinaryTokenType(node.operator.type).index);
+    _writeStringReference(node.propertyName.lexeme);
+    _sink.writeOptionalObject(node.resolution, _writeNamedReadResolution);
+    _storeExpression(node);
+  }
+
+  @override
   void visitRecordLiteral(RecordLiteral node) {
     _writeByte(Tag.RecordLiteral);
     _writeByte(AstBinaryFlags.encode(isConst: node.constKeyword != null));
@@ -1092,6 +1102,11 @@ class AstBinaryWriter extends ThrowingAstVisitor2<void> {
 
   void _writeNamedReadResolution(NamedReadResolutionImpl resolution) {
     switch (resolution) {
+      case DynamicPropertyReadResolutionImpl():
+        _writeByte(NamedReadResolutionTag.dynamicPropertyRead.index);
+      case ExecutableTearOffResolutionImpl():
+        _writeByte(NamedReadResolutionTag.executableTearOff.index);
+        _sink.writeElement(resolution.element);
       case GetterInvocationResolutionImpl():
         _writeByte(NamedReadResolutionTag.getterInvocation.index);
         _sink.writeElement(resolution.element);
@@ -1103,6 +1118,9 @@ class AstBinaryWriter extends ThrowingAstVisitor2<void> {
         _sink.writeOptionalObject(resolution.recovery, (recovery) {
           _writeNamedReadResolution(recovery);
         });
+      case RecordFieldReadResolutionImpl():
+        _writeByte(NamedReadResolutionTag.recordFieldRead.index);
+        _sink.writeType(resolution.type);
       case VariableReadResolutionImpl():
         _writeByte(NamedReadResolutionTag.variableRead.index);
         _sink.writeElement(resolution.element);

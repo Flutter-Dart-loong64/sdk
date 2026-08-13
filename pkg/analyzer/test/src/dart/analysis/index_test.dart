@@ -8,7 +8,7 @@ import 'package:analyzer/src/dart/analysis/index.dart';
 import 'package:analyzer/src/dart/analysis/session.dart';
 import 'package:analyzer/src/dart/element/element.dart';
 import 'package:analyzer/src/summary/idl.dart';
-import 'package:analyzer/src/test_utilities/find_element2.dart';
+import 'package:analyzer/src/test_utilities/find_element.dart';
 import 'package:analyzer_testing/package_config_file_builder.dart';
 import 'package:analyzer_utilities/testing/tree_string_sink.dart';
 import 'package:collection/collection.dart';
@@ -520,6 +520,26 @@ class A {}
                ^ IS_REFERENCED_BY qualified
 void f() {}
 Prefixes: (unprefixed),p
+''');
+  }
+
+  test_ClassElement_reference_constructorDeclaration() async {
+    var result = await _indexTestCode(r'''
+class A {
+  A();
+  A.named();
+}
+''');
+
+    var element = result.findElement.class_('A');
+
+    assertElementIndexText(result, element, r'''
+class A {
+  A();
+  ^ IS_REFERENCED_BY
+  A.named();
+  ^ IS_REFERENCED_BY
+}
 ''');
   }
 
@@ -3154,6 +3174,70 @@ class B extends A {
     );
   }
 
+  test_FieldElement_ofClass_parenthesizedReceiver_compound() async {
+    var result = await _indexTestCode('''
+class A {
+  int foo = 0;
+}
+
+void f(A a) {
+  (a).foo += 2;
+}
+''');
+    var field = result.findElement.field('foo');
+
+    assertElementsIndexText(
+      result,
+      {
+        'field': field,
+        'getter': field.getter!,
+        'setter': field.setter!,
+        'num.+': result.resolvedUnit.typeProvider.numElement.getMethod('+')!,
+      },
+      r'''
+class A {
+  int foo = 0;
+}
+
+void f(A a) {
+  (a).foo += 2;
+      ^^^ getter IS_INVOKED_BY qualified
+      ^^^ setter IS_INVOKED_BY qualified
+          ^^ num.+ IS_INVOKED_BY qualified
+}
+''',
+    );
+  }
+
+  test_FieldElement_ofClass_parenthesizedReceiver_ifNull() async {
+    var result = await _indexTestCode('''
+class A {
+  int? foo;
+}
+
+void f(A a) {
+  (a).foo ??= 2;
+}
+''');
+    var field = result.findElement.field('foo');
+
+    assertElementsIndexText(
+      result,
+      {'field': field, 'getter': field.getter!, 'setter': field.setter!},
+      r'''
+class A {
+  int? foo;
+}
+
+void f(A a) {
+  (a).foo ??= 2;
+      ^^^ getter IS_INVOKED_BY qualified
+      ^^^ setter IS_INVOKED_BY qualified
+}
+''',
+    );
+  }
+
   test_FieldElement_ofClass_static_fieldDeclaration() async {
     var result = await _indexTestCode('''
 /// [foo] and [A.foo]
@@ -5122,6 +5206,28 @@ void useGetter(Object? x) {
 ''');
   }
 
+  test_GetterElement_ofClass_parenthesizedReceiver_read() async {
+    var result = await _indexTestCode('''
+class A {
+  int get foo => 0;
+  void useGetter() {
+    (this).foo;
+  }
+}''');
+
+    var element = result.findElement.getter('foo');
+
+    assertElementIndexText(result, element, r'''
+class A {
+  int get foo => 0;
+  void useGetter() {
+    (this).foo;
+           ^^^ IS_INVOKED_BY qualified
+  }
+}
+''');
+  }
+
   test_GetterElement_ofClass_static() async {
     var result = await _indexTestCode('''
 import 'test.dart' as p;
@@ -5268,6 +5374,35 @@ void useFoo(A a) {
     ^^^ IS_INVOKED_BY qualified
   a.foo;
     ^^^ IS_REFERENCED_BY qualified
+}
+''');
+  }
+
+  test_MethodElement_normal_ofClass_parenthesizedReceiver_ifNull() async {
+    var result = await _indexTestCode('''
+class A {
+  void foo() {}
+}
+
+void f(A a) {
+  (a).foo ??= () {};
+//    ^^^
+// [diag.assignmentToMethod] Methods can't be assigned a value.
+//            ^^^^^
+// [diag.deadCode] Dead code.
+// [diag.deadNullAwareExpression] The left operand can't be null, so the right operand is never executed.
+}
+''');
+    var element = result.findElement.method('foo');
+
+    assertElementIndexText(result, element, r'''
+class A {
+  void foo() {}
+}
+
+void f(A a) {
+  (a).foo ??= () {};
+      ^^^ IS_REFERENCED_BY qualified
 }
 ''');
   }
@@ -7115,6 +7250,30 @@ void f() {
 ''');
   }
 
+  test_TopLevelFunctionElement_unqualified_ifNull() async {
+    var result = await _indexTestCode('''
+void foo() {}
+
+void f() {
+  foo ??= () {};
+//^^^
+// [diag.assignmentToFunction] Functions can't be assigned a value.
+//        ^^^^^
+// [diag.deadCode] Dead code.
+// [diag.deadNullAwareExpression] The left operand can't be null, so the right operand is never executed.
+}
+''');
+    var element = result.findElement.topFunction('foo');
+    assertElementIndexText(result, element, r'''
+void foo() {}
+
+void f() {
+  foo ??= () {};
+  ^^^ IS_REFERENCED_BY
+}
+''');
+  }
+
   test_TopLevelVariableElement_getterDeclaration() async {
     var result = await _indexTestCode('''
 import 'test.dart' as p;
@@ -7151,6 +7310,29 @@ Prefixes:
   getter: (unprefixed),p
 ''',
     );
+  }
+
+  test_TopLevelVariableElement_getterDeclaration_invalidWrite() async {
+    var result = await _indexTestCode(r'''
+int get foo => 0;
+
+void f() {
+  foo = 1;
+//^^^
+// [diag.assignmentToFinal] 'foo' can't be used as a setter because it's final.
+}
+''');
+
+    var getter = result.findElement.topVar('foo').getter!;
+
+    assertElementIndexText(result, getter, r'''
+int get foo => 0;
+
+void f() {
+  foo = 1;
+  ^^^ IS_REFERENCED_BY
+}
+''');
   }
 
   test_TopLevelVariableElement_getterSetterDeclarations() async {
@@ -7831,7 +8013,7 @@ final class _IndexResult {
 
   _IndexResult(this.resolvedUnit, this.index);
 
-  FindElement2 get findElement => resolvedUnit.findElement;
+  FindElement get findElement => resolvedUnit.findElement;
 }
 
 final class _IndexTextBuilder {

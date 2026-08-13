@@ -148,7 +148,7 @@ class ObjectLayout {
   }
 
   late final CoreTypes _coreTypes = GlobalContext.instance.coreTypes;
-  late final LibraryIndex _libraryIndex = _coreTypes.index;
+  late final LibraryIndex _libraryIndex = GlobalContext.instance.coreLibraries;
 
   late final ast.Class _arrayClass = _libraryIndex.getClass(
     'dart:core',
@@ -157,6 +157,14 @@ class ObjectLayout {
   late final ast.Class _linkedHashBaseClass = _libraryIndex.getClass(
     'dart:_compact_hash',
     '_LinkedHashBase',
+  );
+  late final ast.Class _rawReceivePortClass = _libraryIndex.getClass(
+    'dart:isolate',
+    '_RawReceivePort',
+  );
+  late final ast.Class _sendPortClass = _libraryIndex.getClass(
+    'dart:isolate',
+    'SendPort',
   );
   late final ast.Class _typedListBaseClass = _libraryIndex.getClass(
     'dart:typed_data',
@@ -208,6 +216,21 @@ class ObjectLayout {
     vmOffsets.LinkedHashBase_deleted_keys_offset,
   );
 
+  // dart:isolate
+  late final CField RawReceivePort_handler = _createBuiltInField(
+    _rawReceivePortClass,
+    'handler',
+    _coreTypes.functionNullableRawType,
+    vmOffsets.ReceivePort_handler_offset,
+  );
+  late final CField RawReceivePort_sendPort = _createBuiltInField(
+    _rawReceivePortClass,
+    'sendPort',
+    _coreTypes.nonNullableRawType(_sendPortClass),
+    vmOffsets.ReceivePort_send_port_offset,
+    isFinal: true,
+  );
+
   // dart:typed_data
   late final CField TypedListBase_length = _createBuiltInField(
     _typedListBaseClass,
@@ -215,6 +238,19 @@ class ObjectLayout {
     _coreTypes.intNonNullableRawType,
     vmOffsets.TypedDataBase_length_offset,
     isFinal: true,
+  );
+
+  // External non-Dart fields.
+  late final ast.Class _threadClass = ast.Class(
+    name: '#Thread',
+    supertype: ast.Supertype(_coreTypes.objectClass, const []),
+    fileUri: ast.dummyUri,
+  )..parent = _vmLibrary;
+  late final CField Thread_threadLocals = _createBuiltInField(
+    _threadClass,
+    'threadLocals',
+    _coreTypes.listNonNullableRawType,
+    vmOffsets.Thread_thread_locals_offset,
   );
 
   // Layout of built-in instances is specified either as
@@ -249,12 +285,15 @@ class ObjectLayout {
     ),
   };
 
+  late final Map<String, Object> _dartVmInstanceLayout = {'#Thread': 0};
+
   late final ast.Library _typedDataLibrary = _libraryIndex.getLibrary(
     'dart:typed_data',
   );
   late final ast.Library _compactHashLibrary = _libraryIndex.getLibrary(
     'dart:_compact_hash',
   );
+  late final ast.Library _vmLibrary = _libraryIndex.getLibrary('dart:_vm');
 
   bool _computeLayoutOfBuiltInClass(ast.Class cls) {
     final library = cls.enclosingLibrary;
@@ -268,6 +307,8 @@ class ObjectLayout {
       layout = _dartTypedDataInstanceLayout[cls.name];
     } else if (library == _compactHashLibrary) {
       layout = _dartCompactHashInstanceLayout[cls.name];
+    } else if (library == _vmLibrary) {
+      layout = _dartVmInstanceLayout[cls.name];
     }
     // TODO: add built-in classes from dart:ffi
     if (layout != null) {

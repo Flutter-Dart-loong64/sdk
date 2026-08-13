@@ -7,7 +7,7 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/file_system/file_system.dart';
 import 'package:analyzer/src/dart/analysis/driver.dart';
 import 'package:analyzer/src/dart/analysis/search.dart';
-import 'package:analyzer/src/test_utilities/find_element2.dart';
+import 'package:analyzer/src/test_utilities/find_element.dart';
 import 'package:analyzer/src/util/performance/operation_performance.dart';
 import 'package:analyzer/src/utilities/cancellation.dart';
 import 'package:analyzer_testing/package_config_file_builder.dart';
@@ -4706,6 +4706,70 @@ class B extends A {
     );
   }
 
+  test_searchReferences_FieldElement_ofClass_parenthesizedReceiver_compound() async {
+    var result = await resolveTestCode('''
+class A {
+  int foo = 0;
+}
+
+void f(A a) {
+  (a).foo += 2;
+}
+''');
+    var field = result.findElement.field('foo');
+
+    await assertElementsReferencesText(
+      {
+        'field': field,
+        'getter': field.getter!,
+        'setter': field.setter!,
+        'num.+': result.typeProvider.numElement.getMethod('+')!,
+      },
+      r'''
+class A {
+  int foo = 0;
+}
+
+void f(A a) {
+  (a).foo += 2;
+      ^^^ field READ_WRITE qualified
+      ^^^ getter INVOCATION qualified
+      ^^^ setter INVOCATION qualified
+          ^^ num.+ INVOCATION qualified
+}
+''',
+    );
+  }
+
+  test_searchReferences_FieldElement_ofClass_parenthesizedReceiver_ifNull() async {
+    var result = await resolveTestCode('''
+class A {
+  int? foo;
+}
+
+void f(A a) {
+  (a).foo ??= 2;
+}
+''');
+    var field = result.findElement.field('foo');
+
+    await assertElementsReferencesText(
+      {'field': field, 'getter': field.getter!, 'setter': field.setter!},
+      r'''
+class A {
+  int? foo;
+}
+
+void f(A a) {
+  (a).foo ??= 2;
+      ^^^ field READ_WRITE qualified
+      ^^^ getter INVOCATION qualified
+      ^^^ setter INVOCATION qualified
+}
+''',
+    );
+  }
+
   test_searchReferences_FieldElement_ofClass_static_fieldDeclaration() async {
     var result = await resolveTestCode('''
 /// [foo] and [A.foo]
@@ -4838,6 +4902,15 @@ enum E {
     await assertElementsReferencesText(
       {'field': field, 'getter': field.getter!},
       r'''
+enum E {
+  v;
+  final int foo = 0;
+  void f() {
+    foo = 1;
+    ^^^ field REFERENCE
+    ^^^ getter REFERENCE
+  }
+}
 ''',
     );
   }
@@ -6650,6 +6723,13 @@ class A {
 ''');
     var element = result.findElement.getter('foo');
     await assertElementReferencesText(element, r'''
+class A {
+  int get foo => 0;
+  void f() {
+    foo = 1;
+    ^^^ REFERENCE
+  }
+}
 ''');
   }
 
@@ -6730,6 +6810,26 @@ void useGetter(Object? x) {
                ^^^ REFERENCE_IN_PATTERN_FIELD qualified
   if (x case A(: var foo)) {}
                ^0 REFERENCE_IN_PATTERN_FIELD qualified
+}
+''');
+  }
+
+  test_searchReferences_GetterElement_ofClass_parenthesizedReceiver_read() async {
+    var result = await resolveTestCode('''
+class A {
+  int get foo => 0;
+  void useGetter() {
+    (this).foo;
+  }
+}''');
+    var element = result.findElement.getter('foo');
+    await assertElementReferencesText(element, r'''
+class A {
+  int get foo => 0;
+  void useGetter() {
+    (this).foo;
+           ^^^ INVOCATION qualified
+  }
 }
 ''');
   }
@@ -7337,6 +7437,40 @@ void useFoo(A<int> a) {
     ^^^ INVOCATION qualified
   a.foo;
     ^^^ REFERENCE qualified
+}
+''');
+  }
+
+  test_searchReferences_MethodElement_normal_ofClass_parenthesizedReceiver_ifNull() async {
+    var result = await resolveTestCode('''
+class A {
+  void foo() {}
+}
+
+void f(A a) {
+  (a).foo ??= () {};
+//    ^^^
+// [diag.assignmentToMethod] Methods can't be assigned a value.
+//            ^^^^^
+// [diag.deadCode] Dead code.
+// [diag.deadNullAwareExpression] The left operand can't be null, so the right operand is never executed.
+}
+''');
+    var element = result.findElement.method('foo');
+
+    await assertElementReferencesText(element, r'''
+class A {
+  void foo() {}
+}
+
+void f(A a) {
+  (a).foo ??= () {};
+      ^^^ REFERENCE qualified
+//    ^^^
+// [diag.assignmentToMethod] Methods can't be assigned a value.
+//            ^^^^^
+// [diag.deadCode] Dead code.
+// [diag.deadNullAwareExpression] The left operand can't be null, so the right operand is never executed.
 }
 ''');
   }
@@ -9229,6 +9363,30 @@ void f() {
 ''');
   }
 
+  test_searchReferences_TopLevelFunctionElement_unqualified_ifNull() async {
+    var result = await resolveTestCodeWithDiagnostics(r'''
+void foo() {}
+
+void f() {
+  foo ??= () {};
+//^^^
+// [diag.assignmentToFunction] Functions can't be assigned a value.
+//        ^^^^^
+// [diag.deadCode] Dead code.
+// [diag.deadNullAwareExpression] The left operand can't be null, so the right operand is never executed.
+}
+''');
+    var element = result.findElement.topFunction('foo');
+    await assertElementReferencesText(element, r'''
+void foo() {}
+
+void f() {
+  foo ??= () {};
+  ^^^ REFERENCE
+}
+''');
+  }
+
   test_searchReferences_TopLevelVariableElement_getterDeclaration() async {
     var result = await resolveTestCode('''
 import 'test.dart' as p;
@@ -9262,6 +9420,32 @@ void f() {
   p.foo;
     ^^^ variable READ qualified
     ^^^ getter INVOCATION qualified
+}
+''',
+    );
+  }
+
+  test_searchReferences_TopLevelVariableElement_getterDeclaration_invalidWrite() async {
+    var result = await resolveTestCodeWithDiagnostics(r'''
+int get foo => 0;
+
+void f() {
+  foo = 1;
+//^^^
+// [diag.assignmentToFinal] 'foo' can't be used as a setter because it's final.
+}
+''');
+
+    var variable = result.findElement.topVar('foo');
+    await assertElementsReferencesText(
+      {'variable': variable, 'getter': variable.getter!},
+      r'''
+int get foo => 0;
+
+void f() {
+  foo = 1;
+  ^^^ variable REFERENCE
+  ^^^ getter REFERENCE
 }
 ''',
     );

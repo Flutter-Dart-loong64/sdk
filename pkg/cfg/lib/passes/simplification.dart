@@ -139,6 +139,14 @@ final class Simplification extends Pass
         default:
       }
     }
+    // Simplify identical to equal/intEqual.
+    if (instr.op == .identical || instr.op == .notIdentical) {
+      if (!left.type.canBeNum || !right.type.canBeNum) {
+        instr.op = instr.op == .identical ? .equal : .notEqual;
+      } else if (left.type is IntType && right.type is IntType) {
+        instr.op = instr.op == .identical ? .intEqual : .intNotEqual;
+      }
+    }
     return instr;
   }
 
@@ -199,7 +207,13 @@ final class Simplification extends Pass
   Instruction visitStoreStaticField(StoreStaticField instr) => instr;
 
   @override
+  Instruction visitLoadExternalField(LoadExternalField instr) => instr;
+
+  @override
   Instruction visitLoadArrayElement(LoadArrayElement instr) => instr;
+
+  @override
+  Instruction visitStoreArrayElement(StoreArrayElement instr) => instr;
 
   @override
   Instruction visitThrow(Throw instr) => instr;
@@ -321,9 +335,6 @@ final class Simplification extends Pass
 
   @override
   Instruction visitAllocateArray(AllocateArray instr) => instr;
-
-  @override
-  Instruction visitSetListElement(SetListElement instr) => instr;
 
   @override
   Instruction visitAllocateRecord(AllocateRecord instr) => instr;

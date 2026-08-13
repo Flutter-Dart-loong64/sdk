@@ -124,6 +124,8 @@ class ElementUsageDetector<TagInfo extends Object> {
       }
     } else if (node is PropertyAssignmentTarget) {
       errorEntity = node.propertyName;
+    } else if (node is PropertyExtraction) {
+      errorEntity = node.propertyName;
     } else if (node is ExtensionOverride) {
       errorEntity = node.name;
     } else if (node is NamedType) {
@@ -572,6 +574,8 @@ class ElementUsageDetectorV2<TagInfo extends Object> {
       }
     } else if (node is PropertyAssignmentTarget) {
       errorEntity = node.propertyName;
+    } else if (node is PropertyExtraction) {
+      errorEntity = node.propertyName;
     } else if (node is ExtensionOverride) {
       errorEntity = node.name;
     } else if (node is NamedType) {
@@ -641,13 +645,21 @@ class ElementUsageDetectorV2<TagInfo extends Object> {
 
   void compoundAssignment(CompoundAssignment node) {
     var target = node.target;
-    if (target is UnqualifiedNameAssignmentTarget) {
-      if (target.read case NamedReadResolutionWithElement(:var element)) {
-        checkUsage(element, target);
-      }
-      if (target.write case NamedWriteResolutionWithElement(:var element)) {
-        checkUsage(element, target);
-      }
+    var read = switch (target) {
+      PropertyAssignmentTarget(:var read) => read,
+      UnqualifiedNameAssignmentTarget(:var read) => read,
+      _ => null,
+    };
+    var write = switch (target) {
+      PropertyAssignmentTarget(:var write) => write,
+      UnqualifiedNameAssignmentTarget(:var write) => write,
+      _ => null,
+    };
+    if (read case NamedReadResolutionWithElement(:var element)) {
+      checkUsage(element, target);
+    }
+    if (write case NamedWriteResolutionWithElement(:var element)) {
+      checkUsage(element, target);
     }
     checkUsage(node.element, node);
   }
@@ -813,6 +825,12 @@ class ElementUsageDetectorV2<TagInfo extends Object> {
 
   void patternField(PatternField node) {
     checkUsage(node.element, node);
+  }
+
+  void propertyExtraction(PropertyExtraction node) {
+    if (node.resolution case NamedReadResolutionWithElement(:var element)) {
+      checkUsage(element, node);
+    }
   }
 
   void redirectingConstructorInvocation(RedirectingConstructorInvocation node) {

@@ -1280,10 +1280,10 @@ void f() {
   void test_isNullAware_regularPropertyAccess() {
     var parseResult = parseTestCodeWithDiagnostics('''
 void f() {
-  (a).foo;
+  (a).call;
 }
 ''');
-    var invocation = parseResult.findNode.propertyAccess('foo');
+    var invocation = parseResult.findNode.propertyAccess('call');
     expect(invocation.isNullAware, isFalse);
   }
 
@@ -1490,6 +1490,18 @@ void f() {
 ''');
     var identifier = parseResult.findNode.simple('prefix');
     expect(identifier.isQualified, isFalse);
+  }
+
+  void test_isQualified_inPropertyExtraction_name() {
+    var parseResult = parseTestCodeWithDiagnostics('''
+class A {
+  void f() {
+    this.foo;
+  }
+}
+''');
+    var identifier = parseResult.findNodeV1.simple('foo');
+    expect(identifier.isQualified, isTrue);
   }
 
   void test_isQualified_inReturnStatement() {

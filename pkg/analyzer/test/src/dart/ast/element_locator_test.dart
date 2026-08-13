@@ -340,13 +340,13 @@ class A {
 ''');
   }
 
-  test_locate_Identifier_constructor_unnamed() async {
+  test_locate_Identifier_constructor_unnamed_v1Projection() async {
     var result = await resolveTestCodeWithDiagnostics(r'''
 class A {
   A();
 }
 ''');
-    var node = result.findNode.simple('A()');
+    var node = result.findNode.constructor('A()').typeName!;
     var element = ElementLocator.locate(node);
     _assertElement(element, r'''
 <testLibrary>::@class::A::@constructor::new
@@ -443,7 +443,7 @@ void main() {
 // [diag.unusedLocalVariable] The value of the local variable 'x' isn't used.
 }
 ''');
-    var node = result.findNode.simple('length');
+    var node = result.findNodeV1.simple('length');
     var element = ElementLocator.locate(node);
     _assertElement(element, r'''
 dart:core::@class::String::@getter::length
@@ -1337,19 +1337,6 @@ class A {
 ''');
   }
 
-  test_locate_Identifier_constructor_unnamed() async {
-    var result = await resolveTestCodeWithDiagnostics(r'''
-class A {
-  A();
-}
-''');
-    var node = result.findNode.simple('A()');
-    var element = ElementLocatorV2.locate(node);
-    _assertElement(element, r'''
-<testLibrary>::@class::A::@constructor::new
-''');
-  }
-
   test_locate_Identifier_fieldName() async {
     var result = await resolveTestCodeWithDiagnostics(r'''
 class A {
@@ -1397,7 +1384,7 @@ void main() {
 // [diag.unusedLocalVariable] The value of the local variable 'x' isn't used.
 }
 ''');
-    var node = result.findNode.simple('length');
+    var node = result.findNode.propertyExtraction('length');
     var element = ElementLocatorV2.locate(node);
     _assertElement(element, r'''
 dart:core::@class::String::@getter::length

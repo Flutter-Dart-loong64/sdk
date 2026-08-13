@@ -342,9 +342,9 @@ class _ReferencedNamesComputer extends GeneralizingAstVisitor2<void> {
 
   @override
   void visitImportDirective(ImportDirective node) {
-    var prefix = node.prefix;
-    if (prefix != null) {
-      importPrefixNames.add(prefix.name);
+    var prefixName = node.prefixName;
+    if (prefixName != null) {
+      importPrefixNames.add(prefixName.lexeme);
     }
     super.visitImportDirective(node);
   }
@@ -406,14 +406,15 @@ class _ReferencedNamesComputer extends GeneralizingAstVisitor2<void> {
   }
 
   @override
+  void visitPropertyExtraction(PropertyExtraction node) {
+    names.add(node.propertyName.lexeme);
+    super.visitPropertyExtraction(node);
+  }
+
+  @override
   void visitSimpleIdentifier(SimpleIdentifier node) {
     // Ignore all declarations.
     if (node.inDeclarationContext()) {
-      return;
-    }
-    // Ignore class names references from constructors.
-    var parent = node.parent2!;
-    if (parent is ConstructorDeclaration && parent.typeName == node) {
       return;
     }
     // Prepare name.

@@ -462,10 +462,6 @@ class KernelTarget {
 
         benchmarker
         // Coverage-ignore(suite): Not run.
-        ?.enterPhase(BenchmarkPhases.outline_computeMacroApplications);
-
-        benchmarker
-        // Coverage-ignore(suite): Not run.
         ?.enterPhase(BenchmarkPhases.outline_computeVariances);
         loader.computeVariances(loader.sourceLibraryBuilders);
 
@@ -1524,6 +1520,9 @@ class KernelTarget {
           /// >and no body is provided, then c implicitly has an empty body {}.
           /// We use an empty statement instead.
           constructor.function.registerFunctionBody(new EmptyStatement());
+          // TODO(cstefantsova): Verify that null should be passed for
+          //  scopeProviderInfo in the call below.
+          constructor.function.registerScopeProviderInfo(null);
         }
       }
     }

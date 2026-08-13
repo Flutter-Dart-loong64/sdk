@@ -56,7 +56,7 @@ BinaryOperatorInvocation
   binaryOperator: equal
   element: <null>
   staticType: Never
-BinaryExpression
+V1: BinaryExpression
   leftOperand: ParenthesizedExpression
     leftParenthesis: (
     expression: ThrowExpression
@@ -120,7 +120,7 @@ BinaryOperatorInvocation
   binaryOperator: equal
   element: <null>
   staticType: Never
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: x
     element: <testLibrary>::@function::f::@formalParameter::x
@@ -195,7 +195,7 @@ BinaryOperatorInvocation
   binaryOperator: add
   element: <null>
   staticType: Never
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: x
     element: <testLibrary>::@function::f::@formalParameter::x
@@ -255,7 +255,7 @@ BinaryOperatorInvocation
   binaryOperator: equal
   element: dart:core::@class::Object::@method::==
   staticType: bool
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: x
     element: <testLibrary>::@function::f::@formalParameter::x
@@ -328,7 +328,7 @@ BinaryOperatorInvocation
   binaryOperator: add
   element: <null>
   staticType: InvalidType
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: x
     element: <testLibrary>::@function::f::@formalParameter::x
@@ -413,7 +413,7 @@ BinaryOperatorInvocation
   binaryOperator: add
   element: <null>
   staticType: Never
-BinaryExpression
+V1: BinaryExpression
   leftOperand: ParenthesizedExpression
     leftParenthesis: (
     expression: ThrowExpression
@@ -1026,7 +1026,7 @@ PostfixIncrement
   element: <null>
   operatorResultType: Never
   staticType: Never
-PostfixExpression
+V1: PostfixExpression
   operand: SimpleIdentifier
     token: x
     element: <testLibrary>::@function::f::@formalParameter::x
@@ -1061,7 +1061,7 @@ PostfixIncrement
   element: <null>
   operatorResultType: dynamic
   staticType: Never?
-PostfixExpression
+V1: PostfixExpression
   operand: SimpleIdentifier
     token: x
     element: <testLibrary>::@function::f::@formalParameter::x
@@ -1097,7 +1097,7 @@ PrefixIncrement
   element: <null>
   operatorResultType: Never
   staticType: Never
-PrefixExpression
+V1: PrefixExpression
   operator: ++
   operand: SimpleIdentifier
     token: x
@@ -1132,7 +1132,7 @@ PrefixIncrement
   element: <null>
   operatorResultType: InvalidType
   staticType: InvalidType
-PrefixExpression
+V1: PrefixExpression
   operator: ++
   operand: SimpleIdentifier
     token: x
@@ -1379,19 +1379,33 @@ PrefixedIdentifier
     var result = await resolveTestCodeWithDiagnostics(r'''
 void f() {
   (throw '').toString;
-//           ^^^^^^^^^
-// [diag.deadCode] Dead code.
+//^^^^^^^^^^
+// [diag.receiverOfTypeNever] The receiver is of type 'Never', and will never complete with a value.
 }
 ''');
 
-    var node = result.findNode.singlePropertyAccess;
+    var node = result.findNode.singlePropertyExtraction;
     assertResolvedNodeText(node, r'''
-PropertyAccess
-  target2: ParenthesizedExpression
+PropertyExtraction
+  receiver: ParenthesizedExpression
     leftParenthesis: (
     expression2: ThrowExpression
       throwKeyword: throw
       expression2: SimpleStringLiteral
+        literal: ''
+      staticType: Never
+    rightParenthesis: )
+    staticType: Never
+  operator: .
+  propertyName: toString
+  resolution: <null>
+  staticType: Never
+V1: PropertyAccess
+  target: ParenthesizedExpression
+    leftParenthesis: (
+    expression: ThrowExpression
+      throwKeyword: throw
+      expression: SimpleStringLiteral
         literal: ''
       staticType: Never
     rightParenthesis: )
@@ -1399,9 +1413,49 @@ PropertyAccess
   operator: .
   propertyName: SimpleIdentifier
     token: toString
-    element: dart:core::@class::Object::@method::toString
-    staticType: String Function()
-  staticType: String Function()
+    element: <null>
+    staticType: Never
+  staticType: Never
+''');
+  }
+
+  test_propertyAssignment_direct_never_alias() async {
+    await resolveTestCodeWithDiagnostics(r'''
+typedef N = Never;
+
+void f(N x) {
+  (x).foo = 0;
+//^^^
+// [diag.receiverOfTypeNever] The receiver is of type 'Never', and will never complete with a value.
+//          ^^
+// [diag.deadCode] Dead code.
+}
+''');
+  }
+
+  test_propertyAssignment_readWrite_never_alias() async {
+    await resolveTestCodeWithDiagnostics(r'''
+typedef N = Never;
+
+void f(N x) {
+  (x).foo += 0;
+//^^^
+// [diag.receiverOfTypeNever] The receiver is of type 'Never', and will never complete with a value.
+//           ^^
+// [diag.deadCode] Dead code.
+}
+''');
+  }
+
+  test_propertyExtraction_never_alias() async {
+    await resolveTestCodeWithDiagnostics(r'''
+typedef N = Never;
+
+void f(N x) {
+  (x).foo;
+//^^^
+// [diag.receiverOfTypeNever] The receiver is of type 'Never', and will never complete with a value.
+}
 ''');
   }
 
@@ -1409,15 +1463,15 @@ PropertyAccess
     var result = await resolveTestCodeWithDiagnostics(r'''
 void f() {
   (throw '').hashCode;
-//           ^^^^^^^^^
-// [diag.deadCode] Dead code.
+//^^^^^^^^^^
+// [diag.receiverOfTypeNever] The receiver is of type 'Never', and will never complete with a value.
 }
 ''');
 
-    var node = result.findNode.singlePropertyAccess;
+    var node = result.findNode.singlePropertyExtraction;
     assertResolvedNodeText(node, r'''
-PropertyAccess
-  target2: ParenthesizedExpression
+PropertyExtraction
+  receiver: ParenthesizedExpression
     leftParenthesis: (
     expression2: ThrowExpression
       throwKeyword: throw
@@ -1427,11 +1481,25 @@ PropertyAccess
     rightParenthesis: )
     staticType: Never
   operator: .
+  propertyName: hashCode
+  resolution: <null>
+  staticType: Never
+V1: PropertyAccess
+  target: ParenthesizedExpression
+    leftParenthesis: (
+    expression: ThrowExpression
+      throwKeyword: throw
+      expression: SimpleStringLiteral
+        literal: ''
+      staticType: Never
+    rightParenthesis: )
+    staticType: Never
+  operator: .
   propertyName: SimpleIdentifier
     token: hashCode
-    element: dart:core::@class::Object::@getter::hashCode
-    staticType: int
-  staticType: int
+    element: <null>
+    staticType: Never
+  staticType: Never
 ''');
   }
 }

@@ -1934,6 +1934,25 @@ class _LocalReferencesVisitor extends RecursiveAstVisitor2<void> {
   }
 
   @override
+  void visitPropertyExtraction(PropertyExtraction node) {
+    var result = switch (node.resolution) {
+      GetterInvocationResolution(:var element) => (
+        element,
+        SearchResultKind.INVOCATION,
+      ),
+      ExecutableTearOffResolution(:var element) => (
+        element,
+        SearchResultKind.REFERENCE,
+      ),
+      _ => null,
+    };
+    if (result != null && _matches(result.$1)) {
+      _addResultImpl(node.propertyName, result.$2, isQualified: true);
+    }
+    node.receiver.accept2(this);
+  }
+
+  @override
   void visitSimpleIdentifier(SimpleIdentifier node) {
     if (node.inDeclarationContext()) {
       return;
@@ -1984,6 +2003,15 @@ class _LocalReferencesVisitor extends RecursiveAstVisitor2<void> {
       (false, true) => SearchResultKind.WRITE,
       (false, false) => null,
     };
+
+    if (kind == null) {
+      if (node.write case InvalidNamedWriteResolution(:var candidates)) {
+        if (candidates.any(_matches)) {
+          kind = SearchResultKind.REFERENCE;
+        }
+      }
+    }
+
     if (kind != null) {
       _addResult(node, kind);
     }

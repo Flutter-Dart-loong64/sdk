@@ -2151,6 +2151,7 @@ typedef A = E;
 ''');
   }
 
+  // TODO(fshcheglov): Think why on constructor, not extension type as a whole?
   test_extensionTypePrivate_publicConstructor() async {
     await resolveTestCodeWithDiagnostics('''
 extension type _E(int i) {
@@ -2308,6 +2309,18 @@ typedef _F(a, b);
 //      ^^
 // [diag.unusedElement] The declaration '_F' isn't referenced.
 main() {
+}
+''');
+  }
+
+  test_getter_isUsed_invalidAssignment() async {
+    await resolveTestCodeWithDiagnostics(r'''
+int get _g => 0;
+
+void f() {
+  _g = 1;
+//^^
+// [diag.assignmentToFinal] '_g' can't be used as a setter because it's final.
 }
 ''');
   }

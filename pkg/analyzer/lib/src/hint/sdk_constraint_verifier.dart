@@ -89,13 +89,26 @@ class SdkConstraintVerifier extends RecursiveAstVisitor2<void> {
   @override
   void visitCompoundAssignment(CompoundAssignment node) {
     var target = node.target;
-    if (target is UnqualifiedNameAssignmentTarget) {
-      if (target.read case NamedReadResolutionWithElement(:var element)) {
-        _checkSinceSdkVersion(element, target);
-      }
-      if (target.write case NamedWriteResolutionWithElement(:var element)) {
-        _checkSinceSdkVersion(element, target);
-      }
+    var read = switch (target) {
+      PropertyAssignmentTarget(:var read) => read,
+      UnqualifiedNameAssignmentTarget(:var read) => read,
+      _ => null,
+    };
+    var write = switch (target) {
+      PropertyAssignmentTarget(:var write) => write,
+      UnqualifiedNameAssignmentTarget(:var write) => write,
+      _ => null,
+    };
+    var errorEntity = switch (target) {
+      PropertyAssignmentTarget() => target.propertyName,
+      UnqualifiedNameAssignmentTarget() => target.name,
+      _ => null,
+    };
+    if (read case NamedReadResolutionWithElement(:var element)) {
+      _checkSinceSdkVersion(element, target, errorEntity: errorEntity);
+    }
+    if (write case NamedWriteResolutionWithElement(:var element)) {
+      _checkSinceSdkVersion(element, target, errorEntity: errorEntity);
     }
     _checkSinceSdkVersion(node.element, node);
     super.visitCompoundAssignment(node);
@@ -225,6 +238,16 @@ class SdkConstraintVerifier extends RecursiveAstVisitor2<void> {
   }
 
   @override
+  void visitPropertyExtraction(PropertyExtraction node) {
+    var element = switch (node.resolution) {
+      NamedReadResolutionWithElement(:var element) => element,
+      _ => null,
+    };
+    _checkSinceSdkVersion(element, node);
+    super.visitPropertyExtraction(node);
+  }
+
+  @override
   void visitShowCombinator(ShowCombinator node) {
     // Don't flag references to either `Future` or `Stream` within a combinator.
   }
@@ -265,6 +288,8 @@ class SdkConstraintVerifier extends RecursiveAstVisitor2<void> {
           } else if (target is PrefixedIdentifier) {
             errorEntity = target.identifier;
           } else if (target is PropertyAccess) {
+            errorEntity = target.propertyName;
+          } else if (target is PropertyExtraction) {
             errorEntity = target.propertyName;
           } else if (target is SimpleIdentifier) {
             errorEntity = target;

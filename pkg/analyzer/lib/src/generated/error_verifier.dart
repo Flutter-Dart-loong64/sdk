@@ -653,14 +653,13 @@ class ErrorVerifier extends RecursiveAstVisitor2<void>
       case InvalidExpressionAssignmentTargetImpl():
         break;
       case PropertyAssignmentTargetImpl():
-        throw StateError(
-          'Property targets are not produced for compound assignment.',
-        );
+        break;
       case UnqualifiedNameAssignmentTargetImpl target:
         var readElement = switch (target.read) {
           null => null,
           InvalidNamedReadResolutionImpl() => null,
           NamedReadResolutionWithElementImpl(:var element) => element,
+          _ => null,
         };
         var writeElement = switch (target.write) {
           null => null,
@@ -699,6 +698,13 @@ class ErrorVerifier extends RecursiveAstVisitor2<void>
   void visitConstructorDeclaration(covariant ConstructorDeclarationImpl node) {
     var declaredFragment = node.declaredFragment!;
     var element = declaredFragment.element;
+    var typeName = node.typeName2;
+
+    if (node.factoryKeyword != null &&
+        typeName != null &&
+        typeName.lexeme != element.enclosingElement.name) {
+      diagnosticReporter.report(diag.invalidFactoryNameNotAClass.at(typeName));
+    }
 
     _checkAugmentationWithoutDeclaration(declaredFragment, node.augmentKeyword);
     _checkForConstructorAugmentationModifierMismatch(node, declaredFragment);
@@ -1498,39 +1504,47 @@ class ErrorVerifier extends RecursiveAstVisitor2<void>
       super.visitIfNullAssignment(node);
       return;
     }
-    target as UnqualifiedNameAssignmentTargetImpl;
-    var readElement = switch (target.read) {
-      NamedReadResolutionWithElementImpl(:var element) => element,
-      _ => null,
-    };
-    var writeElement = switch (target.write) {
-      NamedWriteResolutionWithElementImpl(:var element) => element,
-      _ => null,
-    };
-    if (target.read case NamedReadResolutionImpl(:var type)) {
-      _checkForDeadNullCoalesce(type, node.value);
-    }
-    for (var element in {readElement, writeElement}) {
-      if (element == null) continue;
-      _checkForReferenceBeforeDeclaration(
-        nameToken: target.name,
-        element: element,
-      );
-      _checkForInvalidInstanceMemberAccess2(
-        entity: target,
-        name: target.name.lexeme,
-        element: element,
-      );
-      _checkForUnqualifiedReferenceToNonLocalStaticMember2(
-        entity: target,
-        element: element,
-      );
-    }
-    if (writeElement != null) {
-      _checkForAssignmentToPrimaryConstructorParameter(
-        target,
-        element: writeElement,
-      );
+    switch (target) {
+      case PropertyAssignmentTargetImpl(:var read):
+        if (read case NamedReadResolutionImpl(:var type)) {
+          _checkForDeadNullCoalesce(type, node.value);
+        }
+      case UnqualifiedNameAssignmentTargetImpl():
+        var readElement = switch (target.read) {
+          NamedReadResolutionWithElementImpl(:var element) => element,
+          _ => null,
+        };
+        var writeElement = switch (target.write) {
+          NamedWriteResolutionWithElementImpl(:var element) => element,
+          _ => null,
+        };
+        if (target.read case NamedReadResolutionImpl(:var type)) {
+          _checkForDeadNullCoalesce(type, node.value);
+        }
+        for (var element in {readElement, writeElement}) {
+          if (element == null) continue;
+          _checkForReferenceBeforeDeclaration(
+            nameToken: target.name,
+            element: element,
+          );
+          _checkForInvalidInstanceMemberAccess2(
+            entity: target,
+            name: target.name.lexeme,
+            element: element,
+          );
+          _checkForUnqualifiedReferenceToNonLocalStaticMember2(
+            entity: target,
+            element: element,
+          );
+        }
+        if (writeElement != null) {
+          _checkForAssignmentToPrimaryConstructorParameter(
+            target,
+            element: writeElement,
+          );
+        }
+      case InvalidExpressionAssignmentTargetImpl():
+        throw StateError('Handled above');
     }
     _constArgumentsVerifier.visitIfNullAssignment(node);
     super.visitIfNullAssignment(node);
@@ -1539,9 +1553,9 @@ class ErrorVerifier extends RecursiveAstVisitor2<void>
   @override
   void visitImportDirective(ImportDirective node) {
     var importElement = node.libraryImport;
-    if (node.prefix != null) {
+    if (node.prefixName case var prefixName?) {
       _checkForBuiltInIdentifierAsName(
-        node.prefix!.token,
+        prefixName,
         diag.builtInIdentifierAsPrefixName,
       );
     }
@@ -2023,6 +2037,13 @@ class ErrorVerifier extends RecursiveAstVisitor2<void>
     }
     _checkUseVerifier.checkPropertyAccess(node);
     super.visitPropertyAccess(node);
+  }
+
+  @override
+  void visitPropertyExtraction(covariant PropertyExtractionImpl node) {
+    _constArgumentsVerifier.visitPropertyExtraction(node);
+    _checkUseVerifier.checkPropertyExtraction(node);
+    super.visitPropertyExtraction(node);
   }
 
   @override
@@ -4733,17 +4754,14 @@ class ErrorVerifier extends RecursiveAstVisitor2<void>
       for (int i = 0; i < count; i++) {
         Directive directive = directives[i];
         if (directive is ImportDirective) {
-          var prefix = directive.prefix;
-          if (prefix != null) {
-            var element = prefix.element;
-            if (element is PrefixElement) {
-              var elements = prefixToDirectivesMap[element];
-              if (elements == null) {
-                elements = <ImportDirective>[];
-                prefixToDirectivesMap[element] = elements;
-              }
-              elements.add(directive);
+          var element = directive.libraryImport?.prefix?.element;
+          if (element != null) {
+            var elements = prefixToDirectivesMap[element];
+            if (elements == null) {
+              elements = <ImportDirective>[];
+              prefixToDirectivesMap[element] = elements;
             }
+            elements.add(directive);
           }
         }
       }

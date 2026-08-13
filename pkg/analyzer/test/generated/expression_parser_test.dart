@@ -423,7 +423,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: y
   binaryOperator: add
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: x
   operator: +
@@ -445,7 +445,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: y
   binaryOperator: add
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SuperExpression
     superKeyword: super
   operator: +
@@ -516,10 +516,18 @@ var v = (x).y;
 ''');
     var node = parseResult.findNode.singleVariableDeclaration.initializer2!;
     assertParsedNodeText(node, r'''
-PropertyAccess
-  target2: ParenthesizedExpression
+PropertyExtraction
+  receiver: ParenthesizedExpression
     leftParenthesis: (
     expression2: SimpleIdentifier
+      token: x
+    rightParenthesis: )
+  operator: .
+  propertyName: y
+V1: PropertyAccess
+  target: ParenthesizedExpression
+    leftParenthesis: (
+    expression: SimpleIdentifier
       token: x
     rightParenthesis: )
   operator: .
@@ -788,7 +796,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: y
   binaryOperator: bitwiseAnd
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: x
   operator: &
@@ -810,7 +818,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: y
   binaryOperator: bitwiseAnd
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SuperExpression
     superKeyword: super
   operator: &
@@ -832,7 +840,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: y
   binaryOperator: bitwiseOr
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: x
   operator: |
@@ -854,7 +862,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: y
   binaryOperator: bitwiseOr
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SuperExpression
     superKeyword: super
   operator: |
@@ -876,7 +884,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: y
   binaryOperator: bitwiseXor
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: x
   operator: ^
@@ -898,7 +906,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: y
   binaryOperator: bitwiseXor
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SuperExpression
     superKeyword: super
   operator: ^
@@ -1517,7 +1525,7 @@ ConstructorInvocation
   argumentList: ArgumentList
     leftParenthesis: (
     rightParenthesis: )
-InstanceCreationExpression
+V1: InstanceCreationExpression
   keyword: const
   constructorName: ConstructorName
     type: NamedType
@@ -1638,7 +1646,8 @@ CompilationUnit
         leftBracket: {
         members
           ConstructorDeclaration
-            typeName: SimpleIdentifier
+            typeName2: C
+            typeName(v1): SimpleIdentifier
               token: C
             period: .
             name: n
@@ -1665,7 +1674,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: y
   binaryOperator: equal
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: x
   operator: ==
@@ -1687,7 +1696,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: y
   binaryOperator: equal
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SuperExpression
     superKeyword: super
   operator: ==
@@ -1708,7 +1717,7 @@ DirectAssignment
   operator: =
   value: SimpleIdentifier
     token: y
-AssignmentExpression
+V1: AssignmentExpression
   leftHandSide: SimpleIdentifier
     token: x
   operator: =
@@ -1738,7 +1747,7 @@ DirectAssignment
   operator: =
   value: SimpleIdentifier
     token: y
-AssignmentExpression
+V1: AssignmentExpression
   leftHandSide: BinaryExpression
     leftOperand: SimpleIdentifier
       token: x
@@ -1770,7 +1779,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: c
   binaryOperator: equal
-BinaryExpression
+V1: BinaryExpression
   leftOperand: PrefixExpression
     operator: --
     operand: PrefixedIdentifier
@@ -2153,7 +2162,7 @@ DirectAssignment
   operator: =
   value: SimpleIdentifier
     token: y
-AssignmentExpression
+V1: AssignmentExpression
   leftHandSide: SimpleIdentifier
     token: x
   operator: =
@@ -2181,7 +2190,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: c
   binaryOperator: equal
-BinaryExpression
+V1: BinaryExpression
   leftOperand: PrefixExpression
     operator: --
     operand: PrefixedIdentifier
@@ -2401,7 +2410,7 @@ ConstructorInvocation
   argumentList: ArgumentList
     leftParenthesis: ( <synthetic>
     rightParenthesis: ) <synthetic>
-InstanceCreationExpression
+V1: InstanceCreationExpression
   keyword: new
   constructorName: ConstructorName
     type: NamedType
@@ -2428,7 +2437,7 @@ ConstructorInvocation
   argumentList: ArgumentList
     leftParenthesis: ( <synthetic>
     rightParenthesis: ) <synthetic>
-InstanceCreationExpression
+V1: InstanceCreationExpression
   keyword: new
   constructorName: ConstructorName
     type: NamedType
@@ -2456,7 +2465,7 @@ ConstructorInvocation
   argumentList: ArgumentList
     leftParenthesis: ( <synthetic>
     rightParenthesis: ) <synthetic>
-InstanceCreationExpression
+V1: InstanceCreationExpression
   keyword: new
   constructorName: ConstructorName
     type: NamedType
@@ -2483,7 +2492,7 @@ ConstructorInvocation
   argumentList: ArgumentList
     leftParenthesis: ( <synthetic>
     rightParenthesis: ) <synthetic>
-InstanceCreationExpression
+V1: InstanceCreationExpression
   keyword: new
   constructorName: ConstructorName
     type: NamedType
@@ -2510,7 +2519,7 @@ ConstructorInvocation
   argumentList: ArgumentList
     leftParenthesis: ( <synthetic>
     rightParenthesis: ) <synthetic>
-InstanceCreationExpression
+V1: InstanceCreationExpression
   keyword: new
   constructorName: ConstructorName
     type: NamedType
@@ -2537,7 +2546,7 @@ ConstructorInvocation
   argumentList: ArgumentList
     leftParenthesis: ( <synthetic>
     rightParenthesis: ) <synthetic>
-InstanceCreationExpression
+V1: InstanceCreationExpression
   keyword: new
   constructorName: ConstructorName
     type: NamedType
@@ -2564,7 +2573,7 @@ ConstructorInvocation
   argumentList: ArgumentList
     leftParenthesis: ( <synthetic>
     rightParenthesis: ) <synthetic>
-InstanceCreationExpression
+V1: InstanceCreationExpression
   keyword: new
   constructorName: ConstructorName
     type: NamedType
@@ -2603,7 +2612,7 @@ ConstructorInvocation
   argumentList: ArgumentList
     leftParenthesis: (
     rightParenthesis: )
-InstanceCreationExpression
+V1: InstanceCreationExpression
   keyword: new
   constructorName: ConstructorName
     type: NamedType
@@ -2642,7 +2651,7 @@ ConstructorInvocation
   argumentList: ArgumentList
     leftParenthesis: ( <synthetic>
     rightParenthesis: ) <synthetic>
-InstanceCreationExpression
+V1: InstanceCreationExpression
   keyword: new
   constructorName: ConstructorName
     type: NamedType
@@ -2798,7 +2807,7 @@ BinaryOperatorInvocation
         literal: 1
     rightBracket: ]
   binaryOperator: greaterThan
-BinaryExpression
+V1: BinaryExpression
   leftOperand: BinaryExpression
     leftOperand: ListLiteral
       typeArguments: TypeArgumentList
@@ -2939,7 +2948,7 @@ LogicalAnd
   operator: &&
   rightOperand: SimpleIdentifier
     token: y
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: x
   operator: &&
@@ -2960,7 +2969,7 @@ LogicalOr
   operator: ||
   rightOperand: SimpleIdentifier
     token: y
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: x
   operator: ||
@@ -3158,7 +3167,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: y
   binaryOperator: multiply
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: x
   operator: *
@@ -3180,7 +3189,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: y
   binaryOperator: multiply
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SuperExpression
     superKeyword: super
   operator: *
@@ -3203,7 +3212,7 @@ ConstructorInvocation
   argumentList: ArgumentList
     leftParenthesis: (
     rightParenthesis: )
-InstanceCreationExpression
+V1: InstanceCreationExpression
   keyword: new
   constructorName: ConstructorName
     type: NamedType
@@ -3224,7 +3233,7 @@ PostfixDecrement
   operand: SimpleIdentifier
     token: i
   operator: --
-PostfixExpression
+V1: PostfixExpression
   operand: SimpleIdentifier
     token: i
   operator: --
@@ -3241,7 +3250,7 @@ PostfixIncrement
   operand: SimpleIdentifier
     token: i
   operator: ++
-PostfixExpression
+V1: PostfixExpression
   operand: SimpleIdentifier
     token: i
   operator: ++
@@ -3400,7 +3409,7 @@ ConstructorInvocation
   argumentList: ArgumentList
     leftParenthesis: (
     rightParenthesis: )
-InstanceCreationExpression
+V1: InstanceCreationExpression
   keyword: const
   constructorName: ConstructorName
     type: NamedType
@@ -3679,7 +3688,7 @@ ConstructorInvocation
   argumentList: ArgumentList
     leftParenthesis: (
     rightParenthesis: )
-InstanceCreationExpression
+V1: InstanceCreationExpression
   keyword: new
   constructorName: ConstructorName
     type: NamedType
@@ -3803,7 +3812,8 @@ CompilationUnit
         leftBracket: {
         members
           ConstructorDeclaration
-            typeName: SimpleIdentifier
+            typeName2: C
+            typeName(v1): SimpleIdentifier
               token: C
             parameters: FormalParameterList
               leftParenthesis: (
@@ -3845,7 +3855,8 @@ CompilationUnit
         leftBracket: {
         members
           ConstructorDeclaration
-            typeName: SimpleIdentifier
+            typeName2: C
+            typeName(v1): SimpleIdentifier
               token: C
             parameters: FormalParameterList
               leftParenthesis: (
@@ -4050,7 +4061,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: y
   binaryOperator: lessThan
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: x
   operator: <
@@ -4072,7 +4083,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: y
   binaryOperator: lessThan
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SuperExpression
     superKeyword: super
   operator: <
@@ -4107,7 +4118,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: y
   binaryOperator: shiftLeft
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SimpleIdentifier
     token: x
   operator: <<
@@ -4129,7 +4140,7 @@ BinaryOperatorInvocation
   rightOperand: SimpleIdentifier
     token: y
   binaryOperator: shiftLeft
-BinaryExpression
+V1: BinaryExpression
   leftOperand: SuperExpression
     superKeyword: super
   operator: <<
@@ -4734,7 +4745,8 @@ CompilationUnit
         leftBracket: {
         members
           ConstructorDeclaration
-            typeName: SimpleIdentifier
+            typeName2: C
+            typeName(v1): SimpleIdentifier
               token: C
             parameters: FormalParameterList
               leftParenthesis: (
@@ -4776,7 +4788,8 @@ CompilationUnit
         leftBracket: {
         members
           ConstructorDeclaration
-            typeName: SimpleIdentifier
+            typeName2: C
+            typeName(v1): SimpleIdentifier
               token: C
             parameters: FormalParameterList
               leftParenthesis: (
@@ -4904,7 +4917,7 @@ PrefixDecrement
     index2: IntegerLiteral
       literal: 0
     rightBracket: ]
-PrefixExpression
+V1: PrefixExpression
   operator: --
   operand: IndexExpression
     target: SimpleIdentifier
@@ -4926,7 +4939,7 @@ PrefixDecrement
   operator: --
   operand: SimpleIdentifier
     token: x
-PrefixExpression
+V1: PrefixExpression
   operator: --
   operand: SimpleIdentifier
     token: x
@@ -4961,7 +4974,7 @@ PrefixDecrement
     operator: .
     propertyName: SimpleIdentifier
       token: x
-PrefixExpression
+V1: PrefixExpression
   operator: --
   operand: PropertyAccess
     target: SuperExpression
@@ -5001,7 +5014,7 @@ PrefixIncrement
     index2: IntegerLiteral
       literal: 0
     rightBracket: ]
-PrefixExpression
+V1: PrefixExpression
   operator: ++
   operand: IndexExpression
     target: SimpleIdentifier
@@ -5023,7 +5036,7 @@ PrefixIncrement
   operator: ++
   operand: SimpleIdentifier
     token: x
-PrefixExpression
+V1: PrefixExpression
   operator: ++
   operand: SimpleIdentifier
     token: x
@@ -5045,7 +5058,7 @@ PrefixIncrement
     index2: IntegerLiteral
       literal: 0
     rightBracket: ]
-PrefixExpression
+V1: PrefixExpression
   operator: ++
   operand: IndexExpression
     target: SuperExpression
@@ -5071,7 +5084,7 @@ PrefixIncrement
     operator: .
     propertyName: SimpleIdentifier
       token: x
-PrefixExpression
+V1: PrefixExpression
   operator: ++
   operand: PropertyAccess
     target: SuperExpression
@@ -5098,7 +5111,7 @@ UnaryOperatorInvocation
       literal: 0
     rightBracket: ]
   unaryOperator: negate
-PrefixExpression
+V1: PrefixExpression
   operator: -
   operand: IndexExpression
     target: SimpleIdentifier
@@ -5121,7 +5134,7 @@ UnaryOperatorInvocation
   operand: SimpleIdentifier
     token: x
   unaryOperator: negate
-PrefixExpression
+V1: PrefixExpression
   operator: -
   operand: SimpleIdentifier
     token: x
@@ -5139,7 +5152,7 @@ UnaryOperatorInvocation
   operand: SuperExpression
     superKeyword: super
   unaryOperator: negate
-PrefixExpression
+V1: PrefixExpression
   operator: -
   operand: SuperExpression
     superKeyword: super
@@ -5156,7 +5169,7 @@ LogicalNot
   operator: !
   operand: SimpleIdentifier
     token: x
-PrefixExpression
+V1: PrefixExpression
   operator: !
   operand: SimpleIdentifier
     token: x
@@ -5175,7 +5188,7 @@ LogicalNot
   operator: !
   operand: SuperExpression
     superKeyword: super
-PrefixExpression
+V1: PrefixExpression
   operator: !
   operand: SuperExpression
     superKeyword: super
@@ -5193,7 +5206,7 @@ UnaryOperatorInvocation
   operand: SimpleIdentifier
     token: x
   unaryOperator: bitwiseComplement
-PrefixExpression
+V1: PrefixExpression
   operator: ~
   operand: SimpleIdentifier
     token: x
@@ -5211,7 +5224,7 @@ UnaryOperatorInvocation
   operand: SuperExpression
     superKeyword: super
   unaryOperator: bitwiseComplement
-PrefixExpression
+V1: PrefixExpression
   operator: ~
   operand: SuperExpression
     superKeyword: super
@@ -5234,7 +5247,7 @@ UnaryOperatorInvocation
       literal: 0
     rightBracket: ]
   unaryOperator: bitwiseComplement
-PrefixExpression
+V1: PrefixExpression
   operator: ~
   operand: IndexExpression
     target: SimpleIdentifier
