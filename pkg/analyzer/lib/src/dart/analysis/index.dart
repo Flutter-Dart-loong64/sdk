@@ -856,6 +856,8 @@ class _IndexContributor extends GeneralizingAstVisitor2 {
   void visitCompoundAssignment(CompoundAssignment node) {
     recordOperatorReference(node.operator, node.element);
     switch (node.target as AssignmentTargetImpl) {
+      case IndexAssignmentTargetImpl target:
+        _recordIndexReadWriteTarget(target);
       case InvalidExpressionAssignmentTargetImpl():
         break;
       case PropertyAssignmentTargetImpl target:
@@ -964,6 +966,8 @@ class _IndexContributor extends GeneralizingAstVisitor2 {
   @override
   void visitDirectAssignment(DirectAssignment node) {
     switch (node.target as AssignmentTargetImpl) {
+      case IndexAssignmentTargetImpl target:
+        _recordIndexReadWriteTarget(target);
       case InvalidExpressionAssignmentTargetImpl():
         break;
       case PropertyAssignmentTargetImpl target:
@@ -1205,6 +1209,8 @@ class _IndexContributor extends GeneralizingAstVisitor2 {
   @override
   void visitIfNullAssignment(IfNullAssignment node) {
     switch (node.target as AssignmentTargetImpl) {
+      case IndexAssignmentTargetImpl target:
+        _recordIndexReadWriteTarget(target);
       case InvalidExpressionAssignmentTargetImpl():
         break;
       case PropertyAssignmentTargetImpl target:
@@ -1267,6 +1273,26 @@ class _IndexContributor extends GeneralizingAstVisitor2 {
       recordRelationToken(element, IndexRelationKind.IS_INVOKED_BY, operator);
     }
     super.visitIndexExpression(node);
+  }
+
+  @override
+  void visitIndexExpression2(IndexExpression2 node) {
+    var element = switch (node.resolution) {
+      MethodIndexReadResolution(:var element) => element,
+      InvalidIndexReadResolution(
+        recovery: MethodIndexReadResolution(:var element),
+      ) =>
+        element,
+      _ => null,
+    };
+    if (element is MethodElement) {
+      recordRelationToken(
+        element,
+        IndexRelationKind.IS_INVOKED_BY,
+        node.leftBracket,
+      );
+    }
+    super.visitIndexExpression2(node);
   }
 
   @override
@@ -1771,6 +1797,23 @@ class _IndexContributor extends GeneralizingAstVisitor2 {
       name,
       isQualified: importPrefix != null,
     );
+  }
+
+  void _recordIndexReadWriteTarget(IndexAssignmentTargetImpl target) {
+    if (target.read case MethodIndexReadResolutionImpl(:var element)) {
+      recordRelationToken(
+        element,
+        IndexRelationKind.IS_INVOKED_BY,
+        target.leftBracket,
+      );
+    }
+    if (target.write case MethodIndexWriteResolutionImpl(:var element)) {
+      recordRelationToken(
+        element,
+        IndexRelationKind.IS_INVOKED_BY,
+        target.leftBracket,
+      );
+    }
   }
 
   void _recordPropertyReadWriteTarget(PropertyAssignmentTargetImpl target) {

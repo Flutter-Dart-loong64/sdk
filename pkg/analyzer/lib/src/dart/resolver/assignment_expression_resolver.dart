@@ -136,9 +136,24 @@ class AssignmentExpressionResolver {
       _resolveInvalidCompound(node, target);
       return;
     }
-    late NamedReadResolutionImpl readResolution;
-    late NamedWriteResolutionImpl writeResolution;
+    late TypeImpl readType;
+    late TypeImpl writeAcceptedType;
+    InternalVariableElement? variableElement;
     switch (target) {
+      case IndexAssignmentTargetImpl():
+        var targetResult = _resolveIndexReadWriteTarget(target);
+        if (targetResult == null) {
+          _resolver.analyzeExpression(
+            node.value,
+            SharedTypeSchemaView(UnknownInferredType.instance),
+          );
+          node.value = _resolver.popRewrite()!;
+          node.operatorResultType = NeverTypeImpl.instance;
+          node.recordStaticType(NeverTypeImpl.instance, resolver: _resolver);
+          return;
+        }
+        readType = targetResult.read.type;
+        writeAcceptedType = targetResult.write.acceptedType;
       case PropertyAssignmentTargetImpl():
         _resolver.analyzeExpression(
           target.receiver,
@@ -159,27 +174,33 @@ class AssignmentExpressionResolver {
           node.recordStaticType(NeverTypeImpl.instance, resolver: _resolver);
           return;
         }
-        target.read = readResolution = targetResult.read;
-        target.write = writeResolution = targetResult.write;
+        target.read = targetResult.read;
+        target.write = targetResult.write;
+        readType = targetResult.read.type;
+        writeAcceptedType = targetResult.write.acceptedType;
       case UnqualifiedNameAssignmentTargetImpl():
         var targetResult = _resolver
             .resolveUnqualifiedNameReadWriteAssignmentTarget(target);
-        target.read = readResolution = targetResult.read;
-        target.write = writeResolution = targetResult.write;
+        target.read = targetResult.read;
+        target.write = targetResult.write;
+        readType = targetResult.read.type;
+        writeAcceptedType = targetResult.write.acceptedType;
+        if (targetResult.write case VariableWriteResolutionImpl(:var element)) {
+          variableElement = element;
+        }
         _assignmentShared.checkFinalTargetAlreadyAssigned(target);
       case InvalidExpressionAssignmentTargetImpl():
         throw StateError('Handled above');
     }
 
-    var readType = readResolution.type;
     _resolveCompoundOperator(node, receiver: null, readType: readType);
 
     // Analyze `target op= value` as an operator invocation whose receiver has
     // the target's read type and whose surrounding context is the target's
     // write type. Flow analysis may provide a promoted write type for a
     // variable; other targets use the type accepted by their write resolution.
-    var writeContextType = writeResolution.acceptedType;
-    if (writeResolution case VariableWriteResolutionImpl(:var element)) {
+    var writeContextType = writeAcceptedType;
+    if (variableElement case var element?) {
       writeContextType = _resolver.localVariableTypeProvider.getWriteType(
         element,
       );
@@ -203,7 +224,7 @@ class AssignmentExpressionResolver {
     node.recordStaticType(operatorResultType, resolver: _resolver);
 
     _checkForInvalidAssignment(
-      writeResolution.acceptedType,
+      writeAcceptedType,
       node.value,
       operatorResultType,
       whyNotPromoted: null,
@@ -215,9 +236,7 @@ class AssignmentExpressionResolver {
 
     var flow = _resolver.flowAnalysis.flow;
     if (flow == null) return;
-    if (writeResolution case VariableWriteResolutionImpl(
-      element: PromotableElementImpl element,
-    )) {
+    if (variableElement case PromotableElementImpl element) {
       _resolver.flowAnalysis.storeExpressionInfo(
         node,
         flow.write(node, element, SharedTypeView(operatorResultType), null),
@@ -234,8 +253,55 @@ class AssignmentExpressionResolver {
       _resolveInvalidDirect(node, target);
       return;
     }
-    late NamedWriteResolutionImpl writeResolution;
+
+    late TypeImpl writeAcceptedType;
+    InternalVariableElement? variableElement;
     switch (target) {
+      case IndexAssignmentTargetImpl():
+        _resolver.analyzeExpression(
+          target.receiver,
+          SharedTypeSchemaView(UnknownInferredType.instance),
+          continueNullShorting: true,
+        );
+        target.receiver = _resolver.popRewrite()!;
+        var resolution = _resolver.resolveIndexDirectAssignmentTarget(target);
+        target.write = resolution;
+
+        _resolver.analyzeExpression(
+          target.index,
+          SharedTypeSchemaView(
+            resolution?.indexContextType ?? UnknownInferredType.instance,
+          ),
+        );
+        target.index = _resolver.popRewrite()!;
+        var whyNotPromoted = _resolver.flowAnalysis.flow?.whyNotPromoted(
+          _resolver.flowAnalysis.getExpressionInfo(target.index),
+        );
+        var writeElement = switch (resolution) {
+          MethodIndexWriteResolutionImpl(:var element) => element,
+          InvalidIndexWriteResolutionImpl(
+            recovery: MethodIndexWriteResolutionImpl(:var element),
+          ) =>
+            element,
+          _ => null,
+        };
+        _resolver.checkIndexExpressionIndex(
+          target.index,
+          readElement: null,
+          writeElement: writeElement,
+          whyNotPromoted: whyNotPromoted,
+        );
+
+        if (resolution == null) {
+          _resolver.analyzeExpression(
+            node.value,
+            SharedTypeSchemaView(UnknownInferredType.instance),
+          );
+          node.value = _resolver.popRewrite()!;
+          node.recordStaticType(NeverTypeImpl.instance, resolver: _resolver);
+          return;
+        }
+        writeAcceptedType = resolution.acceptedType;
       case PropertyAssignmentTargetImpl():
         _resolver.analyzeExpression(
           target.receiver,
@@ -256,19 +322,23 @@ class AssignmentExpressionResolver {
           node.recordStaticType(NeverTypeImpl.instance, resolver: _resolver);
           return;
         }
-        writeResolution = resolution;
+        writeAcceptedType = resolution.acceptedType;
       case UnqualifiedNameAssignmentTargetImpl():
         var resolution = _resolver.resolveUnqualifiedNameAssignmentTarget(
           target,
         );
         target.write = resolution;
-        writeResolution = resolution;
+        writeAcceptedType = resolution.acceptedType;
+        if (resolution case VariableWriteResolutionImpl(:var element)) {
+          variableElement = element;
+        }
         _assignmentShared.checkFinalTargetAlreadyAssigned(target);
       case InvalidExpressionAssignmentTargetImpl():
         throw StateError('Handled above');
     }
-    var rhsContext = writeResolution.acceptedType;
-    if (writeResolution case VariableWriteResolutionImpl(:var element)) {
+
+    var rhsContext = writeAcceptedType;
+    if (variableElement case var element?) {
       rhsContext = _resolver.localVariableTypeProvider.getWriteType(element);
     }
 
@@ -282,16 +352,14 @@ class AssignmentExpressionResolver {
 
     node.recordStaticType(valueType, resolver: _resolver);
     _checkForInvalidAssignment(
-      writeResolution.acceptedType,
+      writeAcceptedType,
       node.value,
       valueType,
       whyNotPromoted: whyNotPromoted,
     );
 
     if (flow == null) return;
-    if (writeResolution case VariableWriteResolutionImpl(
-      element: PromotableElementImpl element,
-    )) {
+    if (variableElement case PromotableElementImpl element) {
       _resolver.flowAnalysis.storeExpressionInfo(
         node,
         flow.write(
@@ -313,10 +381,24 @@ class AssignmentExpressionResolver {
       _resolveInvalidIfNull(node, target, contextType: contextType);
       return;
     }
-    late NamedReadResolutionImpl readResolution;
-    late NamedWriteResolutionImpl writeResolution;
+    late TypeImpl readType;
+    late TypeImpl writeAcceptedType;
+    InternalVariableElement? variableElement;
     ExpressionInfo? readExpressionInfo;
     switch (target) {
+      case IndexAssignmentTargetImpl():
+        var targetResult = _resolveIndexReadWriteTarget(target);
+        if (targetResult == null) {
+          _resolver.analyzeExpression(
+            node.value,
+            SharedTypeSchemaView(UnknownInferredType.instance),
+          );
+          node.value = _resolver.popRewrite()!;
+          node.recordStaticType(NeverTypeImpl.instance, resolver: _resolver);
+          return;
+        }
+        readType = targetResult.read.type;
+        writeAcceptedType = targetResult.write.acceptedType;
       case PropertyAssignmentTargetImpl():
         _resolver.analyzeExpression(
           target.receiver,
@@ -336,27 +418,33 @@ class AssignmentExpressionResolver {
           node.recordStaticType(NeverTypeImpl.instance, resolver: _resolver);
           return;
         }
-        target.read = readResolution = targetResult.read;
-        target.write = writeResolution = targetResult.write;
+        target.read = targetResult.read;
+        target.write = targetResult.write;
+        readType = targetResult.read.type;
+        writeAcceptedType = targetResult.write.acceptedType;
         readExpressionInfo = targetResult.readExpressionInfo;
       case UnqualifiedNameAssignmentTargetImpl():
         var targetResult = _resolver
             .resolveUnqualifiedNameReadWriteAssignmentTarget(target);
-        target.read = readResolution = targetResult.read;
-        target.write = writeResolution = targetResult.write;
+        target.read = targetResult.read;
+        target.write = targetResult.write;
+        readType = targetResult.read.type;
+        writeAcceptedType = targetResult.write.acceptedType;
+        if (targetResult.write case VariableWriteResolutionImpl(:var element)) {
+          variableElement = element;
+        }
         readExpressionInfo = targetResult.readExpressionInfo;
         _assignmentShared.checkFinalTargetAlreadyAssigned(target);
       case InvalidExpressionAssignmentTargetImpl():
         throw StateError('Handled above');
     }
 
-    var readType = readResolution.type;
     if (readType is VoidType) {
       _diagnosticReporter.report(diag.useOfVoidResult.at(node.operator));
     }
 
-    var rhsContext = writeResolution.acceptedType;
-    if (writeResolution case VariableWriteResolutionImpl(:var element)) {
+    var rhsContext = writeAcceptedType;
+    if (variableElement case var element?) {
       rhsContext = _resolver.localVariableTypeProvider.getWriteType(element);
     }
 
@@ -380,16 +468,14 @@ class AssignmentExpressionResolver {
     );
     node.recordStaticType(nodeType, resolver: _resolver);
     _checkForInvalidAssignment(
-      writeResolution.acceptedType,
+      writeAcceptedType,
       node.value,
       valueType,
       whyNotPromoted: whyNotPromoted,
     );
 
     if (flow == null) return;
-    if (writeResolution case VariableWriteResolutionImpl(
-      element: PromotableElementImpl element,
-    )) {
+    if (variableElement case PromotableElementImpl element) {
       _resolver.flowAnalysis.storeExpressionInfo(
         node,
         flow.write(node, element, SharedTypeView(node.typeOrThrow), null),
@@ -612,6 +698,54 @@ class AssignmentExpressionResolver {
             .at(node.operator),
       );
     }
+  }
+
+  ({IndexReadResolutionImpl read, IndexWriteResolutionImpl write})?
+  _resolveIndexReadWriteTarget(IndexAssignmentTargetImpl target) {
+    _resolver.analyzeExpression(
+      target.receiver,
+      SharedTypeSchemaView(UnknownInferredType.instance),
+      continueNullShorting: true,
+    );
+    target.receiver = _resolver.popRewrite()!;
+
+    var result = _resolver.resolveIndexReadWriteAssignmentTarget(target);
+    target.read = result?.read;
+    target.write = result?.write;
+
+    _resolver.analyzeExpression(
+      target.index,
+      SharedTypeSchemaView(
+        result?.read.indexContextType ?? UnknownInferredType.instance,
+      ),
+    );
+    target.index = _resolver.popRewrite()!;
+    var whyNotPromoted = _resolver.flowAnalysis.flow?.whyNotPromoted(
+      _resolver.flowAnalysis.getExpressionInfo(target.index),
+    );
+    var readElement = switch (result?.read) {
+      MethodIndexReadResolutionImpl(:var element) => element,
+      InvalidIndexReadResolutionImpl(
+        recovery: MethodIndexReadResolutionImpl(:var element),
+      ) =>
+        element,
+      _ => null,
+    };
+    var writeElement = switch (result?.write) {
+      MethodIndexWriteResolutionImpl(:var element) => element,
+      InvalidIndexWriteResolutionImpl(
+        recovery: MethodIndexWriteResolutionImpl(:var element),
+      ) =>
+        element,
+      _ => null,
+    };
+    _resolver.checkIndexExpressionIndex(
+      target.index,
+      readElement: readElement,
+      writeElement: writeElement,
+      whyNotPromoted: whyNotPromoted,
+    );
+    return result;
   }
 
   void _resolveInvalidCompound(

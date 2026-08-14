@@ -737,6 +737,20 @@ class AstBinaryReader {
     _readExpressionResolution(node);
   }
 
+  IndexAssignmentTarget _readIndexAssignmentTarget() {
+    var receiver = _readNode() as ExpressionImpl;
+    var index = _readNode() as ExpressionImpl;
+    var node = IndexAssignmentTargetImpl(
+      receiver: receiver,
+      leftBracket: Tokens.openSquareBracket(),
+      index: index,
+      rightBracket: Tokens.closeSquareBracket(),
+    );
+    node.read = _reader.readOptionalObject(_readIndexReadResolution);
+    node.write = _reader.readOptionalObject(_readIndexWriteResolution);
+    return node;
+  }
+
   IndexExpression _readIndexExpression() {
     var flags = _readByte();
     var target = _readOptionalNode() as ExpressionImpl?;
@@ -752,6 +766,55 @@ class AstBinaryReader {
     node.element = _reader.readElement() as MethodElement?;
     _readExpressionResolution(node);
     return node;
+  }
+
+  IndexExpression2 _readIndexExpression2() {
+    var receiver = _readNode() as ExpressionImpl;
+    var index = _readNode() as ExpressionImpl;
+    var node = IndexExpression2Impl(
+      receiver: receiver,
+      leftBracket: Tokens.openSquareBracket(),
+      index: index,
+      rightBracket: Tokens.closeSquareBracket(),
+    );
+    node.resolution = _reader.readOptionalObject(_readIndexReadResolution);
+    _readExpressionResolution(node);
+    return node;
+  }
+
+  IndexReadResolutionImpl _readIndexReadResolution() {
+    switch (IndexReadResolutionTag.values[_readByte()]) {
+      case IndexReadResolutionTag.dynamic_:
+        return const DynamicIndexReadResolutionImpl();
+      case IndexReadResolutionTag.invalid:
+        return InvalidIndexReadResolutionImpl(
+          recovery: _reader.readOptionalObject(
+            () => _readIndexReadResolution() as MethodIndexReadResolutionImpl,
+          ),
+        );
+      case IndexReadResolutionTag.method:
+        return MethodIndexReadResolutionImpl(
+          element: _reader.readElement() as InternalMethodElement,
+          type: _reader.readType() as TypeImpl,
+        );
+    }
+  }
+
+  IndexWriteResolutionImpl _readIndexWriteResolution() {
+    switch (IndexWriteResolutionTag.values[_readByte()]) {
+      case IndexWriteResolutionTag.dynamic_:
+        return const DynamicIndexWriteResolutionImpl();
+      case IndexWriteResolutionTag.invalid:
+        return InvalidIndexWriteResolutionImpl(
+          recovery: _reader.readOptionalObject(
+            () => _readIndexWriteResolution() as MethodIndexWriteResolutionImpl,
+          ),
+        );
+      case IndexWriteResolutionTag.method:
+        return MethodIndexWriteResolutionImpl(
+          element: _reader.readElement() as InternalMethodElement,
+        );
+    }
   }
 
   IntegerLiteral _readIntegerLiteralNegative() {
@@ -1108,6 +1171,10 @@ class AstBinaryReader {
         return _readImportPrefixReference();
       case Tag.IndexExpression:
         return _readIndexExpression();
+      case Tag.IndexExpression2:
+        return _readIndexExpression2();
+      case Tag.IndexAssignmentTarget:
+        return _readIndexAssignmentTarget();
       case Tag.IntegerLiteralNegative1:
         return _readIntegerLiteralNegative1();
       case Tag.IntegerLiteralNull:

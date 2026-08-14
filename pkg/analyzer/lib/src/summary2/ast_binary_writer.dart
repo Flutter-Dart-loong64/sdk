@@ -425,6 +425,15 @@ class AstBinaryWriter extends ThrowingAstVisitor2<void> {
   }
 
   @override
+  void visitIndexAssignmentTarget(covariant IndexAssignmentTargetImpl node) {
+    _writeByte(Tag.IndexAssignmentTarget);
+    _writeNode(node.receiver);
+    _writeNode(node.index);
+    _sink.writeOptionalObject(node.read, _writeIndexReadResolution);
+    _sink.writeOptionalObject(node.write, _writeIndexWriteResolution);
+  }
+
+  @override
   void visitIndexExpression(IndexExpression node) {
     _writeByte(Tag.IndexExpression);
     _writeByte(
@@ -438,6 +447,15 @@ class AstBinaryWriter extends ThrowingAstVisitor2<void> {
 
     _sink.writeElement(node.element);
 
+    _storeExpression(node);
+  }
+
+  @override
+  void visitIndexExpression2(covariant IndexExpression2Impl node) {
+    _writeByte(Tag.IndexExpression2);
+    _writeNode(node.receiver);
+    _writeNode(node.index);
+    _sink.writeOptionalObject(node.resolution, _writeIndexReadResolution);
     _storeExpression(node);
   }
 
@@ -1098,6 +1116,33 @@ class AstBinaryWriter extends ThrowingAstVisitor2<void> {
     _sink.writeType(nodeImpl.writeType);
     _sink.writeType(node.operatorResultType);
     _storeExpression(node);
+  }
+
+  void _writeIndexReadResolution(IndexReadResolutionImpl resolution) {
+    switch (resolution) {
+      case DynamicIndexReadResolutionImpl():
+        _writeByte(IndexReadResolutionTag.dynamic_.index);
+      case InvalidIndexReadResolutionImpl(:var recovery):
+        _writeByte(IndexReadResolutionTag.invalid.index);
+        _sink.writeOptionalObject(recovery, _writeIndexReadResolution);
+      case MethodIndexReadResolutionImpl(:var element, :var type):
+        _writeByte(IndexReadResolutionTag.method.index);
+        _sink.writeElement(element);
+        _sink.writeType(type);
+    }
+  }
+
+  void _writeIndexWriteResolution(IndexWriteResolutionImpl resolution) {
+    switch (resolution) {
+      case DynamicIndexWriteResolutionImpl():
+        _writeByte(IndexWriteResolutionTag.dynamic_.index);
+      case InvalidIndexWriteResolutionImpl(:var recovery):
+        _writeByte(IndexWriteResolutionTag.invalid.index);
+        _sink.writeOptionalObject(recovery, _writeIndexWriteResolution);
+      case MethodIndexWriteResolutionImpl(:var element):
+        _writeByte(IndexWriteResolutionTag.method.index);
+        _sink.writeElement(element);
+    }
   }
 
   void _writeNamedReadResolution(NamedReadResolutionImpl resolution) {

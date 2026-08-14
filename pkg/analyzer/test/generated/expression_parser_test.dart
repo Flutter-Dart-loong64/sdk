@@ -41,7 +41,7 @@ var v = <b?c>();
     var node = parseResult.findNode.unit;
     assertParsedNodeText(node, r'''
 CompilationUnit
-  declarations
+  declarations2
     TopLevelVariableDeclaration
       variables: VariableDeclarationList
         keyword: var
@@ -82,7 +82,7 @@ var v = n=<.["$assert;
     var node = parseResult.findNode.unit;
     assertParsedNodeText(node, r'''
 CompilationUnit
-  declarations
+  declarations2
     TopLevelVariableDeclaration
       variables: VariableDeclarationList
         keyword: var
@@ -161,7 +161,7 @@ var v = [<y.<z>(){}];
     var node = parseResult.findNode.unit;
     assertParsedNodeText(node, r'''
 CompilationUnit
-  declarations
+  declarations2
     TopLevelVariableDeclaration
       variables: VariableDeclarationList
         keyword: var
@@ -542,14 +542,24 @@ var v = (x)[y];
 ''');
     var node = parseResult.findNode.singleVariableDeclaration.initializer2!;
     assertParsedNodeText(node, r'''
-IndexExpression
-  target2: ParenthesizedExpression
+IndexExpression2
+  receiver: ParenthesizedExpression
     leftParenthesis: (
     expression2: SimpleIdentifier
       token: x
     rightParenthesis: )
   leftBracket: [
-  index2: SimpleIdentifier
+  index: SimpleIdentifier
+    token: y
+  rightBracket: ]
+V1: IndexExpression
+  target: ParenthesizedExpression
+    leftParenthesis: (
+    expression: SimpleIdentifier
+      token: x
+    rightParenthesis: )
+  leftBracket: [
+  index: SimpleIdentifier
     token: y
   rightBracket: ]
 ''');
@@ -655,11 +665,18 @@ var v = x[y];
 ''');
     var node = parseResult.findNode.singleVariableDeclaration.initializer2!;
     assertParsedNodeText(node, r'''
-IndexExpression
-  target2: SimpleIdentifier
+IndexExpression2
+  receiver: SimpleIdentifier
     token: x
   leftBracket: [
-  index2: SimpleIdentifier
+  index: SimpleIdentifier
+    token: y
+  rightBracket: ]
+V1: IndexExpression
+  target: SimpleIdentifier
+    token: x
+  leftBracket: [
+  index: SimpleIdentifier
     token: y
   rightBracket: ]
 ''');
@@ -701,11 +718,18 @@ var v = super[y];
 ''');
     var node = parseResult.findNode.singleVariableDeclaration.initializer2!;
     assertParsedNodeText(node, r'''
-IndexExpression
-  target2: SuperExpression
+IndexExpression2
+  receiver: SuperExpression
     superKeyword: super
   leftBracket: [
-  index2: SimpleIdentifier
+  index: SimpleIdentifier
+    token: y
+  rightBracket: ]
+V1: IndexExpression
+  target: SuperExpression
+    superKeyword: super
+  leftBracket: [
+  index: SimpleIdentifier
     token: y
   rightBracket: ]
 ''');
@@ -732,11 +756,18 @@ var v = x[x];
 ''');
     var node = parseResult.findNode.singleVariableDeclaration.initializer2!;
     assertParsedNodeText(node, r'''
-IndexExpression
-  target2: SimpleIdentifier
+IndexExpression2
+  receiver: SimpleIdentifier
     token: x
   leftBracket: [
-  index2: SimpleIdentifier
+  index: SimpleIdentifier
+    token: x
+  rightBracket: ]
+V1: IndexExpression
+  target: SimpleIdentifier
+    token: x
+  leftBracket: [
+  index: SimpleIdentifier
     token: x
   rightBracket: ]
 ''');
@@ -1637,7 +1668,7 @@ class C { C.n() : this()(); }
     var node = parseResult.findNode.unit;
     assertParsedNodeText(node, r'''
 CompilationUnit
-  declarations
+  declarations2
     ClassDeclaration
       classKeyword: class
       namePart: NameWithTypeParameters
@@ -1963,7 +1994,7 @@ main() {
     var node = parseResult.findNode.unit;
     assertParsedNodeText(node, r'''
 CompilationUnit
-  declarations
+  declarations2
     FunctionDeclaration
       name: main
       functionExpression: FunctionExpression
@@ -1976,11 +2007,18 @@ CompilationUnit
             statements
               ExpressionStatement
                 expression2: FunctionExpressionInvocation
-                  function2: IndexExpression
-                    target2: SimpleIdentifier
+                  function2: IndexExpression2
+                    receiver: SimpleIdentifier
                       token: factories
                     leftBracket: [
-                    index2: SimpleIdentifier
+                    index: SimpleIdentifier
+                      token: C
+                    rightBracket: ]
+                  function(v1): IndexExpression
+                    target: SimpleIdentifier
+                      token: factories
+                    leftBracket: [
+                    index: SimpleIdentifier
                       token: C
                     rightBracket: ]
                   typeArguments: TypeArgumentList
@@ -2008,7 +2046,7 @@ main() {
     var node = parseResult.findNode.unit;
     assertParsedNodeText(node, r'''
 CompilationUnit
-  declarations
+  declarations2
     FunctionDeclaration
       name: main
       functionExpression: FunctionExpression
@@ -2759,15 +2797,26 @@ var v = [1][1];
 ''');
     var node = parseResult.findNode.singleVariableDeclaration.initializer2!;
     assertParsedNodeText(node, r'''
-IndexExpression
-  target2: ListLiteral
+IndexExpression2
+  receiver: ListLiteral
     leftBracket: [
     elements2
       IntegerLiteral
         literal: 1
     rightBracket: ]
   leftBracket: [
-  index2: IntegerLiteral
+  index: IntegerLiteral
+    literal: 1
+  rightBracket: ]
+V1: IndexExpression
+  target: ListLiteral
+    leftBracket: [
+    elements
+      IntegerLiteral
+        literal: 1
+    rightBracket: ]
+  leftBracket: [
+  index: IntegerLiteral
     literal: 1
   rightBracket: ]
 ''');
@@ -2875,7 +2924,7 @@ var v = <String, int> {'1' : 1} <String, int> {'1' : 1};
     var node = parseResult.findNode.unit;
     assertParsedNodeText(node, r'''
 CompilationUnit
-  declarations
+  declarations2
     TopLevelVariableDeclaration
       variables: VariableDeclarationList
         keyword: var
@@ -3133,7 +3182,7 @@ var v = { x' :  };
     var node = parseResult.findNode.unit;
     assertParsedNodeText(node, r'''
 CompilationUnit
-  declarations
+  declarations2
     TopLevelVariableDeclaration
       variables: VariableDeclarationList
         keyword: var
@@ -3263,11 +3312,18 @@ var v = a[0];
 ''');
     var node = parseResult.findNode.singleVariableDeclaration.initializer2!;
     assertParsedNodeText(node, r'''
-IndexExpression
-  target2: SimpleIdentifier
+IndexExpression2
+  receiver: SimpleIdentifier
     token: a
   leftBracket: [
-  index2: IntegerLiteral
+  index: IntegerLiteral
+    literal: 0
+  rightBracket: ]
+V1: IndexExpression
+  target: SimpleIdentifier
+    token: a
+  leftBracket: [
+  index: IntegerLiteral
     literal: 0
   rightBracket: ]
 ''');
@@ -3555,11 +3611,18 @@ FunctionExpression
     rightParenthesis: )
   body: ExpressionFunctionBody
     functionDefinition: =>
-    expression2: IndexExpression
-      target2: SimpleIdentifier
+    expression2: IndexExpression2
+      receiver: SimpleIdentifier
         token: m
       leftBracket: [
-      index2: SimpleIdentifier
+      index: SimpleIdentifier
+        token: x
+      rightBracket: ]
+    expression(v1): IndexExpression
+      target: SimpleIdentifier
+        token: m
+      leftBracket: [
+      index: SimpleIdentifier
         token: x
       rightBracket: ]
 ''');
@@ -3803,7 +3866,7 @@ class C {
     var node = parseResult.findNode.unit;
     assertParsedNodeText(node, r'''
 CompilationUnit
-  declarations
+  declarations2
     ClassDeclaration
       classKeyword: class
       namePart: NameWithTypeParameters
@@ -3846,7 +3909,7 @@ class C {
     var node = parseResult.findNode.unit;
     assertParsedNodeText(node, r'''
 CompilationUnit
-  declarations
+  declarations2
     ClassDeclaration
       classKeyword: class
       namePart: NameWithTypeParameters
@@ -4188,7 +4251,7 @@ var v = a' 'b;
     var node = parseResult.findNode.unit;
     assertParsedNodeText(node, r'''
 CompilationUnit
-  declarations
+  declarations2
     TopLevelVariableDeclaration
       variables: VariableDeclarationList
         keyword: var
@@ -4236,7 +4299,7 @@ var v = a ${b} c $this d;
     var node = parseResult.findNode.unit;
     assertParsedNodeText(node, r'''
 CompilationUnit
-  declarations
+  declarations2
     TopLevelVariableDeclaration
       variables: VariableDeclarationList
         keyword: var
@@ -4295,7 +4358,7 @@ var v = <html>$void</html>;
     var node = parseResult.findNode.unit;
     assertParsedNodeText(node, r'''
 CompilationUnit
-  declarations
+  declarations2
     TopLevelVariableDeclaration
       variables: VariableDeclarationList
         keyword: var
@@ -4343,7 +4406,7 @@ a;
     var node = parseResult.findNode.unit;
     assertParsedNodeText(node, r'''
 CompilationUnit
-  declarations
+  declarations2
     TopLevelVariableDeclaration
       variables: VariableDeclarationList
         keyword: var
@@ -4390,7 +4453,7 @@ a;
     var node = parseResult.findNode.unit;
     assertParsedNodeText(node, r'''
 CompilationUnit
-  declarations
+  declarations2
     TopLevelVariableDeclaration
       variables: VariableDeclarationList
         keyword: var
@@ -4435,7 +4498,7 @@ a;
     var node = parseResult.findNode.unit;
     assertParsedNodeText(node, r'''
 CompilationUnit
-  declarations
+  declarations2
     TopLevelVariableDeclaration
       variables: VariableDeclarationList
         keyword: var
@@ -4482,7 +4545,7 @@ a;
     var node = parseResult.findNode.unit;
     assertParsedNodeText(node, r'''
 CompilationUnit
-  declarations
+  declarations2
     TopLevelVariableDeclaration
       variables: VariableDeclarationList
         keyword: var
@@ -4526,7 +4589,7 @@ a;
     var node = parseResult.findNode.unit;
     assertParsedNodeText(node, r'''
 CompilationUnit
-  declarations
+  declarations2
     TopLevelVariableDeclaration
       variables: VariableDeclarationList
         keyword: var
@@ -4591,7 +4654,7 @@ var v = ${x}y;
     var node = parseResult.findNode.unit;
     assertParsedNodeText(node, r'''
 CompilationUnit
-  declarations
+  declarations2
     TopLevelVariableDeclaration
       variables: VariableDeclarationList
         keyword: var
@@ -4646,7 +4709,7 @@ b;
     var node = parseResult.findNode.unit;
     assertParsedNodeText(node, r'''
 CompilationUnit
-  declarations
+  declarations2
     TopLevelVariableDeclaration
       variables: VariableDeclarationList
         keyword: var
@@ -4707,7 +4770,7 @@ var v = ${x}y;
     var node = parseResult.findNode.unit;
     assertParsedNodeText(node, r'''
 CompilationUnit
-  declarations
+  declarations2
     TopLevelVariableDeclaration
       variables: VariableDeclarationList
         keyword: var
@@ -4736,7 +4799,7 @@ class C {
     var node = parseResult.findNode.unit;
     assertParsedNodeText(node, r'''
 CompilationUnit
-  declarations
+  declarations2
     ClassDeclaration
       classKeyword: class
       namePart: NameWithTypeParameters
@@ -4779,7 +4842,7 @@ class C {
     var node = parseResult.findNode.unit;
     assertParsedNodeText(node, r'''
 CompilationUnit
-  declarations
+  declarations2
     ClassDeclaration
       classKeyword: class
       namePart: NameWithTypeParameters
@@ -5103,11 +5166,11 @@ var v = -a[0];
     assertParsedNodeText(node, r'''
 UnaryOperatorInvocation
   operator: -
-  operand: IndexExpression
-    target2: SimpleIdentifier
+  operand: IndexExpression2
+    receiver: SimpleIdentifier
       token: a
     leftBracket: [
-    index2: IntegerLiteral
+    index: IntegerLiteral
       literal: 0
     rightBracket: ]
   unaryOperator: negate
@@ -5239,11 +5302,11 @@ var v = ~a[0];
     assertParsedNodeText(node, r'''
 UnaryOperatorInvocation
   operator: ~
-  operand: IndexExpression
-    target2: SimpleIdentifier
+  operand: IndexExpression2
+    receiver: SimpleIdentifier
       token: a
     leftBracket: [
-    index2: IntegerLiteral
+    index: IntegerLiteral
       literal: 0
     rightBracket: ]
   unaryOperator: bitwiseComplement

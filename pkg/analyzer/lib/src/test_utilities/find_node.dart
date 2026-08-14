@@ -90,6 +90,8 @@ class FindNode2 extends _FindNodeBase {
 
   NullAssertionExpression get singleNullAssertionExpression => _single();
 
+  TopLevelGetterDeclaration get singleTopLevelGetterDeclaration => _single();
+
   UnaryOperatorInvocation get singleUnaryOperatorInvocation => _single();
 
   @override
@@ -159,6 +161,10 @@ class FindNode2 extends _FindNodeBase {
 
   PrefixIncrement prefixIncrement(String search) {
     return _node(search, (node) => node is PrefixIncrement);
+  }
+
+  TopLevelGetterDeclaration topLevelGetterDeclaration(String search) {
+    return _node(search, (node) => node is TopLevelGetterDeclaration);
   }
 
   UnaryOperatorInvocation unaryOperatorInvocation(String search) {
@@ -367,6 +373,8 @@ abstract class _FindNodeBase {
   ImportDirective get singleImportDirective => _single();
 
   IndexExpression get singleIndexExpression => _single();
+
+  IndexExpression2 get singleIndexExpression2 => _single();
 
   IntegerLiteral get singleIntegerLiteral => _single();
 
@@ -881,6 +889,10 @@ abstract class _FindNodeBase {
     return _node(search, (n) => n is IndexExpression);
   }
 
+  IndexExpression2 indexExpression2(String search) {
+    return _node(search, (n) => n is IndexExpression2);
+  }
+
   IntegerLiteral integerLiteral(String search) {
     return _node(search, (n) => n is IntegerLiteral);
   }
@@ -1183,7 +1195,7 @@ abstract class _FindNodeBase {
   }
 
   VariableDeclaration topVariableDeclarationByName(String name) {
-    for (var declaration in unit.declarations) {
+    for (var declaration in unit.declarations2) {
       if (declaration is TopLevelVariableDeclaration) {
         for (var variable in declaration.variables.variables) {
           if (variable.name.lexeme == name) {

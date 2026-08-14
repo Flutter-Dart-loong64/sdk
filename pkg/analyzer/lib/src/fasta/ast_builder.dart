@@ -55,7 +55,7 @@ class AstBuilder extends StackListener {
   final Uri fileUri;
   ScriptTagImpl? scriptTag;
   final List<DirectiveImpl> directives = [];
-  final List<CompilationUnitMemberImpl> declarations = [];
+  final List<TopLevelDeclarationV1OrV2Impl> declarations = [];
   final List<AstNodeImpl> invalidNodes = [];
 
   @override
@@ -761,6 +761,13 @@ class AstBuilder extends StackListener {
       return initializerObject;
     }
 
+    if (initializerObject is IndexExpression2Impl) {
+      return buildInitializerTargetExpressionRecovery(
+        initializerObject.receiver,
+        initializerObject,
+      );
+    }
+
     if (initializerObject is IndexExpressionImpl) {
       return buildInitializerTargetExpressionRecovery(
         initializerObject.target2,
@@ -1347,7 +1354,7 @@ class AstBuilder extends StackListener {
       beginToken: beginToken,
       scriptTag: scriptTag,
       directives: directives,
-      declarations: declarations,
+      declarations2: declarations,
       endToken: endToken,
       featureSet: _featureSet,
       lineInfo: _lineInfo,
@@ -3363,22 +3370,39 @@ class AstBuilder extends StackListener {
       formalParameters = _ensureSetterFormalParameter(name, formalParameters);
     }
 
-    declarations.add(
-      FunctionDeclarationImpl(
-        comment: comment,
-        metadata: metadata,
-        augmentKeyword: augmentKeyword,
-        externalKeyword: externalKeyword,
-        returnType: returnType,
-        propertyKeyword: getOrSet,
-        name: name.token,
-        functionExpression: FunctionExpressionImpl(
-          typeParameters: typeParameters,
-          parameters: formalParameters,
+    if (getOrSet?.keyword == Keyword.GET) {
+      declarations.add(
+        TopLevelGetterDeclarationImpl(
+          comment: comment,
+          metadata: metadata,
+          augmentKeyword: augmentKeyword,
+          externalKeyword: externalKeyword,
+          returnType: returnType,
+          getKeyword: getOrSet!,
+          name: name.token,
+          recoveryTypeParameters: typeParameters,
+          recoveryFormalParameters: formalParameters,
           body: body,
         ),
-      ),
-    );
+      );
+    } else {
+      declarations.add(
+        FunctionDeclarationImpl(
+          comment: comment,
+          metadata: metadata,
+          augmentKeyword: augmentKeyword,
+          externalKeyword: externalKeyword,
+          returnType: returnType,
+          propertyKeyword: getOrSet,
+          name: name.token,
+          functionExpression: FunctionExpressionImpl(
+            typeParameters: typeParameters,
+            parameters: formalParameters,
+            body: body,
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -3752,6 +3776,37 @@ class AstBuilder extends StackListener {
         (receiver, operator, lhs.propertyName.token),
       _ => null,
     };
+    var indexTarget = switch (lhs) {
+      IndexExpression2Impl(
+        :var receiver,
+        :var leftBracket,
+        :var index,
+        :var rightBracket,
+      )
+          when !lhs.isDotShorthand =>
+        IndexAssignmentTargetImpl(
+          receiver: receiver,
+          leftBracket: leftBracket,
+          index: index,
+          rightBracket: rightBracket,
+        ),
+      IndexExpressionImpl(
+        target2: var receiver?,
+        period: null,
+        question: null,
+        :var leftBracket,
+        index2: var index,
+        :var rightBracket,
+      )
+          when !lhs.isDotShorthand =>
+        IndexAssignmentTargetImpl(
+          receiver: receiver,
+          leftBracket: leftBracket,
+          index: index,
+          rightBracket: rightBracket,
+        ),
+      _ => null,
+    };
     if (!isAssignable && token.type == TokenType.EQ) {
       push(
         DirectAssignmentImpl(
@@ -3768,6 +3823,32 @@ class AstBuilder extends StackListener {
           value: rhs,
         ),
       );
+    } else if (indexTarget != null) {
+      if (token.type == TokenType.EQ) {
+        push(
+          DirectAssignmentImpl(
+            target: indexTarget,
+            operator: token,
+            value: rhs,
+          ),
+        );
+      } else if (token.type == TokenType.QUESTION_QUESTION_EQ) {
+        push(
+          IfNullAssignmentImpl(
+            target: indexTarget,
+            operator: token,
+            value: rhs,
+          ),
+        );
+      } else {
+        push(
+          CompoundAssignmentImpl(
+            target: indexTarget,
+            operator: token,
+            value: rhs,
+          ),
+        );
+      }
     } else if (property != null) {
       var target = PropertyAssignmentTargetImpl(
         receiver: property.$1,
@@ -4692,16 +4773,27 @@ class AstBuilder extends StackListener {
       assert(expression.isCascaded);
       push(expression);
     } else {
-      push(
-        IndexExpressionImpl(
-          target2: target,
-          period: null,
-          question: question,
-          leftBracket: leftBracket,
-          index2: index,
-          rightBracket: rightBracket,
-        ),
-      );
+      if (question == null) {
+        push(
+          IndexExpression2Impl(
+            receiver: target,
+            leftBracket: leftBracket,
+            index: index,
+            rightBracket: rightBracket,
+          ),
+        );
+      } else {
+        push(
+          IndexExpressionImpl(
+            target2: target,
+            period: null,
+            question: question,
+            leftBracket: leftBracket,
+            index2: index,
+            rightBracket: rightBracket,
+          ),
+        );
+      }
     }
   }
 
@@ -5804,6 +5896,16 @@ class AstBuilder extends StackListener {
     debugEvent("UnaryPostfixAssignmentExpression");
 
     var expression = pop() as ExpressionImpl;
+    if (expression is IndexExpression2Impl) {
+      expression = IndexExpressionImpl(
+        target2: expression.receiver,
+        period: null,
+        question: null,
+        leftBracket: expression.leftBracket,
+        index2: expression.index,
+        rightBracket: expression.rightBracket,
+      )..isDotShorthand = expression.isDotShorthand;
+    }
     if (expression is PropertyExtractionImpl) {
       expression = PropertyAccessImpl(
         target2: expression.receiver,
@@ -5841,6 +5943,16 @@ class AstBuilder extends StackListener {
     debugEvent("UnaryPrefixAssignmentExpression");
 
     var expression = pop() as ExpressionImpl;
+    if (expression is IndexExpression2Impl) {
+      expression = IndexExpressionImpl(
+        target2: expression.receiver,
+        period: null,
+        question: null,
+        leftBracket: expression.leftBracket,
+        index2: expression.index,
+        rightBracket: expression.rightBracket,
+      )..isDotShorthand = expression.isDotShorthand;
+    }
     if (expression is PropertyExtractionImpl) {
       expression = PropertyAccessImpl(
         target2: expression.receiver,

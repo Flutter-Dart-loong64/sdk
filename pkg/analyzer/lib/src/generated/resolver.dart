@@ -1355,6 +1355,7 @@ class ResolverVisitor extends ThrowingAstVisitor2<void>
           node is Directive ||
           node is ExtensionDeclaration ||
           node is FunctionDeclaration ||
+          node is TopLevelGetterDeclaration ||
           node is TopLevelVariableDeclaration;
     }
 
@@ -1589,6 +1590,17 @@ class ResolverVisitor extends ThrowingAstVisitor2<void>
       popRewrite();
       return PropertyElementResolverResult();
     }
+  }
+
+  IndexWriteResolutionImpl? resolveIndexDirectAssignmentTarget(
+    IndexAssignmentTargetImpl node,
+  ) {
+    return _propertyElementResolver.resolveIndexDirectAssignmentTarget(node);
+  }
+
+  ({IndexReadResolutionImpl read, IndexWriteResolutionImpl write})?
+  resolveIndexReadWriteAssignmentTarget(IndexAssignmentTargetImpl node) {
+    return _propertyElementResolver.resolveIndexReadWriteAssignmentTarget(node);
   }
 
   PatternResult resolveMapPattern({
@@ -2458,7 +2470,7 @@ class ResolverVisitor extends ThrowingAstVisitor2<void>
       for (int i = 0; i < directiveCount; i++) {
         directives[i].accept2(this);
       }
-      NodeList<CompilationUnitMember> declarations = node.declarations;
+      NodeList<AstNode> declarations = node.declarations2;
       int declarationCount = declarations.length;
       for (int i = 0; i < declarationCount; i++) {
         declarations[i].accept2(this);
@@ -3515,6 +3527,70 @@ class ResolverVisitor extends ThrowingAstVisitor2<void>
   }
 
   @override
+  void visitIndexExpression2(
+    covariant IndexExpression2Impl node, {
+    TypeImpl contextType = UnknownInferredType.instance,
+  }) {
+    inferenceLogWriter?.enterExpression(node, contextType);
+
+    if (isDotShorthand(node)) {
+      pushDotShorthandContext(node, SharedTypeSchemaView(contextType));
+    }
+
+    checkUnreachableNode(node);
+    analyzeExpression(
+      node.receiver,
+      SharedTypeSchemaView(UnknownInferredType.instance),
+      continueNullShorting: true,
+    );
+    node.receiver = popRewrite()!;
+
+    var resolution = _propertyElementResolver.resolveIndexExpression2(node);
+    node.resolution = resolution;
+
+    analyzeExpression(
+      node.index,
+      SharedTypeSchemaView(
+        resolution?.indexContextType ?? UnknownInferredType.instance,
+      ),
+    );
+    node.index = popRewrite()!;
+    var whyNotPromoted = flowAnalysis.flow?.whyNotPromoted(
+      flowAnalysis.getExpressionInfo(node.index),
+    );
+    var readElement = switch (resolution) {
+      MethodIndexReadResolutionImpl(:var element) => element,
+      InvalidIndexReadResolutionImpl(
+        recovery: MethodIndexReadResolutionImpl(:var element),
+      ) =>
+        element,
+      _ => null,
+    };
+    checkIndexExpressionIndex(
+      node.index,
+      readElement: readElement,
+      writeElement: null,
+      whyNotPromoted: whyNotPromoted,
+    );
+
+    node.recordStaticType(
+      resolution?.type ?? NeverTypeImpl.instance,
+      resolver: this,
+    );
+    var replacement = insertGenericFunctionInstantiation(
+      node,
+      contextType: contextType,
+    );
+    _insertImplicitCallReference(replacement, contextType: contextType);
+
+    if (isDotShorthand(node)) {
+      popDotShorthandContext();
+    }
+
+    inferenceLogWriter?.exitExpression(node);
+  }
+
+  @override
   void visitIntegerLiteral(
     IntegerLiteral node, {
     TypeImpl contextType = UnknownInferredType.instance,
@@ -4506,6 +4582,37 @@ class ResolverVisitor extends ThrowingAstVisitor2<void>
   }
 
   @override
+  void visitTopLevelGetterDeclaration(
+    covariant TopLevelGetterDeclarationImpl node,
+  ) {
+    var element = node.declaredFragment!.element;
+    var returnType = element.returnType;
+
+    _withEnclosingExecutableElement(element, () {
+      checkUnreachableNode(node);
+      node.documentationComment?.accept2(this);
+      node.metadata.accept2(this);
+      node.returnType?.accept2(this);
+      node.recoveryTypeParameters?.accept2(this);
+      node.recoveryFormalParameters?.accept2(this);
+
+      flowAnalysis.bodyOrInitializer_enter(node, element.formalParameters);
+      flowAnalysis.executableDeclaration_enter(
+        node,
+        element.formalParameters,
+        isClosure: false,
+      );
+
+      node.body.resolve(this, returnType is DynamicType ? null : returnType);
+
+      checkForBodyMayCompleteNormally(body: node.body, errorNode: node.name);
+      flowAnalysis.executableDeclaration_exit(node.body, false);
+      flowAnalysis.bodyOrInitializer_exit();
+      nullSafetyDeadCodeVerifier.flowEnd(node);
+    });
+  }
+
+  @override
   void visitTopLevelVariableDeclaration(TopLevelVariableDeclaration node) {
     checkUnreachableNode(node);
     node.visitChildren2(this);
@@ -4881,15 +4988,16 @@ class ResolverVisitor extends ThrowingAstVisitor2<void>
       context = parent.writeType!;
     } else if (parent is AssignmentExpression2Impl) {
       var target = parent.target;
-      var write = switch (target) {
-        PropertyAssignmentTargetImpl(:var write) => write,
-        UnqualifiedNameAssignmentTargetImpl(:var write) => write,
+      var writeType = switch (target) {
+        IndexAssignmentTargetImpl(:var write) => write?.acceptedType,
+        PropertyAssignmentTargetImpl(:var write) => write?.acceptedType,
+        UnqualifiedNameAssignmentTargetImpl(:var write) => write?.acceptedType,
         InvalidExpressionAssignmentTargetImpl() => null,
       };
-      if (write == null) {
+      if (writeType == null) {
         return;
       }
-      context = write.acceptedType;
+      context = writeType;
     } else {
       context = contextType;
     }

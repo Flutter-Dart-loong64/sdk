@@ -256,6 +256,9 @@ class NullSafetyDeadCodeVerifier {
         if (node is FunctionDeclaration) {
           node = node.functionExpression.body;
         }
+        if (node is TopLevelGetterDeclaration) {
+          node = node.body;
+        }
         if (node is FunctionExpression) {
           node = node.body;
         }
@@ -495,6 +498,7 @@ class NullSafetyDeadCodeVerifier {
         var parent = node.parent2;
         while (parent is MethodInvocation ||
             parent is PropertyAccess ||
+            parent is IndexExpression2 ||
             parent is IndexExpression) {
           node = parent!;
           parent = node.parent2;

@@ -751,6 +751,9 @@ abstract class RuleVisitorRegistry2 {
 
   void addGenericTypeAlias(AbstractAnalysisRule rule, AstVisitor2 visitor);
 
+  @experimental
+  void addGetterDeclaration(AbstractAnalysisRule rule, AstVisitor2 visitor);
+
   void addGuardedPattern(AbstractAnalysisRule rule, AstVisitor2 visitor);
 
   void addHideCombinator(AbstractAnalysisRule rule, AstVisitor2 visitor);
@@ -773,7 +776,13 @@ abstract class RuleVisitorRegistry2 {
 
   void addImportPrefixReference(AbstractAnalysisRule rule, AstVisitor2 visitor);
 
+  @experimental
+  void addIndexAssignmentTarget(AbstractAnalysisRule rule, AstVisitor2 visitor);
+
   void addIndexExpression(AbstractAnalysisRule rule, AstVisitor2 visitor);
+
+  @experimental
+  void addIndexExpression2(AbstractAnalysisRule rule, AstVisitor2 visitor);
 
   void addIntegerLiteral(AbstractAnalysisRule rule, AstVisitor2 visitor);
 
@@ -825,6 +834,9 @@ abstract class RuleVisitorRegistry2 {
 
   void addMethodDeclaration(AbstractAnalysisRule rule, AstVisitor2 visitor);
 
+  @experimental
+  void addMethodDeclaration2(AbstractAnalysisRule rule, AstVisitor2 visitor);
+
   void addMethodInvocation(AbstractAnalysisRule rule, AstVisitor2 visitor);
 
   void addMixinDeclaration(AbstractAnalysisRule rule, AstVisitor2 visitor);
@@ -859,6 +871,9 @@ abstract class RuleVisitorRegistry2 {
   void addNullLiteral(AbstractAnalysisRule rule, AstVisitor2 visitor);
 
   void addObjectPattern(AbstractAnalysisRule rule, AstVisitor2 visitor);
+
+  @experimental
+  void addOperatorDeclaration(AbstractAnalysisRule rule, AstVisitor2 visitor);
 
   void addParenthesizedExpression(
     AbstractAnalysisRule rule,
@@ -975,6 +990,9 @@ abstract class RuleVisitorRegistry2 {
 
   void addSetOrMapLiteral(AbstractAnalysisRule rule, AstVisitor2 visitor);
 
+  @experimental
+  void addSetterDeclaration(AbstractAnalysisRule rule, AstVisitor2 visitor);
+
   void addShowCombinator(AbstractAnalysisRule rule, AstVisitor2 visitor);
 
   void addSimpleIdentifier(AbstractAnalysisRule rule, AstVisitor2 visitor);
@@ -1011,6 +1029,12 @@ abstract class RuleVisitorRegistry2 {
   void addThisExpression(AbstractAnalysisRule rule, AstVisitor2 visitor);
 
   void addThrowExpression(AbstractAnalysisRule rule, AstVisitor2 visitor);
+
+  @experimental
+  void addTopLevelGetterDeclaration(
+    AbstractAnalysisRule rule,
+    AstVisitor2 visitor,
+  );
 
   void addTopLevelVariableDeclaration(
     AbstractAnalysisRule rule,

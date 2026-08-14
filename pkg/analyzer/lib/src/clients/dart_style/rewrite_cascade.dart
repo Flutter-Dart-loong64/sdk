@@ -55,6 +55,16 @@ ExpressionImpl insertCascadeTargetIntoExpression({
       operator: expression.operator,
       rightHandSide2: expression.rightHandSide2,
     );
+  } else if (expression is IndexExpression2Impl) {
+    return IndexExpression2Impl(
+      receiver: insertCascadeTargetIntoExpression(
+        expression: expression.receiver,
+        cascadeTarget: cascadeTarget,
+      ),
+      leftBracket: expression.leftBracket,
+      index: expression.index,
+      rightBracket: expression.rightBracket,
+    );
   } else if (expression is IndexExpressionImpl) {
     var expressionTarget = expression.realTarget;
     var question = expression.question;
@@ -93,6 +103,21 @@ ExpressionImpl insertCascadeTargetIntoExpression({
     );
   } else if (expression is DirectAssignmentImpl) {
     var target = expression.target;
+    if (target is IndexAssignmentTargetImpl) {
+      return DirectAssignmentImpl(
+        target: IndexAssignmentTargetImpl(
+          receiver: insertCascadeTargetIntoExpression(
+            expression: target.receiver,
+            cascadeTarget: cascadeTarget,
+          ),
+          leftBracket: target.leftBracket,
+          index: target.index,
+          rightBracket: target.rightBracket,
+        ),
+        operator: expression.operator,
+        value: expression.value,
+      );
+    }
     if (target is! PropertyAssignmentTargetImpl) {
       throw UnimplementedError(
         'Unhandled ${target.runtimeType} in $expression',

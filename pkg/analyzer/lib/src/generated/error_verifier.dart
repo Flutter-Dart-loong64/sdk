@@ -35,6 +35,7 @@ import 'package:analyzer/src/dart/resolver/scope.dart';
 import 'package:analyzer/src/diagnostic/diagnostic.dart'
     show DiagnosticMessage, DiagnosticMessageImpl;
 import 'package:analyzer/src/diagnostic/diagnostic.dart' as diag;
+import 'package:analyzer/src/diagnostic/diagnostic_data.dart';
 import 'package:analyzer/src/diagnostic/diagnostic_factory.dart';
 import 'package:analyzer/src/error/async_return_visitor.dart';
 import 'package:analyzer/src/error/codes.dart';
@@ -650,8 +651,8 @@ class ErrorVerifier extends RecursiveAstVisitor2<void>
   @override
   void visitCompoundAssignment(covariant CompoundAssignmentImpl node) {
     switch (node.target) {
+      case IndexAssignmentTargetImpl():
       case InvalidExpressionAssignmentTargetImpl():
-        break;
       case PropertyAssignmentTargetImpl():
         break;
       case UnqualifiedNameAssignmentTargetImpl target:
@@ -734,7 +735,13 @@ class ErrorVerifier extends RecursiveAstVisitor2<void>
       element,
       () {
         _checkForNonConstGenerativeEnumConstructor(node);
-        _checkForInvalidModifierOnBody(node.body);
+
+        // Check for modifiers in the body only for non-factory constructors.
+        // For factory constructors Parser already emits 'factoryNotSync' which then converted to 'nonSyncFactory'.
+        if (node.factoryKeyword == null) {
+          _checkForInvalidModifierOnBody(node.body);
+        }
+
         if (!_checkForConstConstructorWithNonConstSuper(
           element: element,
           factoryKeyword: node.factoryKeyword,
@@ -1505,6 +1512,10 @@ class ErrorVerifier extends RecursiveAstVisitor2<void>
       return;
     }
     switch (target) {
+      case IndexAssignmentTargetImpl(:var read):
+        if (read case IndexReadResolutionImpl(:var type)) {
+          _checkForDeadNullCoalesce(type, node.value);
+        }
       case PropertyAssignmentTargetImpl(:var read):
         if (read case NamedReadResolutionImpl(:var type)) {
           _checkForDeadNullCoalesce(type, node.value);
@@ -2259,6 +2270,69 @@ class ErrorVerifier extends RecursiveAstVisitor2<void>
     checkForUseOfVoidResult(node.expression2);
     _checkForThrowOfInvalidType(node);
     super.visitThrowExpression(node);
+  }
+
+  @override
+  void visitTopLevelGetterDeclaration(
+    covariant TopLevelGetterDeclarationImpl node,
+  ) {
+    var declaredFragment = node.declaredFragment!;
+    var element = declaredFragment.element;
+
+    var hasConstVariableAugmentation =
+        _checkForConstVariableAugmentationByAccessor(
+          fragment: declaredFragment,
+          errorToken: node.name,
+        );
+    if (!hasConstVariableAugmentation) {
+      _checkAugmentationWithoutDeclaration(
+        declaredFragment,
+        node.augmentKeyword,
+      );
+      _checkForFunctionAlreadyComplete(
+        fragment: declaredFragment,
+        augmentKeyword: node.augmentKeyword,
+      );
+    }
+    _checkForFunctionBodyCompleteness(
+      fragment: declaredFragment,
+      node: node,
+      nameToken: node.name,
+    );
+    // _checkForAugmentationTypeParameters(
+    //   fragment: declaredFragment,
+    //   firstTypeParameters: element.firstFragment.typeParameters,
+    //   nameOrKeywordToken: node.name,
+    //   typeParameterList: node.recoveryTypeParameters,
+    // );
+    _checkForAugmentationReturnTypeMismatch(
+      fragment: declaredFragment,
+      returnTypeNode: node.returnType,
+      errorEntity: node.returnType ?? node.name,
+    );
+    // if (node.recoveryFormalParameters case var parameters?) {
+    //   _checkForAugmentationFormalParameters(
+    //     executableFragment: declaredFragment,
+    //     formalParameterList: parameters,
+    //   );
+    // }
+
+    _withEnclosingExecutable(
+      element,
+      () {
+        var returnType = node.returnType;
+        _checkForTypeAnnotationDeferredClass(returnType);
+        _returnTypeVerifier.verifyReturnType(returnType);
+        _checkForMainFunction1(declaredFragment, node.name);
+        _checkForExternalMethodWithBody(
+          externalKeyword: node.externalKeyword,
+          body: node.body,
+        );
+        super.visitTopLevelGetterDeclaration(node);
+      },
+      isAsynchronous: declaredFragment.isAsynchronous,
+      isGenerator: declaredFragment.isGenerator,
+    );
   }
 
   @override
@@ -5649,6 +5723,7 @@ class ErrorVerifier extends RecursiveAstVisitor2<void>
             MethodDeclaration(:var body) => body,
             FunctionDeclaration(:var functionExpression) =>
               functionExpression.body,
+            TopLevelGetterDeclaration(:var body) => body,
             _ => throw StateError('Unexpected node type: ${node.runtimeType}'),
           };
           var errorToken = (body as EmptyFunctionBody).semicolon;
@@ -6452,7 +6527,7 @@ class ErrorVerifier extends RecursiveAstVisitor2<void>
       if (!isSatisfied) {
         // This error can only occur if [mixinName] resolved to an actual mixin,
         // so we can safely rely on `mixinName.type` being non-`null`.
-        diagnosticReporter.report(
+        var diagnostic = diagnosticReporter.report(
           diag.mixinApplicationNotImplementedInterface
               .withArguments(
                 mixinType: mixinName.type!,
@@ -6461,6 +6536,8 @@ class ErrorVerifier extends RecursiveAstVisitor2<void>
               )
               .at(mixinName.name),
         );
+        mixinApplicationNotImplementedInterfaceConstraint[diagnostic] =
+            constraint;
         return true;
       }
     }
@@ -8378,6 +8455,15 @@ class ErrorVerifier extends RecursiveAstVisitor2<void>
         if (parent.augmentKeyword != null) {
           return false;
         } else if (parent.declaredFragment!.element.isAbstract) {
+          return false;
+        } else if (parent.externalKeyword != null) {
+          return false;
+        } else if (parent.body is NativeFunctionBody) {
+          return false;
+        }
+        return true;
+      } else if (parent is TopLevelGetterDeclarationImpl) {
+        if (parent.augmentKeyword != null) {
           return false;
         } else if (parent.externalKeyword != null) {
           return false;
