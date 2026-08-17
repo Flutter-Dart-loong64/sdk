@@ -427,6 +427,7 @@ class AstBinaryWriter extends ThrowingAstVisitor2<void> {
   @override
   void visitIndexAssignmentTarget(covariant IndexAssignmentTargetImpl node) {
     _writeByte(Tag.IndexAssignmentTarget);
+    _writeByte(AstBinaryFlags.encode(hasQuestion: node.question != null));
     _writeNode(node.receiver);
     _writeNode(node.index);
     _sink.writeOptionalObject(node.read, _writeIndexReadResolution);
@@ -664,21 +665,21 @@ class AstBinaryWriter extends ThrowingAstVisitor2<void> {
   @override
   void visitPostfixDecrement(PostfixDecrement node) {
     _writeByte(Tag.PostfixDecrement);
-    _writeNode(node.operand);
+    _writeNode(node.target);
     _writeIncrementOrDecrementResolution(node);
   }
 
   @override
   void visitPostfixIncrement(PostfixIncrement node) {
     _writeByte(Tag.PostfixIncrement);
-    _writeNode(node.operand);
+    _writeNode(node.target);
     _writeIncrementOrDecrementResolution(node);
   }
 
   @override
   void visitPrefixDecrement(PrefixDecrement node) {
     _writeByte(Tag.PrefixDecrement);
-    _writeNode(node.operand);
+    _writeNode(node.target);
     _writeIncrementOrDecrementResolution(node);
   }
 
@@ -695,7 +696,7 @@ class AstBinaryWriter extends ThrowingAstVisitor2<void> {
   @override
   void visitPrefixIncrement(PrefixIncrement node) {
     _writeByte(Tag.PrefixIncrement);
-    _writeNode(node.operand);
+    _writeNode(node.target);
     _writeIncrementOrDecrementResolution(node);
   }
 
@@ -1110,11 +1111,6 @@ class AstBinaryWriter extends ThrowingAstVisitor2<void> {
     IncrementOrDecrementExpression node,
   ) {
     _sink.writeElement(node.element);
-    var nodeImpl = node as IncrementOrDecrementExpressionImpl;
-    _sink.writeElement(nodeImpl.readElement);
-    _sink.writeType(nodeImpl.readType);
-    _sink.writeElement(nodeImpl.writeElement);
-    _sink.writeType(nodeImpl.writeType);
     _sink.writeType(node.operatorResultType);
     _storeExpression(node);
   }

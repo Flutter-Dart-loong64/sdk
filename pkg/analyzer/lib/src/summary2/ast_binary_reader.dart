@@ -128,10 +128,6 @@ class AstBinaryReader {
       rightHandSide2: rightHandSide,
     );
     node.element = _reader.readElement() as InternalMethodElement?;
-    node.readElement = _reader.readElement();
-    node.readType = _reader.readType();
-    node.writeElement = _reader.readElement();
-    node.writeType = _reader.readType();
     _readExpressionResolution(node);
     return node;
   }
@@ -729,19 +725,17 @@ class AstBinaryReader {
     IncrementOrDecrementExpressionImpl node,
   ) {
     node.element = _reader.readElement() as InternalMethodElement?;
-    node.readElement = _reader.readElement();
-    node.readType = _reader.readType();
-    node.writeElement = _reader.readElement();
-    node.writeType = _reader.readType();
     node.operatorResultType = _reader.readType();
     _readExpressionResolution(node);
   }
 
   IndexAssignmentTarget _readIndexAssignmentTarget() {
+    var flags = _readByte();
     var receiver = _readNode() as ExpressionImpl;
     var index = _readNode() as ExpressionImpl;
     var node = IndexAssignmentTargetImpl(
       receiver: receiver,
+      question: AstBinaryFlags.hasQuestion(flags) ? Tokens.question() : null,
       leftBracket: Tokens.openSquareBracket(),
       index: index,
       rightBracket: Tokens.closeSquareBracket(),
@@ -1355,9 +1349,9 @@ class AstBinaryReader {
   }
 
   PostfixDecrement _readPostfixDecrement() {
-    var operand = _readNode() as ExpressionImpl;
+    var target = _readNode() as AssignmentTargetImpl;
     var node = PostfixDecrementImpl(
-      operand: operand,
+      target: target,
       operator: Tokens.fromType(UnlinkedTokenType.MINUS_MINUS),
     );
     _readIncrementOrDecrementResolution(node);
@@ -1365,9 +1359,9 @@ class AstBinaryReader {
   }
 
   PostfixIncrement _readPostfixIncrement() {
-    var operand = _readNode() as ExpressionImpl;
+    var target = _readNode() as AssignmentTargetImpl;
     var node = PostfixIncrementImpl(
-      operand: operand,
+      target: target,
       operator: Tokens.fromType(UnlinkedTokenType.PLUS_PLUS),
     );
     _readIncrementOrDecrementResolution(node);
@@ -1375,10 +1369,10 @@ class AstBinaryReader {
   }
 
   PrefixDecrement _readPrefixDecrement() {
-    var operand = _readNode() as ExpressionImpl;
+    var target = _readNode() as AssignmentTargetImpl;
     var node = PrefixDecrementImpl(
       operator: Tokens.fromType(UnlinkedTokenType.MINUS_MINUS),
-      operand: operand,
+      target: target,
     );
     _readIncrementOrDecrementResolution(node);
     return node;
@@ -1397,10 +1391,10 @@ class AstBinaryReader {
   }
 
   PrefixIncrement _readPrefixIncrement() {
-    var operand = _readNode() as ExpressionImpl;
+    var target = _readNode() as AssignmentTargetImpl;
     var node = PrefixIncrementImpl(
       operator: Tokens.fromType(UnlinkedTokenType.PLUS_PLUS),
-      operand: operand,
+      target: target,
     );
     _readIncrementOrDecrementResolution(node);
     return node;
