@@ -206,6 +206,19 @@ class BestPracticesVerifier extends RecursiveAstVisitor2<void> {
   }
 
   @override
+  void visitCascadeIndexExpression(CascadeIndexExpression node) {
+    _elementUsageFrontierDetector.cascadeIndexExpression(node);
+    super.visitCascadeIndexExpression(node);
+  }
+
+  @override
+  void visitCascadePropertyExtraction(CascadePropertyExtraction node) {
+    _elementUsageFrontierDetector.propertyExtraction(node);
+    _invalidAccessVerifier.verifyPropertyExtraction(node);
+    super.visitCascadePropertyExtraction(node);
+  }
+
+  @override
   void visitCastPattern(CastPattern node) {
     var type = node.type.type;
     var matchedValueType = node.matchedValueType;
@@ -867,10 +880,10 @@ class BestPracticesVerifier extends RecursiveAstVisitor2<void> {
   }
 
   @override
-  void visitPropertyExtraction(PropertyExtraction node) {
+  void visitReceiverPropertyExtraction(ReceiverPropertyExtraction node) {
     _elementUsageFrontierDetector.propertyExtraction(node);
     _invalidAccessVerifier.verifyPropertyExtraction(node);
-    super.visitPropertyExtraction(node);
+    super.visitReceiverPropertyExtraction(node);
   }
 
   @override

@@ -1915,6 +1915,38 @@ abstract class _OffsetsAstVisitor extends RecursiveAstVisitor2<void> {
   }
 
   @override
+  void visitCascadeIndexAssignmentTarget(CascadeIndexAssignmentTarget node) {
+    _tokenOrNull(node.leftBracket);
+    _tokenOrNull(node.rightBracket);
+    super.visitCascadeIndexAssignmentTarget(node);
+  }
+
+  @override
+  void visitCascadeIndexExpression(CascadeIndexExpression node) {
+    _tokenOrNull(node.leftBracket);
+    _tokenOrNull(node.rightBracket);
+    super.visitCascadeIndexExpression(node);
+  }
+
+  @override
+  void visitCascadePropertyAssignmentTarget(
+    CascadePropertyAssignmentTarget node,
+  ) {
+    _tokenOrNull(node.propertyName);
+  }
+
+  @override
+  void visitCascadePropertyExtraction(CascadePropertyExtraction node) {
+    _tokenOrNull(node.propertyName);
+  }
+
+  @override
+  void visitCascadeSection(CascadeSection node) {
+    _tokenOrNull(node.operator);
+    super.visitCascadeSection(node);
+  }
+
+  @override
   void visitCompoundAssignment(CompoundAssignment node) {
     _tokenOrNull(node.operator);
     super.visitCompoundAssignment(node);
@@ -2211,17 +2243,19 @@ abstract class _OffsetsAstVisitor extends RecursiveAstVisitor2<void> {
   }
 
   @override
-  void visitPropertyAssignmentTarget(PropertyAssignmentTarget node) {
+  void visitReceiverPropertyAssignmentTarget(
+    ReceiverPropertyAssignmentTarget node,
+  ) {
     _tokenOrNull(node.operator);
     _tokenOrNull(node.propertyName);
-    super.visitPropertyAssignmentTarget(node);
+    super.visitReceiverPropertyAssignmentTarget(node);
   }
 
   @override
-  void visitPropertyExtraction(PropertyExtraction node) {
+  void visitReceiverPropertyExtraction(ReceiverPropertyExtraction node) {
     _tokenOrNull(node.operator);
     _tokenOrNull(node.propertyName);
-    super.visitPropertyExtraction(node);
+    super.visitReceiverPropertyExtraction(node);
   }
 
   @override

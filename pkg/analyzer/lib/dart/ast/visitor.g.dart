@@ -577,6 +577,13 @@ class GeneralizingAstVisitor<R> implements AstVisitor<R> {
   R? visitPropertyAccess(PropertyAccess node) =>
       visitCommentReferableExpression(node);
 
+  @experimental
+  R? visitPropertyAssignmentTarget(PropertyAssignmentTarget node) =>
+      visitAssignmentTarget(node);
+
+  @experimental
+  R? visitPropertyExtraction(PropertyExtraction node) => visitExpression(node);
+
   @override
   R? visitRecordLiteral(RecordLiteral node) => visitLiteral(node);
 
@@ -2029,6 +2036,43 @@ class RecursiveAstVisitor2<R> implements AstVisitor2<R> {
     return null;
   }
 
+  @experimental
+  @override
+  R? visitCascadeIndexAssignmentTarget(CascadeIndexAssignmentTarget node) {
+    node.visitChildren2(this);
+    return null;
+  }
+
+  @experimental
+  @override
+  R? visitCascadeIndexExpression(CascadeIndexExpression node) {
+    node.visitChildren2(this);
+    return null;
+  }
+
+  @experimental
+  @override
+  R? visitCascadePropertyAssignmentTarget(
+    CascadePropertyAssignmentTarget node,
+  ) {
+    node.visitChildren2(this);
+    return null;
+  }
+
+  @experimental
+  @override
+  R? visitCascadePropertyExtraction(CascadePropertyExtraction node) {
+    node.visitChildren2(this);
+    return null;
+  }
+
+  @experimental
+  @override
+  R? visitCascadeSection(CascadeSection node) {
+    node.visitChildren2(this);
+    return null;
+  }
+
   @override
   R? visitCaseClause(CaseClause node) {
     node.visitChildren2(this);
@@ -2879,14 +2923,16 @@ class RecursiveAstVisitor2<R> implements AstVisitor2<R> {
 
   @experimental
   @override
-  R? visitPropertyAssignmentTarget(PropertyAssignmentTarget node) {
+  R? visitReceiverPropertyAssignmentTarget(
+    ReceiverPropertyAssignmentTarget node,
+  ) {
     node.visitChildren2(this);
     return null;
   }
 
   @experimental
   @override
-  R? visitPropertyExtraction(PropertyExtraction node) {
+  R? visitReceiverPropertyExtraction(ReceiverPropertyExtraction node) {
     node.visitChildren2(this);
     return null;
   }
@@ -3861,6 +3907,29 @@ class SimpleAstVisitor2<R> implements AstVisitor2<R> {
   @override
   R? visitCascadeExpression(CascadeExpression node) => null;
 
+  @experimental
+  @override
+  R? visitCascadeIndexAssignmentTarget(CascadeIndexAssignmentTarget node) =>
+      null;
+
+  @experimental
+  @override
+  R? visitCascadeIndexExpression(CascadeIndexExpression node) => null;
+
+  @experimental
+  @override
+  R? visitCascadePropertyAssignmentTarget(
+    CascadePropertyAssignmentTarget node,
+  ) => null;
+
+  @experimental
+  @override
+  R? visitCascadePropertyExtraction(CascadePropertyExtraction node) => null;
+
+  @experimental
+  @override
+  R? visitCascadeSection(CascadeSection node) => null;
+
   @override
   R? visitCaseClause(CaseClause node) => null;
 
@@ -4307,11 +4376,13 @@ class SimpleAstVisitor2<R> implements AstVisitor2<R> {
 
   @experimental
   @override
-  R? visitPropertyAssignmentTarget(PropertyAssignmentTarget node) => null;
+  R? visitReceiverPropertyAssignmentTarget(
+    ReceiverPropertyAssignmentTarget node,
+  ) => null;
 
   @experimental
   @override
-  R? visitPropertyExtraction(PropertyExtraction node) => null;
+  R? visitReceiverPropertyExtraction(ReceiverPropertyExtraction node) => null;
 
   @override
   R? visitRecordLiteral(RecordLiteral node) => null;
@@ -5158,6 +5229,30 @@ class ThrowingAstVisitor2<R> implements AstVisitor2<R> {
   @override
   R? visitCascadeExpression(CascadeExpression node) => _throw(node);
 
+  @experimental
+  @override
+  R? visitCascadeIndexAssignmentTarget(CascadeIndexAssignmentTarget node) =>
+      _throw(node);
+
+  @experimental
+  @override
+  R? visitCascadeIndexExpression(CascadeIndexExpression node) => _throw(node);
+
+  @experimental
+  @override
+  R? visitCascadePropertyAssignmentTarget(
+    CascadePropertyAssignmentTarget node,
+  ) => _throw(node);
+
+  @experimental
+  @override
+  R? visitCascadePropertyExtraction(CascadePropertyExtraction node) =>
+      _throw(node);
+
+  @experimental
+  @override
+  R? visitCascadeSection(CascadeSection node) => _throw(node);
+
   @override
   R? visitCaseClause(CaseClause node) => _throw(node);
 
@@ -5613,12 +5708,14 @@ class ThrowingAstVisitor2<R> implements AstVisitor2<R> {
 
   @experimental
   @override
-  R? visitPropertyAssignmentTarget(PropertyAssignmentTarget node) =>
-      _throw(node);
+  R? visitReceiverPropertyAssignmentTarget(
+    ReceiverPropertyAssignmentTarget node,
+  ) => _throw(node);
 
   @experimental
   @override
-  R? visitPropertyExtraction(PropertyExtraction node) => _throw(node);
+  R? visitReceiverPropertyExtraction(ReceiverPropertyExtraction node) =>
+      _throw(node);
 
   @override
   R? visitRecordLiteral(RecordLiteral node) => _throw(node);
@@ -7472,6 +7569,53 @@ class TimedAstVisitor2<T> implements AstVisitor2<T> {
     return result;
   }
 
+  @experimental
+  @override
+  T? visitCascadeIndexAssignmentTarget(CascadeIndexAssignmentTarget node) {
+    stopwatch.start();
+    T? result = _baseVisitor.visitCascadeIndexAssignmentTarget(node);
+    stopwatch.stop();
+    return result;
+  }
+
+  @experimental
+  @override
+  T? visitCascadeIndexExpression(CascadeIndexExpression node) {
+    stopwatch.start();
+    T? result = _baseVisitor.visitCascadeIndexExpression(node);
+    stopwatch.stop();
+    return result;
+  }
+
+  @experimental
+  @override
+  T? visitCascadePropertyAssignmentTarget(
+    CascadePropertyAssignmentTarget node,
+  ) {
+    stopwatch.start();
+    T? result = _baseVisitor.visitCascadePropertyAssignmentTarget(node);
+    stopwatch.stop();
+    return result;
+  }
+
+  @experimental
+  @override
+  T? visitCascadePropertyExtraction(CascadePropertyExtraction node) {
+    stopwatch.start();
+    T? result = _baseVisitor.visitCascadePropertyExtraction(node);
+    stopwatch.stop();
+    return result;
+  }
+
+  @experimental
+  @override
+  T? visitCascadeSection(CascadeSection node) {
+    stopwatch.start();
+    T? result = _baseVisitor.visitCascadeSection(node);
+    stopwatch.stop();
+    return result;
+  }
+
   @override
   T? visitCaseClause(CaseClause node) {
     stopwatch.start();
@@ -8594,18 +8738,20 @@ class TimedAstVisitor2<T> implements AstVisitor2<T> {
 
   @experimental
   @override
-  T? visitPropertyAssignmentTarget(PropertyAssignmentTarget node) {
+  T? visitReceiverPropertyAssignmentTarget(
+    ReceiverPropertyAssignmentTarget node,
+  ) {
     stopwatch.start();
-    T? result = _baseVisitor.visitPropertyAssignmentTarget(node);
+    T? result = _baseVisitor.visitReceiverPropertyAssignmentTarget(node);
     stopwatch.stop();
     return result;
   }
 
   @experimental
   @override
-  T? visitPropertyExtraction(PropertyExtraction node) {
+  T? visitReceiverPropertyExtraction(ReceiverPropertyExtraction node) {
     stopwatch.start();
-    T? result = _baseVisitor.visitPropertyExtraction(node);
+    T? result = _baseVisitor.visitReceiverPropertyExtraction(node);
     stopwatch.stop();
     return result;
   }
@@ -9727,6 +9873,31 @@ class UnifyingAstVisitor2<R> implements AstVisitor2<R> {
   @override
   R? visitCascadeExpression(CascadeExpression node) => visitNode(node);
 
+  @experimental
+  @override
+  R? visitCascadeIndexAssignmentTarget(CascadeIndexAssignmentTarget node) =>
+      visitNode(node);
+
+  @experimental
+  @override
+  R? visitCascadeIndexExpression(CascadeIndexExpression node) =>
+      visitNode(node);
+
+  @experimental
+  @override
+  R? visitCascadePropertyAssignmentTarget(
+    CascadePropertyAssignmentTarget node,
+  ) => visitNode(node);
+
+  @experimental
+  @override
+  R? visitCascadePropertyExtraction(CascadePropertyExtraction node) =>
+      visitNode(node);
+
+  @experimental
+  @override
+  R? visitCascadeSection(CascadeSection node) => visitNode(node);
+
   @override
   R? visitCaseClause(CaseClause node) => visitNode(node);
 
@@ -10200,12 +10371,14 @@ class UnifyingAstVisitor2<R> implements AstVisitor2<R> {
 
   @experimental
   @override
-  R? visitPropertyAssignmentTarget(PropertyAssignmentTarget node) =>
-      visitNode(node);
+  R? visitReceiverPropertyAssignmentTarget(
+    ReceiverPropertyAssignmentTarget node,
+  ) => visitNode(node);
 
   @experimental
   @override
-  R? visitPropertyExtraction(PropertyExtraction node) => visitNode(node);
+  R? visitReceiverPropertyExtraction(ReceiverPropertyExtraction node) =>
+      visitNode(node);
 
   @override
   R? visitRecordLiteral(RecordLiteral node) => visitNode(node);

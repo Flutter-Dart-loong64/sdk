@@ -318,8 +318,8 @@ void f() {
     var cascadeExpression = parseResult.findNode.cascade('0');
     _assertReplaceInList(
       destination: cascadeExpression,
-      child: cascadeExpression.cascadeSections2[0],
-      replacement: cascadeExpression.cascadeSections2[1],
+      child: cascadeExpression.sections[0],
+      replacement: cascadeExpression.sections[1],
     );
 
     _assertReplacementForChildren<CascadeExpression>(
@@ -1514,9 +1514,9 @@ void f() {
   (b).bar;
 }
 ''');
-    _assertReplacementForChildren<PropertyExtraction>(
-      destination: parseResult.findNode.propertyExtraction('(a)'),
-      source: parseResult.findNode.propertyExtraction('(b)'),
+    _assertReplacementForChildren<ReceiverPropertyExtraction>(
+      destination: parseResult.findNode.receiverPropertyExtraction('(a)'),
+      source: parseResult.findNode.receiverPropertyExtraction('(b)'),
       childAccessors: [(node) => node.receiver],
     );
   }

@@ -547,6 +547,33 @@ abstract class RuleVisitorRegistry2 {
 
   void addCascadeExpression(AbstractAnalysisRule rule, AstVisitor2 visitor);
 
+  @experimental
+  void addCascadeIndexAssignmentTarget(
+    AbstractAnalysisRule rule,
+    AstVisitor2 visitor,
+  );
+
+  @experimental
+  void addCascadeIndexExpression(
+    AbstractAnalysisRule rule,
+    AstVisitor2 visitor,
+  );
+
+  @experimental
+  void addCascadePropertyAssignmentTarget(
+    AbstractAnalysisRule rule,
+    AstVisitor2 visitor,
+  );
+
+  @experimental
+  void addCascadePropertyExtraction(
+    AbstractAnalysisRule rule,
+    AstVisitor2 visitor,
+  );
+
+  @experimental
+  void addCascadeSection(AbstractAnalysisRule rule, AstVisitor2 visitor);
+
   void addCaseClause(AbstractAnalysisRule rule, AstVisitor2 visitor);
 
   void addCastPattern(AbstractAnalysisRule rule, AstVisitor2 visitor);
@@ -934,13 +961,16 @@ abstract class RuleVisitorRegistry2 {
   void addPropertyAccess(AbstractAnalysisRule rule, AstVisitor2 visitor);
 
   @experimental
-  void addPropertyAssignmentTarget(
+  void addReceiverPropertyAssignmentTarget(
     AbstractAnalysisRule rule,
     AstVisitor2 visitor,
   );
 
   @experimental
-  void addPropertyExtraction(AbstractAnalysisRule rule, AstVisitor2 visitor);
+  void addReceiverPropertyExtraction(
+    AbstractAnalysisRule rule,
+    AstVisitor2 visitor,
+  );
 
   void addRecordLiteral(AbstractAnalysisRule rule, AstVisitor2 visitor);
 

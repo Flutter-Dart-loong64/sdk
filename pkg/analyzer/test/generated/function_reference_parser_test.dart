@@ -1097,7 +1097,16 @@ MethodInvocation
           operator: >
           rightOperand: SimpleIdentifier
             token: <empty> <synthetic>
-        cascadeSections2
+        sections
+          CascadeSection
+            body: MethodInvocation
+              operator: ..
+              methodName: SimpleIdentifier
+                token: toString
+              argumentList: ArgumentList
+                leftParenthesis: (
+                rightParenthesis: )
+        cascadeSections
           MethodInvocation
             operator: ..
             methodName: SimpleIdentifier
@@ -1826,7 +1835,9 @@ var x = f()..m<a, b>;
     var node = parseResult.findNode.singleCascadeExpression.cascadeSections2[0];
     assertParsedNodeText(node, r'''
 FunctionReference
-  function2: PropertyAccess
+  function2: CascadePropertyExtraction
+    propertyName: m
+  function(v1): PropertyAccess
     operator: ..
     propertyName: SimpleIdentifier
       token: m

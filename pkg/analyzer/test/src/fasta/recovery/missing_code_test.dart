@@ -777,7 +777,12 @@ CompilationUnit
                 expression2: CascadeExpression
                   target2: SimpleIdentifier
                     token: x
-                  cascadeSections2
+                  sections
+                    CascadeSection
+                      operator: ..
+                      body: CascadePropertyExtraction
+                        propertyName: <empty> <synthetic>
+                  cascadeSections
                     PropertyAccess
                       operator: ..
                       propertyName: SimpleIdentifier

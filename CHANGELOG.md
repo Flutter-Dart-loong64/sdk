@@ -11,12 +11,23 @@
 
 [#63811]: https://github.com/dart-lang/sdk/issues/63811
 
+#### `dart:typed_data`
+
+- Added the bit-wise negation operator `~` to `Int32x4`, which inverts every bit
+  of every lane.
+
 #### `dart:js_interop`
 
 - The `isA<JSArray>` check now uses both `Array.isArray` and `instanceof` to
   verify if a value is an array; it is considered an array if either condition
   returns true.
   For more details, see SDK issue [#62699][]
+
+- Converting a `Future` to a `JSPromise` using `FutureOfJSAnyToJSPromise.toJS`
+  or `FutureOfVoidToJSPromise.toJS` now passes JavaScript error
+  values (`JSAny`) through directly to the rejected promise without
+  wrapping them. Only Dart errors are wrapped in a JS `Error`.
+  For more details, see SDK issue [#61353][].
 
 - Added extension methods `JSArray<JSNumber>.toDartDoubleList` and
   `JSArray<JSNumber>.toDartIntList` (`JSArrayOfJSNumberToList`);
@@ -34,6 +45,7 @@
   (`ListOfNullableBoolToJSArray`). These make it easier and more efficient to
   convert between JS and Dart arrays of primitives.
 
+[#61353]: https://github.com/dart-lang/sdk/issues/61353
 [#62699]: https://github.com/dart-lang/sdk/issues/62699
 
 ## 3.13.0

@@ -920,13 +920,38 @@ void f(A a) {
 }
 ''');
 
-    var node = result.findNode.assignment('[0] += 2');
+    var node = result.findNode.compoundAssignment('[0] += 2');
     assertResolvedNodeText(node, r'''
-AssignmentExpression
-  leftHandSide2: IndexExpression
+CompoundAssignment
+  target: CascadeIndexAssignmentTarget
+    leftBracket: [
+    index: IntegerLiteral
+      literal: 0
+      correspondingParameter: <testLibrary>::@class::A::@method::[]=::@formalParameter::index
+      staticType: int
+    rightBracket: ]
+    read: MethodIndexReadResolution
+      element: <testLibrary>::@class::A::@method::[]
+      invokeType: int Function(int)
+      type: int
+    write: MethodIndexWriteResolution
+      element: <testLibrary>::@class::A::@method::[]=
+      invokeType: void Function(int, num)
+      acceptedType: num
+  operator: +=
+  value: IntegerLiteral
+    literal: 2
+    correspondingParameter: dart:core::@class::num::@method::+::@formalParameter::other
+    staticType: int
+  binaryOperator: add
+  element: dart:core::@class::num::@method::+
+  operatorResultType: int
+  staticType: int
+V1: AssignmentExpression
+  leftHandSide: IndexExpression
     period: ..
     leftBracket: [
-    index2: IntegerLiteral
+    index: IntegerLiteral
       literal: 0
       correspondingParameter: <testLibrary>::@class::A::@method::[]=::@formalParameter::index
       staticType: int
@@ -934,7 +959,7 @@ AssignmentExpression
     element: <null>
     staticType: null
   operator: +=
-  rightHandSide2: IntegerLiteral
+  rightHandSide: IntegerLiteral
     literal: 2
     correspondingParameter: dart:core::@class::num::@method::+::@formalParameter::other
     staticType: int
@@ -944,6 +969,47 @@ AssignmentExpression
   writeType: num
   element: dart:core::@class::num::@method::+
   staticType: int
+''');
+  }
+
+  test_indexExpression_cascade_ifNull() async {
+    var result = await resolveTestCodeWithDiagnostics(r'''
+class A {
+  int? operator[](int index) => 0;
+  operator[]=(int index, num value) {}
+}
+
+void f(A a) {
+  a..[0] ??= 2;
+}
+''');
+
+    var node = result.findNode.cascadeSection('..[0] ??= 2');
+    assertResolvedNodeText(node, r'''
+CascadeSection
+  operator: ..
+  body: IfNullAssignment
+    target: CascadeIndexAssignmentTarget
+      leftBracket: [
+      index: IntegerLiteral
+        literal: 0
+        correspondingParameter: <testLibrary>::@class::A::@method::[]=::@formalParameter::index
+        staticType: int
+      rightBracket: ]
+      read: MethodIndexReadResolution
+        element: <testLibrary>::@class::A::@method::[]
+        invokeType: int? Function(int)
+        type: int?
+      write: MethodIndexWriteResolution
+        element: <testLibrary>::@class::A::@method::[]=
+        invokeType: void Function(int, num)
+        acceptedType: num
+    operator: ??=
+    value: IntegerLiteral
+      literal: 2
+      correspondingParameter: <testLibrary>::@class::A::@method::[]=::@formalParameter::value
+      staticType: int
+    staticType: int
 ''');
   }
 
@@ -3225,10 +3291,29 @@ void f(A a) {
 }
 ''');
 
-    var node = result.findNode.assignment('x += 2');
+    var node = result.findNode.compoundAssignment('x += 2');
     assertResolvedNodeText(node, r'''
-AssignmentExpression
-  leftHandSide2: PropertyAccess
+CompoundAssignment
+  target: CascadePropertyAssignmentTarget
+    propertyName: x
+    read: GetterInvocationResolution
+      element: <testLibrary>::@class::A::@getter::x
+      invokeType: int Function()
+      type: int
+    write: SetterInvocationResolution
+      element: <testLibrary>::@class::A::@setter::x
+      acceptedType: num
+  operator: +=
+  value: IntegerLiteral
+    literal: 2
+    correspondingParameter: dart:core::@class::num::@method::+::@formalParameter::other
+    staticType: int
+  binaryOperator: add
+  element: dart:core::@class::num::@method::+
+  operatorResultType: int
+  staticType: int
+V1: AssignmentExpression
+  leftHandSide: PropertyAccess
     operator: ..
     propertyName: SimpleIdentifier
       token: x
@@ -3236,7 +3321,7 @@ AssignmentExpression
       staticType: null
     staticType: null
   operator: +=
-  rightHandSide2: IntegerLiteral
+  rightHandSide: IntegerLiteral
     literal: 2
     correspondingParameter: dart:core::@class::num::@method::+::@formalParameter::other
     staticType: int
@@ -3245,6 +3330,106 @@ AssignmentExpression
   writeElement: <testLibrary>::@class::A::@setter::x
   writeType: num
   element: dart:core::@class::num::@method::+
+  staticType: int
+''');
+  }
+
+  test_propertyAccess_cascade_direct() async {
+    var result = await resolveTestCodeWithDiagnostics(r'''
+class A {
+  set x(num _) {}
+}
+
+void f(A a) {
+  a..x = 2;
+}
+''');
+
+    var node = result.findNode.directAssignment('x = 2');
+    assertResolvedNodeText(node, r'''
+DirectAssignment
+  target: CascadePropertyAssignmentTarget
+    propertyName: x
+    read: <null>
+    write: SetterInvocationResolution
+      element: <testLibrary>::@class::A::@setter::x
+      acceptedType: num
+  operator: =
+  value: IntegerLiteral
+    literal: 2
+    correspondingParameter: <testLibrary>::@class::A::@setter::x::@formalParameter::_
+    staticType: int
+  staticType: int
+V1: AssignmentExpression
+  leftHandSide: PropertyAccess
+    operator: ..
+    propertyName: SimpleIdentifier
+      token: x
+      element: <null>
+      staticType: null
+    staticType: null
+  operator: =
+  rightHandSide: IntegerLiteral
+    literal: 2
+    correspondingParameter: <testLibrary>::@class::A::@setter::x::@formalParameter::_
+    staticType: int
+  readElement: <null>
+  readType: null
+  writeElement: <testLibrary>::@class::A::@setter::x
+  writeType: num
+  element: <null>
+  staticType: int
+''');
+  }
+
+  test_propertyAccess_cascade_ifNull() async {
+    var result = await resolveTestCodeWithDiagnostics(r'''
+class A {
+  int? get x => 0;
+  set x(num _) {}
+}
+
+void f(A a) {
+  a..x ??= 2;
+}
+''');
+
+    var node = result.findNode.ifNullAssignment('x ??= 2');
+    assertResolvedNodeText(node, r'''
+IfNullAssignment
+  target: CascadePropertyAssignmentTarget
+    propertyName: x
+    read: GetterInvocationResolution
+      element: <testLibrary>::@class::A::@getter::x
+      invokeType: int? Function()
+      type: int?
+    write: SetterInvocationResolution
+      element: <testLibrary>::@class::A::@setter::x
+      acceptedType: num
+  operator: ??=
+  value: IntegerLiteral
+    literal: 2
+    correspondingParameter: <testLibrary>::@class::A::@setter::x::@formalParameter::_
+    staticType: int
+  staticType: int
+V1: AssignmentExpression
+  leftHandSide: PropertyAccess
+    operator: ..
+    propertyName: SimpleIdentifier
+      token: x
+      element: <null>
+      staticType: null
+    staticType: null
+  operator: ??=
+  rightHandSide: IntegerLiteral
+    literal: 2
+    correspondingParameter: <testLibrary>::@class::A::@setter::x::@formalParameter::_
+    staticType: int
+  readElement: <testLibrary>::@class::A::@getter::x
+  readType: int?
+  writeElement: <testLibrary>::@class::A::@setter::x
+  writeType: num
+  element: <null>
   staticType: int
 ''');
   }
@@ -3259,7 +3444,7 @@ void f(dynamic a) {
     var node = result.findNode.directAssignment('x = 2');
     assertResolvedNodeText(node, r'''
 DirectAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ParenthesizedExpression
       leftParenthesis: (
       expression2: SimpleIdentifier
@@ -3378,7 +3563,7 @@ void f(A a) {
     var node = result.findNode.compoundAssignment('x += 2');
     assertResolvedNodeText(node, r'''
 CompoundAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: IndexExpression2
       receiver: SimpleIdentifier
         token: a
@@ -3463,7 +3648,7 @@ void f(A a) {
     var node = result.findNode.compoundAssignment('x += 2');
     assertResolvedNodeText(node, r'''
 CompoundAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ParenthesizedExpression
       leftParenthesis: (
       expression2: SimpleIdentifier
@@ -3543,7 +3728,7 @@ void f(C c) {
     var node = result.findNode.compoundAssignment('x += 2');
     assertResolvedNodeText(node, r'''
 CompoundAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ParenthesizedExpression
       leftParenthesis: (
       expression2: SimpleIdentifier
@@ -3615,7 +3800,7 @@ void f(A a) {
     var node = result.findNode.ifNullAssignment('x ??= 2');
     assertResolvedNodeText(node, r'''
 IfNullAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ParenthesizedExpression
       leftParenthesis: (
       expression2: SimpleIdentifier
@@ -3683,7 +3868,7 @@ void f(A a) {
     var node = result.findNode.directAssignment('x = 2');
     assertResolvedNodeText(node, r'''
 DirectAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ParenthesizedExpression
       leftParenthesis: (
       expression2: SimpleIdentifier
@@ -3748,7 +3933,7 @@ void f(Never a) {
     var node = result.findNode.directAssignment('x = 2');
     assertResolvedNodeText(node, r'''
 DirectAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ParenthesizedExpression
       leftParenthesis: (
       expression2: SimpleIdentifier
@@ -3911,7 +4096,7 @@ void f(A a) {
     var node = result.findNode.compoundAssignment('(a).x += 2');
     assertResolvedNodeText(node, r'''
 CompoundAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ParenthesizedExpression
       leftParenthesis: (
       expression2: SimpleIdentifier
@@ -3986,7 +4171,7 @@ void f(A a) {
     var node = result.findNode.compoundAssignment('(a).x += 2');
     assertResolvedNodeText(node, r'''
 CompoundAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ParenthesizedExpression
       leftParenthesis: (
       expression2: SimpleIdentifier
@@ -4054,7 +4239,7 @@ void f(dynamic a) {
     var node = result.findNode.compoundAssignment('x += 2');
     assertResolvedNodeText(node, r'''
 CompoundAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ParenthesizedExpression
       leftParenthesis: (
       expression2: SimpleIdentifier
@@ -4118,7 +4303,7 @@ void f(dynamic a) {
     var node = result.findNode.ifNullAssignment('x ??= 2');
     assertResolvedNodeText(node, r'''
 IfNullAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ParenthesizedExpression
       leftParenthesis: (
       expression2: SimpleIdentifier
@@ -4169,6 +4354,91 @@ V1: AssignmentExpression
 ''');
   }
 
+  test_propertyAccess_parenthesized_functionCall_ifNull() async {
+    var result = await resolveTestCodeWithDiagnostics('''
+void f(void Function() a) {
+  (a).call ??= () {};
+//             ^^^^^
+// [diag.deadCode] Dead code.
+// [diag.deadNullAwareExpression] The left operand can't be null, so the right operand is never executed.
+}
+''');
+
+    var node = result.findNode.ifNullAssignment('call ??= () {}');
+    assertResolvedNodeText(node, r'''
+IfNullAssignment
+  target: ReceiverPropertyAssignmentTarget
+    receiver: ParenthesizedExpression
+      leftParenthesis: (
+      expression2: SimpleIdentifier
+        token: a
+        element: <testLibrary>::@function::f::@formalParameter::a
+        staticType: void Function()
+      rightParenthesis: )
+      staticType: void Function()
+    operator: .
+    propertyName: call
+    read: FunctionCallTearOffResolution
+      type: void Function()
+      associatedFunctionType: void Function()
+    write: InvalidNamedWriteResolution
+      acceptedType: InvalidType
+      candidates
+      recovery: <null>
+  operator: ??=
+  value: FunctionExpression
+    parameters: FormalParameterList
+      leftParenthesis: (
+      rightParenthesis: )
+    body: BlockFunctionBody
+      block: Block
+        leftBracket: {
+        rightBracket: }
+    declaredFragment: <testLibraryFragment> null@null
+      element: null@null
+        type: Never Function()
+    correspondingParameter: <null>
+    staticType: Never Function()
+  staticType: void Function()
+V1: AssignmentExpression
+  leftHandSide: PropertyAccess
+    target: ParenthesizedExpression
+      leftParenthesis: (
+      expression: SimpleIdentifier
+        token: a
+        element: <testLibrary>::@function::f::@formalParameter::a
+        staticType: void Function()
+      rightParenthesis: )
+      staticType: void Function()
+    operator: .
+    propertyName: SimpleIdentifier
+      token: call
+      element: <null>
+      staticType: null
+    staticType: null
+  operator: ??=
+  rightHandSide: FunctionExpression
+    parameters: FormalParameterList
+      leftParenthesis: (
+      rightParenthesis: )
+    body: BlockFunctionBody
+      block: Block
+        leftBracket: {
+        rightBracket: }
+    declaredFragment: <testLibraryFragment> null@null
+      element: null@null
+        type: Never Function()
+    correspondingParameter: <null>
+    staticType: Never Function()
+  readElement: <null>
+  readType: void Function()
+  writeElement: <null>
+  writeType: InvalidType
+  element: <null>
+  staticType: void Function()
+''');
+  }
+
   test_propertyAccess_parenthesized_method_ifNull() async {
     var result = await resolveTestCodeWithDiagnostics('''
 class A {
@@ -4188,7 +4458,7 @@ void f(A a) {
     var node = result.findNode.ifNullAssignment('foo ??= () {}');
     assertResolvedNodeText(node, r'''
 IfNullAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ParenthesizedExpression
       leftParenthesis: (
       expression2: SimpleIdentifier
@@ -4275,7 +4545,7 @@ void f(A<int> a) {
     var node = result.findNode.ifNullAssignment('foo ??=');
     assertResolvedNodeText(node, r'''
 IfNullAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ParenthesizedExpression
       leftParenthesis: (
       expression2: SimpleIdentifier
@@ -4352,7 +4622,7 @@ void f(Never a) {
     var node = result.findNode.compoundAssignment('x += 2');
     assertResolvedNodeText(node, r'''
 CompoundAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ParenthesizedExpression
       leftParenthesis: (
       expression2: SimpleIdentifier
@@ -4425,7 +4695,7 @@ void f(A? a, B? b) {
     var direct = result.findNode.directAssignment('(a)?.x = 1');
     assertResolvedNodeText(direct, r'''
 DirectAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ParenthesizedExpression
       leftParenthesis: (
       expression2: SimpleIdentifier
@@ -4478,7 +4748,7 @@ V1: AssignmentExpression
     var compound = result.findNode.compoundAssignment('(a)?.x += 2');
     assertResolvedNodeText(compound, r'''
 CompoundAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ParenthesizedExpression
       leftParenthesis: (
       expression2: SimpleIdentifier
@@ -4537,7 +4807,7 @@ V1: AssignmentExpression
     var ifNull = result.findNode.ifNullAssignment('(b)?.x ??= 3');
     assertResolvedNodeText(ifNull, r'''
 IfNullAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ParenthesizedExpression
       leftParenthesis: (
       expression2: SimpleIdentifier
@@ -4603,7 +4873,7 @@ void f(Null a) {
     var direct = result.findNode.directAssignment('(a)?.x = 1');
     assertResolvedNodeText(direct, r'''
 DirectAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ParenthesizedExpression
       leftParenthesis: (
       expression2: SimpleIdentifier
@@ -4654,7 +4924,7 @@ V1: AssignmentExpression
     var compound = result.findNode.compoundAssignment('(a)?.x += 2');
     assertResolvedNodeText(compound, r'''
 CompoundAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ParenthesizedExpression
       leftParenthesis: (
       expression2: SimpleIdentifier
@@ -4708,7 +4978,7 @@ V1: AssignmentExpression
     var ifNull = result.findNode.ifNullAssignment('(a)?.x ??= 3');
     assertResolvedNodeText(ifNull, r'''
 IfNullAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ParenthesizedExpression
       leftParenthesis: (
       expression2: SimpleIdentifier
@@ -4775,8 +5045,8 @@ void f(A a) {
     var node = result.findNode.directAssignment('y = 0');
     assertResolvedNodeText(node, r'''
 DirectAssignment
-  target: PropertyAssignmentTarget
-    receiver: PropertyExtraction
+  target: ReceiverPropertyAssignmentTarget
+    receiver: ReceiverPropertyExtraction
       receiver: ParenthesizedExpression
         leftParenthesis: (
         expression2: SimpleIdentifier
@@ -4857,7 +5127,7 @@ void f(({int x}) r) {
     var node = result.findNode.ifNullAssignment('x ??= 0');
     assertResolvedNodeText(node, r'''
 IfNullAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ParenthesizedExpression
       leftParenthesis: (
       expression2: SimpleIdentifier
@@ -4923,7 +5193,7 @@ void f(int a, int c) {
     var node = result.findNode.compoundAssignment('(a).b += c');
     assertResolvedNodeText(node, r'''
 CompoundAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ParenthesizedExpression
       leftParenthesis: (
       expression2: SimpleIdentifier
@@ -6090,7 +6360,7 @@ class A {
     var node = result.findNode.compoundAssignment('x += 2');
     assertResolvedNodeText(node, r'''
 CompoundAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ThisExpression
       thisKeyword: this
       staticType: A
@@ -6152,7 +6422,7 @@ class A {
     var node = result.findNode.ifNullAssignment('x ??= 2');
     assertResolvedNodeText(node, r'''
 IfNullAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ThisExpression
       thisKeyword: this
       staticType: A
@@ -6210,7 +6480,7 @@ class A {
     var node = result.findNode.directAssignment('x = 2');
     assertResolvedNodeText(node, r'''
 DirectAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ThisExpression
       thisKeyword: this
       staticType: A
@@ -6263,7 +6533,7 @@ void f(int c) {
     var node = result.findNode.directAssignment('(a).b = c');
     assertResolvedNodeText(node, r'''
 DirectAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ParenthesizedExpression
       leftParenthesis: (
       expression2: SimpleIdentifier
@@ -6329,7 +6599,7 @@ void f(int a, int c) {
     var node = result.findNode.directAssignment('(a).b = c');
     assertResolvedNodeText(node, r'''
 DirectAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ParenthesizedExpression
       leftParenthesis: (
       expression2: SimpleIdentifier
@@ -6399,7 +6669,7 @@ void f() {
     var node = result.findNode.singleDirectAssignment;
     assertResolvedNodeText(node, r'''
 DirectAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ConstructorInvocation
       keyword: new
       constructorReference: ConstructorReference2
@@ -6474,7 +6744,7 @@ void f() {
     var node = result.findNode.singleDirectAssignment;
     assertResolvedNodeText(node, r'''
 DirectAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: SimpleStringLiteral
       literal: 'a'
     operator: ?.
@@ -6529,7 +6799,7 @@ class C {
     var node = result.findNode.singleDirectAssignment;
     assertResolvedNodeText(node, r'''
 DirectAssignment
-  target: PropertyAssignmentTarget
+  target: ReceiverPropertyAssignmentTarget
     receiver: ThisExpression
       thisKeyword: this
       staticType: C

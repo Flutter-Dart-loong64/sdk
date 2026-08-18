@@ -59,6 +59,11 @@ class IncrementOrDecrementResolver {
     late TypeImpl writeAcceptedType;
     InternalVariableElement? variableElement;
     switch (target) {
+      case CascadeIndexAssignmentTargetImpl():
+      case CascadePropertyAssignmentTargetImpl():
+        throw StateError(
+          'A cascade section cannot be an increment or decrement target',
+        );
       case IndexAssignmentTargetImpl():
         var result = _assignmentResolver.resolveIndexReadWriteTarget(target);
         if (result == null) {
@@ -68,7 +73,7 @@ class IncrementOrDecrementResolver {
         }
         readType = result.read.type;
         writeAcceptedType = result.write.acceptedType;
-      case PropertyAssignmentTargetImpl():
+      case ReceiverPropertyAssignmentTargetImpl():
         var importResult = _resolveImportPrefixedPropertyTarget(target);
         if (importResult != null) {
           readType = importResult.$1;
@@ -76,7 +81,9 @@ class IncrementOrDecrementResolver {
           break;
         }
         _assignmentResolver.analyzePropertyTargetReceiver(node, target);
-        var result = _resolver.resolvePropertyReadWriteAssignmentTarget(target);
+        var result = _resolver.resolveReceiverPropertyReadWriteAssignmentTarget(
+          target,
+        );
         if (result == null) {
           node.operatorResultType = NeverTypeImpl.instance;
           node.recordStaticType(NeverTypeImpl.instance, resolver: _resolver);
@@ -225,7 +232,7 @@ class IncrementOrDecrementResolver {
   }
 
   (TypeImpl, TypeImpl)? _resolveImportPrefixedPropertyTarget(
-    PropertyAssignmentTargetImpl target,
+    ReceiverPropertyAssignmentTargetImpl target,
   ) {
     // TODO(scheglov): Fold import prefixes into the ordinary property-target
     // receiver analysis instead of resolving them through a separate path.
@@ -236,7 +243,7 @@ class IncrementOrDecrementResolver {
     }
     var prefix = receiver.scopeLookupResult!.getter as PrefixElementImpl;
     receiver.element = prefix;
-    var result = _resolver.resolvePrefixedPropertyReadWriteAssignmentTarget(
+    var result = _resolver.resolveImportPrefixedPropertyReadWriteTarget(
       target,
       prefix,
     );
@@ -254,7 +261,7 @@ class IncrementOrDecrementResolver {
     var operator = node.operator;
     var methodName = _getOperator(node);
 
-    if (node.target case PropertyAssignmentTarget(
+    if (node.target case ReceiverPropertyAssignmentTarget(
       read: ExecutableTearOffResolution(),
       write: InvalidNamedWriteResolution(),
     )) {

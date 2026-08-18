@@ -223,6 +223,70 @@ class ResolvedAstPrinter extends ThrowingAstVisitor2<void>
   }
 
   @override
+  void visitCascadeIndexAssignmentTarget(
+    covariant CascadeIndexAssignmentTargetImpl node,
+  ) {
+    _sink.writeln('CascadeIndexAssignmentTarget');
+    _sink.withIndent(() {
+      _writeNamedChildEntities(node);
+      if (_withResolution) {
+        _writeIndexReadResolution('read', node.read);
+        _writeIndexWriteResolution('write', node.write);
+      }
+    });
+  }
+
+  @override
+  void visitCascadeIndexExpression(covariant CascadeIndexExpressionImpl node) {
+    _sink.writeln('CascadeIndexExpression');
+    _sink.withIndent(() {
+      _writeNamedChildEntities(node);
+      if (_withResolution) {
+        _writeIndexReadResolution('resolution', node.resolution);
+      }
+      _writeParameterElement(node);
+      _writeType('staticType', node.staticType);
+    });
+  }
+
+  @override
+  void visitCascadePropertyAssignmentTarget(
+    covariant CascadePropertyAssignmentTargetImpl node,
+  ) {
+    _sink.writeln('CascadePropertyAssignmentTarget');
+    _sink.withIndent(() {
+      _writeNamedChildEntities(node);
+      if (_withResolution) {
+        _writeNamedReadResolution('read', node.read);
+        _writeNamedWriteResolution('write', node.write);
+      }
+    });
+  }
+
+  @override
+  void visitCascadePropertyExtraction(
+    covariant CascadePropertyExtractionImpl node,
+  ) {
+    _sink.writeln('CascadePropertyExtraction');
+    _sink.withIndent(() {
+      _writeNamedChildEntities(node);
+      _writeParameterElement(node);
+      if (_withResolution) {
+        _writeNamedReadResolution('resolution', node.resolution);
+      }
+      _writeType('staticType', node.staticType);
+    });
+  }
+
+  @override
+  void visitCascadeSection(CascadeSection node) {
+    _sink.writeln('CascadeSection');
+    _sink.withIndent(() {
+      _writeNamedChildEntities(node);
+    });
+  }
+
+  @override
   void visitCaseClause(CaseClause node) {
     _sink.writeln('CaseClause');
     _sink.withIndent(() {
@@ -1589,10 +1653,10 @@ class ResolvedAstPrinter extends ThrowingAstVisitor2<void>
   }
 
   @override
-  void visitPropertyAssignmentTarget(
-    covariant PropertyAssignmentTargetImpl node,
+  void visitReceiverPropertyAssignmentTarget(
+    covariant ReceiverPropertyAssignmentTargetImpl node,
   ) {
-    _sink.writeln('PropertyAssignmentTarget');
+    _sink.writeln('ReceiverPropertyAssignmentTarget');
     _sink.withIndent(() {
       _writeNamedChildEntities(node);
       if (_withResolution) {
@@ -1603,8 +1667,10 @@ class ResolvedAstPrinter extends ThrowingAstVisitor2<void>
   }
 
   @override
-  void visitPropertyExtraction(covariant PropertyExtractionImpl node) {
-    _sink.writeln('PropertyExtraction');
+  void visitReceiverPropertyExtraction(
+    covariant ReceiverPropertyExtractionImpl node,
+  ) {
+    _sink.writeln('ReceiverPropertyExtraction');
     _sink.withIndent(() {
       _writeNamedChildEntities(node);
       _writeParameterElement(node);
@@ -2515,6 +2581,22 @@ Expected parent: (${parent.runtimeType}) $parent
           _writeElement('element', resolution.element);
           _writeType('type', resolution.type);
         });
+      case FunctionCallTearOffResolutionImpl():
+        _sink.writelnWithIndent('$name: FunctionCallTearOffResolution');
+        _sink.withIndent(() {
+          _writeType('type', resolution.type);
+          _writeType(
+            'associatedFunctionType',
+            resolution.associatedFunctionType,
+          );
+        });
+      case FunctionInterfaceCallTearOffResolutionImpl():
+        _sink.writelnWithIndent(
+          '$name: FunctionInterfaceCallTearOffResolution',
+        );
+        _sink.withIndent(() {
+          _writeType('type', resolution.type);
+        });
       case GetterInvocationResolutionImpl():
         _sink.writelnWithIndent('$name: GetterInvocationResolution');
         _sink.withIndent(() {
@@ -2629,6 +2711,8 @@ Expected parent: (${parent.runtimeType}) $parent
             parent is BinaryExpression && parent.rightOperand2 == node ||
             parent is BinaryOperatorInvocation && parent.rightOperand == node ||
             parent is CompoundAssignment && parent.value == node ||
+            parent is CascadeIndexAssignmentTarget && parent.index == node ||
+            parent is CascadeIndexExpression && parent.index == node ||
             parent is DirectAssignment && parent.value == node ||
             parent is IfNullAssignment && parent.value == node ||
             parent is IndexAssignmentTarget && parent.index == node ||

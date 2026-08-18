@@ -7681,21 +7681,45 @@ void f() {
 CascadeExpression
   target2: SimpleIdentifier
     token: a
-  cascadeSections2
+  sections
+    CascadeSection
+      operator: ..
+      body: DirectAssignment
+        target: CascadePropertyAssignmentTarget
+          propertyName: b
+        operator: =
+        value: PatternAssignment
+          pattern: ParenthesizedPattern
+            leftParenthesis: (
+            pattern: AssignedVariablePattern
+              name: v1
+            rightParenthesis: )
+          equals: =
+          expression2: SimpleIdentifier
+            token: c
+    CascadeSection
+      body: MethodInvocation
+        operator: ..
+        methodName: SimpleIdentifier
+          token: m
+        argumentList: ArgumentList
+          leftParenthesis: (
+          rightParenthesis: )
+  cascadeSections
     AssignmentExpression
-      leftHandSide2: PropertyAccess
+      leftHandSide: PropertyAccess
         operator: ..
         propertyName: SimpleIdentifier
           token: b
       operator: =
-      rightHandSide2: PatternAssignment
+      rightHandSide: PatternAssignment
         pattern: ParenthesizedPattern
           leftParenthesis: (
           pattern: AssignedVariablePattern
             name: v1
           rightParenthesis: )
         equals: =
-        expression2: SimpleIdentifier
+        expression: SimpleIdentifier
           token: c
     MethodInvocation
       operator: ..
@@ -7752,7 +7776,16 @@ PatternAssignment
   expression2: CascadeExpression
     target2: SimpleIdentifier
       token: a
-    cascadeSections2
+    sections
+      CascadeSection
+        body: MethodInvocation
+          operator: ..
+          methodName: SimpleIdentifier
+            token: m
+          argumentList: ArgumentList
+            leftParenthesis: (
+            rightParenthesis: )
+    cascadeSections
       MethodInvocation
         operator: ..
         methodName: SimpleIdentifier

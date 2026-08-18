@@ -65,6 +65,24 @@ class ElementUsageDetector<TagInfo extends Object> {
     checkUsage(node.element, node);
   }
 
+  void cascadeIndexExpression(CascadeIndexExpression node) {
+    var element = switch (node.resolution) {
+      MethodIndexReadResolution(:var element) => element,
+      InvalidIndexReadResolution(
+        recovery: MethodIndexReadResolution(:var element),
+      ) =>
+        element,
+      _ => null,
+    };
+    checkUsage(element, node);
+  }
+
+  void cascadePropertyExtraction(CascadePropertyExtraction node) {
+    if (node.resolution case NamedReadResolutionWithElement(:var element)) {
+      checkUsage(element, node);
+    }
+  }
+
   /// Reports the usage of [element] at [node] if [element] is in
   /// any of [usagesMetadataOnly] or [usagesArbitrary].
   void checkUsage(Element? element, AstNode node) {
@@ -285,6 +303,16 @@ class ElementUsageDetector<TagInfo extends Object> {
 
   void incrementOrDecrement(IncrementOrDecrementExpressionImpl node) {
     var target = node.target;
+    if (target case CascadeIndexAssignmentTarget(
+      read: MethodIndexReadResolution(:var element),
+    )) {
+      checkUsage(element, target);
+    }
+    if (target case CascadeIndexAssignmentTarget(
+      write: MethodIndexWriteResolution(:var element),
+    )) {
+      checkUsage(element, target);
+    }
     if (target case IndexAssignmentTarget(
       read: MethodIndexReadResolution(:var element),
     )) {
@@ -552,6 +580,18 @@ class ElementUsageDetectorV2<TagInfo extends Object> {
     checkUsage(node.element, node);
   }
 
+  void cascadeIndexExpression(CascadeIndexExpression node) {
+    var element = switch (node.resolution) {
+      MethodIndexReadResolution(:var element) => element,
+      InvalidIndexReadResolution(
+        recovery: MethodIndexReadResolution(:var element),
+      ) =>
+        element,
+      _ => null,
+    };
+    checkUsage(element, node);
+  }
+
   /// Reports the usage of [element] at [node] if [element] is in
   /// any of [usagesMetadataOnly] or [usagesArbitrary].
   void checkUsage(Element? element, AstNode node) {
@@ -682,6 +722,16 @@ class ElementUsageDetectorV2<TagInfo extends Object> {
 
   void compoundAssignment(CompoundAssignment node) {
     var target = node.target;
+    if (target case CascadeIndexAssignmentTarget(
+      read: MethodIndexReadResolution(:var element),
+    )) {
+      checkUsage(element, target);
+    }
+    if (target case CascadeIndexAssignmentTarget(
+      write: MethodIndexWriteResolution(:var element),
+    )) {
+      checkUsage(element, target);
+    }
     if (target case IndexAssignmentTarget(
       read: MethodIndexReadResolution(:var element),
     )) {
@@ -744,6 +794,11 @@ class ElementUsageDetectorV2<TagInfo extends Object> {
 
   void directAssignment(DirectAssignment node) {
     var target = node.target;
+    if (target case CascadeIndexAssignmentTarget(
+      write: MethodIndexWriteResolution(:var element),
+    )) {
+      checkUsage(element, target);
+    }
     if (target case IndexAssignmentTarget(
       write: MethodIndexWriteResolution(:var element),
     )) {
@@ -843,6 +898,16 @@ class ElementUsageDetectorV2<TagInfo extends Object> {
 
   void ifNullAssignment(IfNullAssignment node) {
     var target = node.target;
+    if (target case CascadeIndexAssignmentTarget(
+      read: MethodIndexReadResolution(:var element),
+    )) {
+      checkUsage(element, target);
+    }
+    if (target case CascadeIndexAssignmentTarget(
+      write: MethodIndexWriteResolution(:var element),
+    )) {
+      checkUsage(element, target);
+    }
     if (target case IndexAssignmentTarget(
       read: MethodIndexReadResolution(:var element),
     )) {
@@ -869,6 +934,16 @@ class ElementUsageDetectorV2<TagInfo extends Object> {
 
   void incrementOrDecrement(IncrementOrDecrementExpressionImpl node) {
     var target = node.target;
+    if (target case CascadeIndexAssignmentTarget(
+      read: MethodIndexReadResolution(:var element),
+    )) {
+      checkUsage(element, target);
+    }
+    if (target case CascadeIndexAssignmentTarget(
+      write: MethodIndexWriteResolution(:var element),
+    )) {
+      checkUsage(element, target);
+    }
     if (target case IndexAssignmentTarget(
       read: MethodIndexReadResolution(:var element),
     )) {

@@ -87,16 +87,48 @@ class SdkConstraintVerifier extends RecursiveAstVisitor2<void> {
   }
 
   @override
+  void visitCascadeIndexExpression(CascadeIndexExpression node) {
+    var element = switch (node.resolution) {
+      MethodIndexReadResolution(:var element) => element,
+      InvalidIndexReadResolution(
+        recovery: MethodIndexReadResolution(:var element),
+      ) =>
+        element,
+      _ => null,
+    };
+    _checkSinceSdkVersion(element, node);
+    super.visitCascadeIndexExpression(node);
+  }
+
+  @override
+  void visitCascadePropertyExtraction(CascadePropertyExtraction node) {
+    var element = switch (node.resolution) {
+      NamedReadResolutionWithElement(:var element) => element,
+      _ => null,
+    };
+    _checkSinceSdkVersion(element, node, errorEntity: node.propertyName);
+    super.visitCascadePropertyExtraction(node);
+  }
+
+  @override
   void visitCompoundAssignment(CompoundAssignment node) {
     var target = node.target;
-    if (target case IndexAssignmentTarget(
-      read: MethodIndexReadResolution(:var element),
-    )) {
+    if (target
+        case IndexAssignmentTarget(
+              read: MethodIndexReadResolution(:var element),
+            ) ||
+            CascadeIndexAssignmentTarget(
+              read: MethodIndexReadResolution(:var element),
+            )) {
       _checkSinceSdkVersion(element, target);
     }
-    if (target case IndexAssignmentTarget(
-      write: MethodIndexWriteResolution(:var element),
-    )) {
+    if (target
+        case IndexAssignmentTarget(
+              write: MethodIndexWriteResolution(:var element),
+            ) ||
+            CascadeIndexAssignmentTarget(
+              write: MethodIndexWriteResolution(:var element),
+            )) {
       _checkSinceSdkVersion(element, target);
     }
     var read = switch (target) {
@@ -155,9 +187,13 @@ class SdkConstraintVerifier extends RecursiveAstVisitor2<void> {
   @override
   void visitDirectAssignment(DirectAssignment node) {
     var target = node.target;
-    if (target case IndexAssignmentTarget(
-      write: MethodIndexWriteResolution(:var element),
-    )) {
+    if (target
+        case IndexAssignmentTarget(
+              write: MethodIndexWriteResolution(:var element),
+            ) ||
+            CascadeIndexAssignmentTarget(
+              write: MethodIndexWriteResolution(:var element),
+            )) {
       _checkSinceSdkVersion(element, target);
     }
     var write = switch (target) {
@@ -193,14 +229,22 @@ class SdkConstraintVerifier extends RecursiveAstVisitor2<void> {
   @override
   void visitIfNullAssignment(IfNullAssignment node) {
     var target = node.target;
-    if (target case IndexAssignmentTarget(
-      read: MethodIndexReadResolution(:var element),
-    )) {
+    if (target
+        case IndexAssignmentTarget(
+              read: MethodIndexReadResolution(:var element),
+            ) ||
+            CascadeIndexAssignmentTarget(
+              read: MethodIndexReadResolution(:var element),
+            )) {
       _checkSinceSdkVersion(element, target);
     }
-    if (target case IndexAssignmentTarget(
-      write: MethodIndexWriteResolution(:var element),
-    )) {
+    if (target
+        case IndexAssignmentTarget(
+              write: MethodIndexWriteResolution(:var element),
+            ) ||
+            CascadeIndexAssignmentTarget(
+              write: MethodIndexWriteResolution(:var element),
+            )) {
       _checkSinceSdkVersion(element, target);
     }
     if (target is UnqualifiedNameAssignmentTarget) {
@@ -277,13 +321,13 @@ class SdkConstraintVerifier extends RecursiveAstVisitor2<void> {
   }
 
   @override
-  void visitPropertyExtraction(PropertyExtraction node) {
+  void visitReceiverPropertyExtraction(ReceiverPropertyExtraction node) {
     var element = switch (node.resolution) {
       NamedReadResolutionWithElement(:var element) => element,
       _ => null,
     };
     _checkSinceSdkVersion(element, node);
-    super.visitPropertyExtraction(node);
+    super.visitReceiverPropertyExtraction(node);
   }
 
   @override

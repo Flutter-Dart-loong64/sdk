@@ -12,11 +12,13 @@ import 'package:analyzer/dart/element/type_system.dart';
 import 'package:analyzer/src/dart/ast/ast.dart'
     show
         AssignmentTargetImpl,
+        CascadeIndexAssignmentTargetImpl,
+        CascadePropertyAssignmentTargetImpl,
         GetterInvocationResolutionImpl,
         IndexAssignmentTargetImpl,
         InvalidExpressionAssignmentTargetImpl,
-        PropertyAssignmentTargetImpl,
-        PropertyExtractionImpl,
+        ReceiverPropertyAssignmentTargetImpl,
+        ReceiverPropertyExtractionImpl,
         UnqualifiedNameAssignmentTargetImpl;
 import 'package:analyzer/src/dart/element/inheritance_manager3.dart';
 import 'package:analyzer/src/wolf/ir/call_descriptor.dart';
@@ -157,7 +159,9 @@ class _AstToIRVisitor extends ThrowingAstVisitor2<_LValueTemplates> {
   _LValueTemplates dispatchAssignmentTarget(AssignmentTarget target) =>
       switch (target) {
         IndexAssignmentTarget() => _indexAssignmentTarget(target),
-        PropertyAssignmentTarget() => _propertyAssignmentTarget(target),
+        ReceiverPropertyAssignmentTarget() => _receiverPropertyAssignmentTarget(
+          target,
+        ),
         UnqualifiedNameAssignmentTarget() => _unqualifiedNameAssignmentTarget(
           target,
         ),
@@ -470,12 +474,16 @@ class _AstToIRVisitor extends ThrowingAstVisitor2<_LValueTemplates> {
     var target = node.target as AssignmentTargetImpl;
     late _LValueTemplates lValueTemplates;
     switch (target) {
+      case CascadeIndexAssignmentTargetImpl():
+        throw UnimplementedError('Cascade index assignment target');
+      case CascadePropertyAssignmentTargetImpl():
+        throw UnimplementedError('Cascade property assignment target');
       case IndexAssignmentTargetImpl():
         lValueTemplates = _indexAssignmentTarget(target);
       case InvalidExpressionAssignmentTargetImpl():
         throw UnimplementedError('Invalid expression assignment target');
-      case PropertyAssignmentTargetImpl():
-        lValueTemplates = _propertyAssignmentTarget(target);
+      case ReceiverPropertyAssignmentTargetImpl():
+        lValueTemplates = _receiverPropertyAssignmentTarget(target);
       case UnqualifiedNameAssignmentTargetImpl():
         lValueTemplates = _unqualifiedNameAssignmentTarget(target);
     }
@@ -536,12 +544,16 @@ class _AstToIRVisitor extends ThrowingAstVisitor2<_LValueTemplates> {
     var target = node.target as AssignmentTargetImpl;
     late _LValueTemplates lValueTemplates;
     switch (target) {
+      case CascadeIndexAssignmentTargetImpl():
+        throw UnimplementedError('Cascade index assignment target');
+      case CascadePropertyAssignmentTargetImpl():
+        throw UnimplementedError('Cascade property assignment target');
       case IndexAssignmentTargetImpl():
         lValueTemplates = _indexAssignmentTarget(target);
       case InvalidExpressionAssignmentTargetImpl():
         throw UnimplementedError('Invalid expression assignment target');
-      case PropertyAssignmentTargetImpl():
-        lValueTemplates = _propertyAssignmentTarget(target);
+      case ReceiverPropertyAssignmentTargetImpl():
+        lValueTemplates = _receiverPropertyAssignmentTarget(target);
       case UnqualifiedNameAssignmentTargetImpl():
         lValueTemplates = _unqualifiedNameAssignmentTarget(target);
     }
@@ -721,12 +733,16 @@ class _AstToIRVisitor extends ThrowingAstVisitor2<_LValueTemplates> {
     var target = node.target as AssignmentTargetImpl;
     late _LValueTemplates lValueTemplates;
     switch (target) {
+      case CascadeIndexAssignmentTargetImpl():
+        throw UnimplementedError('Cascade index assignment target');
+      case CascadePropertyAssignmentTargetImpl():
+        throw UnimplementedError('Cascade property assignment target');
       case IndexAssignmentTargetImpl():
         lValueTemplates = _indexAssignmentTarget(target);
       case InvalidExpressionAssignmentTargetImpl():
         throw UnimplementedError('Invalid expression assignment target');
-      case PropertyAssignmentTargetImpl():
-        lValueTemplates = _propertyAssignmentTarget(target);
+      case ReceiverPropertyAssignmentTargetImpl():
+        lValueTemplates = _receiverPropertyAssignmentTarget(target);
       case UnqualifiedNameAssignmentTargetImpl():
         lValueTemplates = _unqualifiedNameAssignmentTarget(target);
     }
@@ -1017,8 +1033,8 @@ class _AstToIRVisitor extends ThrowingAstVisitor2<_LValueTemplates> {
   }
 
   @override
-  _LValueTemplates visitPropertyExtraction(
-    covariant PropertyExtractionImpl node,
+  _LValueTemplates visitReceiverPropertyExtraction(
+    covariant ReceiverPropertyExtractionImpl node,
   ) {
     var previousNestingLevel = ir.nestingLevel;
     dispatchNode(node.receiver, terminateNullShorting: false);
@@ -1207,7 +1223,9 @@ class _AstToIRVisitor extends ThrowingAstVisitor2<_LValueTemplates> {
     );
   }
 
-  _LValueTemplates _propertyAssignmentTarget(PropertyAssignmentTarget node) {
+  _LValueTemplates _receiverPropertyAssignmentTarget(
+    ReceiverPropertyAssignmentTarget node,
+  ) {
     var previousNestingLevel = ir.nestingLevel;
     dispatchNode(node.receiver, terminateNullShorting: false);
     if (node.operator.type == TokenType.QUESTION_PERIOD) {
