@@ -631,12 +631,11 @@ VirtualMemory* VirtualMemory::AllocateAligned(intptr_t size,
 #endif
 
   int map_flags = MAP_PRIVATE | MAP_ANONYMOUS;
-#if (defined(DART_HOST_OS_MACOS) && !defined(DART_HOST_OS_IOS))
-  if (is_executable && IsAtLeastMacOSX10_14() &&
-      !ShouldDualMapExecutablePages()) {
+#if defined(DART_HOST_OS_MACOS) && !defined(DART_HOST_OS_IOS)
+  if (is_executable && !ShouldDualMapExecutablePages()) {
     map_flags |= MAP_JIT;
   }
-#endif  // defined(DART_HOST_OS_MACOS)
+#endif  // defined(DART_HOST_OS_MACOS) && !defined(DART_HOST_OS_IOS)
 
   void* hint = nullptr;
   // Some 64-bit microarchitectures store only the low 32-bits of targets as
@@ -702,6 +701,53 @@ VirtualMemory* VirtualMemory::AllocateAligned(intptr_t size,
 #define PR_SET_VMA_ANON_NAME 0
 #endif
   prctl(PR_SET_VMA, PR_SET_VMA_ANON_NAME, address, size, name);
+#endif
+
+  MemoryRegion region(reinterpret_cast<void*>(address), size);
+  return new VirtualMemory(region, region);
+}
+
+VirtualMemory* VirtualMemory::AllocateMTE(intptr_t size, const char* name) {
+  ASSERT(Utils::IsAligned(size, PageSize()));
+
+#if defined(DART_HOST_OS_MACOS)
+#if !defined(VM_FLAGS_MTE)
+#define VM_FLAGS_MTE 0x2000
+#endif
+  vm_address_t address = 0;
+  kern_return_t result =
+      vm_map(mach_task_self(), &address, size, /*mask*/ 0,
+             VM_FLAGS_ANYWHERE | VM_FLAGS_MTE, MEMORY_OBJECT_NULL,
+             /*offset*/ 0, /*copy*/ FALSE,
+             /*current*/ VM_PROT_READ | VM_PROT_WRITE,
+             /*max*/ VM_PROT_READ | VM_PROT_WRITE, VM_INHERIT_NONE);
+  if (result != KERN_SUCCESS) {
+    return nullptr;
+  }
+#else
+  int prot = PROT_READ | PROT_WRITE;
+#if defined(HOST_ARCH_ARM64)
+#if !defined(PROT_MTE)
+#define PROT_MTE 0x20
+#endif
+  prot = prot | PROT_MTE;
+#endif
+
+  void* address = mmap(nullptr, size, prot, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+  if (address == MAP_FAILED) {
+    return nullptr;
+  }
+
+#if defined(DART_HOST_OS_ANDROID) || defined(DART_HOST_OS_LINUX)
+#if !defined(PR_SET_VMA)
+#define PR_SET_VMA 0x53564d41
+#endif
+#if !defined(PR_SET_VMA_ANON_NAME)
+#define PR_SET_VMA_ANON_NAME 0
+#endif
+  prctl(PR_SET_VMA, PR_SET_VMA_ANON_NAME, address, size, name);
+#endif
+
 #endif
 
   MemoryRegion region(reinterpret_cast<void*>(address), size);
