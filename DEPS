@@ -60,7 +60,7 @@ vars = {
 
   # co19 is a cipd package automatically generated for each co19 commit.
   # Use tests/co19/update.sh to update this hash.
-  "co19_rev": "1df420e536b47ee82c8c4e418af4f1b078b236cb",
+  "co19_rev": "8bca7fe6103299fe07f959a816271c5421d553d9",
 
   # The internal benchmarks to use. See go/dart-benchmarks-internal
   "benchmarks_internal_rev": "02b00ba22d77dc489e481c33b279edf5d008e0cd",
@@ -124,7 +124,7 @@ vars = {
   # well so that the format presubmit check uses the same style as the repo.
   #
   # See: https://github.com/dart-lang/dart_style/wiki/Release-process
-  "dart_style_rev": "dfdf6420c7ea923d28edef3f11e89b4ff23d03bf", # rolled manually
+  "dart_style_rev": "39edc2d946a5d7bd1caf6f1695f366b00f7b873c", # rolled manually
 
   ### /third_party/pkg dependencies
   # 'tools/rev_sdk_deps.dart' will rev pkg dependencies to their latest; put an
@@ -137,7 +137,7 @@ vars = {
   "i18n_rev": "2fd9412c87f0cd3c6f018db6b2f888010c281356",
   "leak_tracker_rev": "f5620600a5ce1c44f65ddaa02001e200b096e14c", # rolled manually
   "material_color_utilities_rev": "799b6ba2f3f1c28c67cc7e0b4f18e0c7d7f3c03e",
-  "native_rev": "d196dea41ad2a901a6734066e2c73002a02f9fd5",
+  "native_rev": "057ba8856b8ed2135c549a27719884fd9c7f2ed1",
   "protobuf_rev": "91efb90f437bb6a30e6726c3369a2fcb9bba06e7",
   "pub_rev": "7654d523a42e764fad77c9e7b63a9686b88c9323", # rolled manually
   "shelf_rev": "fb3f931d2c158d794e83c1b76b7be4b625db3c28",
@@ -159,20 +159,20 @@ vars = {
   # meant to be downloaded by users for local testing. You can self-service
   # update these by following the go/dart-engprod/browsers.md instructions.
   "download_chrome": False,
-  "chrome_tag": "152.0.7977.13",
+  "chrome_tag": "153.0.8010.5",
   "download_firefox": False,
-  "firefox_tag": "153.0",
+  "firefox_tag": "154.0",
 
   # Emscripten is used in dart2wasm tests.
   "download_emscripten": False,
   "emsdk_rev": "e41b8c68a248da5f18ebd03bd0420953945d52ff",
   "emsdk_ver": "3.1.3",
-  "build_devtools_from_sources": False,
+  "build_devtools_from_source": False,
 }
 
 gclient_gn_args_file = Var("dart_root") + '/build/config/gclient_args.gni'
 gclient_gn_args = [
-  "build_devtools_from_sources"
+  "build_devtools_from_source"
 ]
 
 deps = {
@@ -254,7 +254,7 @@ deps = {
   Var("dart_root") + "/third_party/devtools_src": {
       "url": Var("dart_git") + "external/github.com/flutter/devtools.git" +
       "@" + Var("devtools_rev"),
-      "condition": "build_devtools_from_sources",
+      "condition": "build_devtools_from_source",
   },
   Var("dart_root") + "/tests/co19/src": {
       "packages": [{
@@ -305,7 +305,7 @@ deps = {
   Var("dart_root") + "/third_party/flutter": {
       "url": Var("dart_git") + "external/github.com/flutter/flutter.git" +
       "@" + Var("flutter_rev"),
-      "condition": "build_devtools_from_sources",
+      "condition": "build_devtools_from_source",
   },
 
   Var("dart_root") + "/third_party/jinja2":
@@ -505,7 +505,7 @@ deps = {
         "version": "version:" + Var("chrome_tag"),
       }
     ],
-    "condition": "download_chrome",
+    "condition": "download_chrome or build_devtools_from_source",
     "dep_type": "cipd",
   },
 
