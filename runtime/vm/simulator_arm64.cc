@@ -1813,7 +1813,46 @@ void Simulator::DoRedirectedFfiCall(Instr* instr) {
 #endif
 }
 
+struct CallbackContext {
+  uword integer_arguments[8];
+  uword double_arguments[8];
+  uword r8;
+  uword sp;
+};
+
 #if defined(SIMULATOR_FFI) && defined(HOST_ARCH_ARM64)
+
+extern "C" void DoRedirectedFfiCallback(CallbackContext* ctxt,
+                                        uword trampoline) {
+  // Assumptions in ffi_trampolines_arm64.S
+  COMPILE_ASSERT(sizeof(CallbackContext) == 144);
+  COMPILE_ASSERT(FfiCallbackMetadata::kDoRedirectedFfiCallback == 1);
+#if defined(DART_TARGET_OS_FUCHSIA)
+  COMPILE_ASSERT(FfiCallbackMetadata::kPageSize == 4 * KB);
+  COMPILE_ASSERT(FfiCallbackMetadata::NumCallbackTrampolinesPerPage() == 483);
+#elif defined(DART_TARGET_OS_MACOS)
+  COMPILE_ASSERT(FfiCallbackMetadata::kPageSize == 16 * KB);
+  COMPILE_ASSERT(FfiCallbackMetadata::NumCallbackTrampolinesPerPage() == 2013);
+#else
+  COMPILE_ASSERT(FfiCallbackMetadata::kPageSize == 64 * KB);
+  COMPILE_ASSERT(FfiCallbackMetadata::NumCallbackTrampolinesPerPage() == 8157);
+#endif
+
+  CallbackMetadata out;
+  Thread* thread = DLRT_GetFfiCallbackMetadata(trampoline, &out);
+  if (thread == nullptr) {
+    // If GetFfiCallbackMetadata returned a null thread, it means that the async
+    // callback was invoked after it was deleted. In this case, do nothing.
+    return;
+  }
+
+  Simulator* sim = Simulator::Current();
+  ASSERT(sim != nullptr);
+  sim->DoRedirectedFfiCallback(thread, ctxt, &out);
+}
+
+#endif  // defined(SIMULATOR_FFI) && defined(HOST_ARCH_ARM64)
+
 // Compare FfiCallbackTrampolineStub.
 void Simulator::DoRedirectedFfiCallback(Thread* thread,
                                         CallbackContext* ctxt,
@@ -1890,7 +1929,6 @@ void Simulator::DoRedirectedFfiCallback(Thread* thread,
   auto epilogue = reinterpret_cast<void* (*)(Thread*)>(out->epilogue);
   epilogue(thread);
 }
-#endif  // defined(SIMULATOR_FFI) && defined(HOST_ARCH_ARM64)
 
 void Simulator::ClobberVolatileRegisters() {
   // Clear atomic reservation.
@@ -3653,6 +3691,16 @@ void Simulator::DecodeDPSimd1(Instr* instr) {
       uint32_t sum = 0;
       for (int i = 0; i < lanes; i++) {
         sum += in[i];
+      }
+      set_vregisterd(vd, 0, static_cast<int64_t>(sum));
+      set_vregisterd(vd, 1, 0);
+      return;
+    }
+    if ((sz == 2) && (Q == 1)) {
+      // Format(instr, "vuaddlv 'dd, 'vn.4S");
+      uint64_t sum = 0;
+      for (int i = 0; i < 4; i++) {
+        sum += static_cast<uint32_t>(get_vregisters(vn, i));
       }
       set_vregisterd(vd, 0, static_cast<int64_t>(sum));
       set_vregisterd(vd, 1, 0);
