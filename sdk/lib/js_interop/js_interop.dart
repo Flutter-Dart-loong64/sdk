@@ -245,7 +245,17 @@ external JSObjectType _createObjectLiteral();
 /// JavaScript side.
 @JS('Function')
 extension type JSFunction<T extends Function>._(JSFunctionType _jsFunction)
-    implements JSObject, JSFunctionType {}
+    implements JSObject, JSFunctionType {
+  /// The number of arguments declared for this function.
+  @Since('3.14')
+  external int get length;
+
+  /// The name used when declaring this function.
+  ///
+  /// Anonymous functions' names are empty strings.
+  @Since('3.14')
+  external String get name;
+}
 
 /// A JavaScript function created from a Dart function.
 ///
@@ -515,6 +525,14 @@ extension type JSArray<T extends JSAny?>._(JSArrayType _jsArray)
   /// JavaScript iterable or array-like object.
   @Since('3.6')
   external static JSArray<T> from<T extends JSAny>(JSObject arrayLike);
+
+  /// Creates a new, shallow-copied JavaScript `Array` instance from an
+  /// JavaScript asynchronous iterable or array-like object that may contain
+  /// JavaScript promises.
+  @Since('3.14')
+  external static JSPromise<JSArray<T>> fromAsync<T extends JSAny>(
+    JSObject arrayLike,
+  );
 
   /// The length in elements of this `Array`.
   @Since('3.6')

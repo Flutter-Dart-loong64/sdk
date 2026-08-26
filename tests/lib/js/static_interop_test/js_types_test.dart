@@ -230,7 +230,7 @@ void syncTests() {
     globalThis.obj = {
       'foo': 'bar',
     };
-    globalThis.fun = function(a, b) {
+    globalThis.fun = function fun(a, b) {
       return globalThis.edf(a, b);
     }
     globalThis.nullAny = null;
@@ -253,6 +253,8 @@ void syncTests() {
   // [JSFunction]
   Expect.isTrue(fun is JSFunction);
   Expect.isTrue(confuse(fun) is JSFunction);
+  Expect.equals(2, fun.length);
+  Expect.equals('fun', fun.name);
 
   // [JSExportedDartFunction] <-> [Function]
   final dartFunction = (JSString a, JSString b) {
@@ -984,6 +986,13 @@ Future<void> asyncTests() async {
       return Promise.reject(rejectWithNull ? null : undefined);
     }
   ''');
+
+  // [JSArray.fromAsync]
+  final arrN = await JSArray.fromAsync<JSNumber>(
+    [Future.value(1.toJS).toJS].toJS,
+  ).toDart;
+  Expect.equals(1, arrN.length);
+  Expect.equals(1, arrN[0].toDartInt);
 
   // [JSPromise] -> [Future].
   // Test resolution.
