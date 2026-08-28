@@ -36,6 +36,7 @@ library;
 
 import 'dart:_internal' show Since;
 import 'dart:_js_types';
+import 'dart:async';
 import 'dart:js_interop_unsafe';
 import 'dart:typed_data';
 
@@ -575,6 +576,26 @@ extension type JSArray<T extends JSAny?>._(JSArrayType _jsArray)
 extension type JSPromise<T extends JSAny?>._(JSPromiseType _jsPromise)
     implements JSObject, JSPromiseType {
   external JSPromise(JSFunction executor);
+
+  /// Returns a promise that resolves to [value].
+  ///
+  /// Throws an [ArgumentError] if [value] is already a [JSPromise].
+  @Since('3.14')
+  static JSPromise<T> resolve<T extends JSAny?>(T value) =>
+      value.isA<JSPromise>()
+      ? throw ArgumentError.value(
+          value,
+          'value',
+          'JSPromise passed to JSPromise.resolve()',
+        )
+      : _resolve<T>(value);
+
+  @JS('resolve')
+  external static JSPromise<T> _resolve<T extends JSAny?>(T value);
+
+  /// Returns a promise that rejects with [reason].
+  @Since('3.14')
+  external static JSPromise<Null> reject(JSAny reason);
 }
 
 /// Exception for when a [JSPromise] that is converted via
@@ -1327,6 +1348,17 @@ extension JSPromiseToFuture<T extends JSAny?> on JSPromise<T> {
   external Future<T> get toDart;
 }
 
+/// Conversions from [JSAny] to [FutureOr].
+@Since('3.14')
+extension JSAnyToFutureOr on JSAny? {
+  /// If this is a [JSPromise], returns it as a [Future].
+  ///
+  /// Otherwise, returns it as-is.
+  FutureOr<JSAny?> get toDartFutureOr => (this?.isA<JSPromise>() ?? false)
+      ? (this as JSPromise<JSAny?>).toDart
+      : this;
+}
+
 JSAny _convertError(Object error, StackTrace stackTrace) {
   if (error.isA<JSAny>()) return error as JSAny;
   final errorConstructor = globalContext['Error'] as JSFunction;
@@ -1391,6 +1423,32 @@ extension FutureOfVoidToJSPromise on Future<void> {
       }.toJS,
     );
   }
+}
+
+/// Conversions from [FutureOr] with a nullable value to [JSAny].
+@Since('3.14')
+extension FutureOrToNullableJSAny<T extends JSAny?> on FutureOr<T> {
+  /// Converts this value to a [JSPromise] or a synchronous value.
+  ///
+  /// If this is a [Future], it's converted to a [JSPromise]. Otherwise, it
+  /// returns this as-is.
+  JSAny? get toJSPromiseOrValue => switch (this) {
+    Future<T> future => future.toJS,
+    _ => this as JSAny?,
+  };
+}
+
+/// Conversions from [FutureOr] with a non-nullable value to [JSAny].
+@Since('3.14')
+extension FutureOrToJSAny<T extends JSAny> on FutureOr<T> {
+  /// Converts this value to a [JSPromise] or a synchronous value.
+  ///
+  /// If this is a [Future], it's converted to a [JSPromise]. Otherwise, it
+  /// returns this as-is.
+  JSAny get toJSPromiseOrValue => switch (this) {
+    Future<T> future => future.toJS,
+    _ => this as JSAny,
+  };
 }
 
 /// Conversions from [JSArrayBuffer] to [ByteBuffer].

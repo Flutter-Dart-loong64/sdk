@@ -2,8 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-import 'package:analysis_server/src/services/correction/assist_internal.dart';
-import 'package:analysis_server/src/services/correction/fix_internal.dart';
 import 'package:analyzer/dart/analysis/features.dart';
 import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer/dart/analysis/session.dart';
@@ -21,7 +19,6 @@ import 'package:analyzer_testing/experiments/experiments.dart';
 import 'package:analyzer_testing/mock_packages/mock_packages.dart';
 import 'package:analyzer_testing/resource_provider_mixin.dart';
 import 'package:analyzer_testing/utilities/utilities.dart';
-import 'package:linter/src/rules.dart';
 import 'package:meta/meta.dart';
 
 class AbstractContextTest
@@ -32,9 +29,7 @@ class AbstractContextTest
   /// implementation are still fully verified.
   static final MemoryByteStore _sharedByteStore = MemoryByteStore();
 
-  static bool _lintRulesAreRegistered = false;
-
-  final ByteStore byteStore = _sharedByteStore;
+  final ByteStore _byteStore = _sharedByteStore;
 
   final Map<String, String> _declaredVariables = {};
   AnalysisContextCollectionImpl? _analysisContextCollection;
@@ -89,15 +84,6 @@ class AbstractContextTest
   String get workspaceRootPath => '/home';
 
   List<String> get _collectionIncludedPaths => [workspaceRootPath];
-
-  Future<void> analyzeTestPackageFiles() async {
-    var analysisContext = contextFor(testFile);
-    var files = analysisContext.contextRoot.analyzedFiles().toList();
-    for (var path in files) {
-      await analysisContext.applyPendingFileChanges();
-      await analysisContext.currentSession.getResolvedUnit(path);
-    }
-  }
 
   /// Returns the existing analysis context that should be used to analyze the
   /// given [file], or throw [StateError] if the [file] is not analyzed in any
@@ -158,13 +144,6 @@ class AbstractContextTest
 
   @mustCallSuper
   void setUp() {
-    if (!_lintRulesAreRegistered) {
-      registerLintRules();
-      _lintRulesAreRegistered = true;
-      registerBuiltInAssistGenerators();
-      registerBuiltInFixGenerators();
-    }
-
     createMockSdk(resourceProvider: resourceProvider, root: sdkRoot);
 
     writeTestPackageConfig2();
@@ -217,7 +196,7 @@ class AbstractContextTest
     }
 
     _analysisContextCollection = AnalysisContextCollectionImpl(
-      byteStore: byteStore,
+      byteStore: _byteStore,
       declaredVariables: _declaredVariables,
       enableIndex: true,
       includedPaths: _collectionIncludedPaths.map(convertPath).toList(),
